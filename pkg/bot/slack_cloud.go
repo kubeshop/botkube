@@ -550,7 +550,7 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 	var file *slack.File
 	var err error
 	if len(markdown) >= slackMaxMessageSize {
-		file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
+		file, err = b.uploadFileToSlack(ctx, event, resp)
 		if err != nil {
 			return err
 		}
@@ -578,10 +578,6 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 		b.renderer.RenderInteractiveMessage(resp),
 	}
 
-	if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
-		options = append(options, ts)
-	}
-
 	if resp.ReplaceOriginal && event.ResponseURL != "" {
 		options = append(options, slack.MsgOptionReplaceOriginal(event.ResponseURL))
 	}
@@ -591,6 +587,10 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
 	} else {
+		if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
+			options = append(options, ts)
+		}
+
 		if _, _, err := b.client.PostMessageContext(ctx, event.Channel, options...); err != nil {
 			return fmt.Errorf("while posting Slack message: %w", err)
 		}
@@ -598,6 +598,24 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 
 	b.log.Debugf("Message successfully sent to channel %q", event.Channel)
 	return nil
+}
+
+func (b *CloudSlack) uploadFileToSlack(ctx context.Context, event slackMessage, resp interactive.CoreMessage) (*slack.File, error) {
+	params := slack.FileUploadParameters{
+		Filename:        "Response.txt",
+		Title:           "Response.txt",
+		InitialComment:  resp.Description,
+		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
+		Channels:        []string{event.Channel},
+		ThreadTimestamp: event.GetTimestamp(),
+	}
+
+	file, err := b.client.UploadFileContext(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("while uploading file: %w", err)
+	}
+
+	return file, nil
 }
 
 func (b *CloudSlack) findAndTrimBotMention(msg string) (string, bool) {
@@ -619,20 +637,17 @@ func (b *CloudSlack) BotName() string {
 }
 
 func (b *CloudSlack) getThreadOptionIfNeeded(event slackMessage, file *slack.File) slack.MsgOption {
-	//if the message is from thread then add an option to return the response to the thread
-	if event.ThreadTimeStamp != "" {
-		return slack.MsgOptionTS(event.ThreadTimeStamp)
-	}
-
-	if file == nil {
-		return nil
-	}
-
-	// If the message was already as a file attachment, reply it a given thread
-	for _, share := range file.Shares.Public {
-		if len(share) >= 1 && share[0].Ts != "" {
-			return slack.MsgOptionTS(share[0].Ts)
+	if file != nil {
+		// If the message was already as a file attachment, reply it a given thread
+		for _, share := range file.Shares.Public {
+			if len(share) >= 1 && share[0].Ts != "" {
+				return slack.MsgOptionTS(share[0].Ts)
+			}
 		}
+	}
+
+	if ts := event.GetTimestamp(); ts != "" {
+		return slack.MsgOptionTS(ts)
 	}
 
 	return nil

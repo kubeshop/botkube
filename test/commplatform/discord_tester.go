@@ -446,3 +446,8 @@ func (d *DiscordTester) findUserID(t *testing.T, name string) string {
 func (d *DiscordTester) ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string) {
 	msg.ReplaceBotNamePlaceholder(d.BotName())
 }
+
+// OnChannel assertion is the default mode for Discord, no action needed.
+func (d *DiscordTester) OnChannel() BotDriver {
+	return d
+}

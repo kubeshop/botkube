@@ -71,7 +71,6 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ matrix.image-version }}
           IMAGE_TAG: ${{ matrix.image-version }}
 
-
   integration-tests:
     if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
     name: Integration tests
@@ -96,12 +95,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: 'go.mod'
-          cache: true
 
       - name: Setup Go modules
         uses: ./.github/actions/setup-go-mod-private
@@ -298,14 +291,14 @@ jobs:
         uses: ./.github/actions/cloud-slack-e2e
         with:
           access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
-          
+
           slack_workspace_name: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
           slack_email: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
           slack_password: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
           slack_bot_display_name: "BotkubeDev"
           slack_tester_bot_token: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
           slack_tester_bot_name: "botkubedev"
-            
+
           botkube_cloud_api_base_url: "https://api-dev.botkube.io"
           botkube_cloud_email: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
           botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}

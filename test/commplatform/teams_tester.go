@@ -395,6 +395,11 @@ func (s *TeamsTester) AssertEquals(expectedMsg string) MessageAssertion {
 	}
 }
 
+// OnChannel assertion is the default mode for Teams, no action needed.
+func (s *TeamsTester) OnChannel() BotDriver {
+	return s
+}
+
 // NormalizeTeamsWhitespacesInMessages normalizes messages, as the Teams renderer uses different line breaks in order to make the message
 // more readable. It's hard to come up with a single message that matches all our communication platforms so
 // this makes sure that we're normalizing the message to a single line break.

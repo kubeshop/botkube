@@ -51,6 +51,11 @@ type BotDriver interface {
 	Timeout() time.Duration
 	ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string)
 	AssertEquals(expectedMessage string) MessageAssertion
+	// OnChannel sets the expectation that the message should be posted in the channel. This is necessary when Bots
+	// by default expect a given message to be posted in the thread of the recently sent message.
+	// For example, in the context of source notification, we need to alter that default behavior
+	// and expect the message on the channel instead.
+	OnChannel() BotDriver
 }
 
 type MessageAssertion func(content string) (bool, int, string)
