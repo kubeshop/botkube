@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
 	"github.com/kubeshop/botkube/pkg/api/source"
+	"github.com/kubeshop/botkube/pkg/k8sx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -161,7 +161,7 @@ func (s *Source) getConfigMap(ctx context.Context, k8sCli *dynamic.DynamicClient
 	}
 
 	var cm v1.ConfigMap
-	err = k8sutil.TransformIntoTypedObject(unstrCM, &cm)
+	err = k8sx.TransformIntoTypedObject(unstrCM, &cm)
 	if err != nil {
 		return v1.ConfigMap{}, fmt.Errorf("while transforming object type %T into type: %T: %w", unstrCM, cm, err)
 	}
@@ -176,7 +176,7 @@ func (s *Source) getConfigMap(ctx context.Context, k8sCli *dynamic.DynamicClient
 func (s *Source) updateConfigMap(ctx context.Context, k8sCli *dynamic.DynamicClient, cm v1.ConfigMap) error {
 	s.log.Debug("Updating ConfigMap...")
 
-	unstrCM, err := k8sutil.TransformIntoUnstructured(&cm)
+	unstrCM, err := k8sx.TransformIntoUnstructured(&cm)
 	if err != nil {
 		return fmt.Errorf("while transforming object type %T into type: %T: %w", cm, unstrCM, err)
 	}

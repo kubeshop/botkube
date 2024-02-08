@@ -11,6 +11,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
+	"github.com/kubeshop/botkube/pkg/k8sx"
 )
 
 // Event stores data about a given event for Kubernetes object.
@@ -112,7 +113,7 @@ func New(objectMeta metaV1.ObjectMeta, object interface{}, eventType config.Even
 			return Event{}, fmt.Errorf("cannot convert type %T into *unstructured.Unstructured", object)
 		}
 
-		err := k8sutil.TransformIntoTypedObject(unstrObj, &eventObj)
+		err := k8sx.TransformIntoTypedObject(unstrObj, &eventObj)
 		if err != nil {
 			return Event{}, fmt.Errorf("while transforming object type %T into type: %T: %w", object, eventObj, err)
 		}

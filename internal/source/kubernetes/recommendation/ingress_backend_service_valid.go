@@ -16,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/k8sutil"
+	"github.com/kubeshop/botkube/pkg/k8sx"
 	"github.com/kubeshop/botkube/pkg/multierror"
 )
 
@@ -44,7 +45,7 @@ func (f *IngressBackendServiceValid) Do(ctx context.Context, event event.Event) 
 	}
 
 	var ingress networkingv1.Ingress
-	err := k8sutil.TransformIntoTypedObject(unstrObj, &ingress)
+	err := k8sx.TransformIntoTypedObject(unstrObj, &ingress)
 	if err != nil {
 		return Result{}, fmt.Errorf("while transforming object type %T into type: %T: %w", event.Object, ingress, err)
 	}
@@ -94,7 +95,7 @@ func (f *IngressBackendServiceValid) getService(ctx context.Context, dynamicCli 
 		return coreV1.Service{}, false, err
 	}
 	var svc coreV1.Service
-	err = k8sutil.TransformIntoTypedObject(unstructuredService, &svc)
+	err = k8sx.TransformIntoTypedObject(unstructuredService, &svc)
 	if err != nil {
 		return coreV1.Service{}, false, err
 	}
