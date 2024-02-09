@@ -31,9 +31,9 @@ const (
 )
 
 const (
-	// RBACDefaultGroup default rbac group name.
+	// RBACDefaultGroup describes default rbac group name.
 	RBACDefaultGroup = "botkube-plugins-default"
-	// RBACDefaultUser default rbac user name.
+	// RBACDefaultUser describes default rbac user name.
 	RBACDefaultUser = "botkube-internal-static-user"
 )
 

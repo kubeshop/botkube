@@ -117,10 +117,10 @@ func (r *SegmentReporter) ReportBotEnabled(platform config.CommPlatformIntegrati
 func (r *SegmentReporter) ReportPluginsEnabled(executors map[string]config.Executors, sources map[string]config.Sources) error {
 	pluginsConfig := make(map[string]interface{})
 	for _, values := range executors {
-		generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeExecutor)
+		r.generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeExecutor)
 	}
 	for _, values := range sources {
-		generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeSource)
+		r.generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeSource)
 	}
 	return r.reportEvent("Plugin enabled", pluginsConfig)
 }
@@ -353,7 +353,7 @@ func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.In
 	return workerNodesCount, controlPlaneNodesCount, nil
 }
 
-func generatePluginsReport(pluginsConfig map[string]interface{}, plugins config.Plugins, pluginType plugin.Type) {
+func (r *SegmentReporter) generatePluginsReport(pluginsConfig map[string]interface{}, plugins config.Plugins, pluginType plugin.Type) {
 	for name, pluginValue := range plugins {
 		if !pluginValue.Enabled {
 			continue
@@ -361,24 +361,23 @@ func generatePluginsReport(pluginsConfig map[string]interface{}, plugins config.
 		pluginsConfig[name] = pluginReport{
 			Name: name,
 			Type: pluginType,
-			RBAC: getAnonymizedRBAC(pluginValue.Context.RBAC),
+			RBAC: r.getAnonymizedRBAC(pluginValue.Context.RBAC),
 		}
 	}
 }
 
-func getAnonymizedRBAC(rbac *config.PolicyRule) *config.PolicyRule {
-	// Group.
-	rbac.Group.Prefix = anonymizedValue(rbac.Group.Prefix)
+func (r *SegmentReporter) getAnonymizedRBAC(rbac *config.PolicyRule) *config.PolicyRule {
+	rbac.Group.Prefix = r.anonymizedValue(rbac.Group.Prefix)
 	for key, name := range rbac.Group.Static.Values {
-		rbac.Group.Static.Values[key] = anonymizedValue(name)
+		rbac.Group.Static.Values[key] = r.anonymizedValue(name)
 	}
-	// User.
-	rbac.User.Prefix = anonymizedValue(rbac.User.Prefix)
-	rbac.User.Static.Value = anonymizedValue(rbac.User.Static.Value)
+
+	rbac.User.Prefix = r.anonymizedValue(rbac.User.Prefix)
+	rbac.User.Static.Value = r.anonymizedValue(rbac.User.Static.Value)
 	return rbac
 }
 
-func anonymizedValue(value string) string {
+func (r *SegmentReporter) anonymizedValue(value string) string {
 	if value == "" || value == config.RBACDefaultGroup || value == config.RBACDefaultUser {
 		return value
 	}
