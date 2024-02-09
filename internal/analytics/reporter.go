@@ -32,8 +32,8 @@ type Reporter interface {
 	// ReportFatalError reports a fatal app error.
 	ReportFatalError(err error) error
 
-	// ReportPluginsConfig reports plugins configuration
-	ReportPluginsConfig(executors map[string]config.Executors, sources map[string]config.Sources) error
+	// ReportPluginsEnabled reports plugins enabled.
+	ReportPluginsEnabled(executors map[string]config.Executors, sources map[string]config.Sources) error
 
 	Run(ctx context.Context) error
 

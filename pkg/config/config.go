@@ -30,6 +30,13 @@ const (
 	allValuesPattern = ".*"
 )
 
+const (
+	// RBACDefaultGroup default rbac group name.
+	RBACDefaultGroup = "botkube-plugins-default"
+	// RBACDefaultUser default rbac user name.
+	RBACDefaultUser = "botkube-internal-static-user"
+)
+
 // EventType to watch
 type EventType string
 

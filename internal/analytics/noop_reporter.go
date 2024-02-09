@@ -53,8 +53,8 @@ func (n NoopReporter) ReportFatalError(_ error) error {
 	return nil
 }
 
-// ReportPluginsConfig reports plugins configuration
-func (n NoopReporter) ReportPluginsConfig(_ map[string]config.Executors, _ map[string]config.Sources) error {
+// ReportPluginsEnabled reports plugins enabled.
+func (n NoopReporter) ReportPluginsEnabled(_ map[string]config.Executors, _ map[string]config.Sources) error {
 	return nil
 }
 

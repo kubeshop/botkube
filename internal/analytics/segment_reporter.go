@@ -113,23 +113,16 @@ func (r *SegmentReporter) ReportBotEnabled(platform config.CommPlatformIntegrati
 	})
 }
 
-func (r *SegmentReporter) ReportPluginsConfig(executors map[string]config.Executors, sources map[string]config.Sources) error {
+// ReportPluginsEnabled reports plugins enabled.
+func (r *SegmentReporter) ReportPluginsEnabled(executors map[string]config.Executors, sources map[string]config.Sources) error {
 	pluginsConfig := make(map[string]interface{})
 	for _, values := range executors {
-		for name, pluginValue := range values.Plugins {
-			if pluginValue.Enabled {
-				pluginsConfig[name] = generatePluginReport(pluginValue, name, plugin.TypeExecutor)
-			}
-		}
+		generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeExecutor)
 	}
 	for _, values := range sources {
-		for name, pluginValue := range values.Plugins {
-			if pluginValue.Enabled {
-				pluginsConfig[name] = generatePluginReport(pluginValue, name, plugin.TypeSource)
-			}
-		}
+		generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeSource)
 	}
-	return r.reportEvent("PluginConfig", pluginsConfig)
+	return r.reportEvent("Plugin enabled", pluginsConfig)
 }
 
 // ReportSinkEnabled reports an enabled sink.
@@ -360,10 +353,34 @@ func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.In
 	return workerNodesCount, controlPlaneNodesCount, nil
 }
 
-func generatePluginReport(plugin config.Plugin, pluginName string, pluginType plugin.Type) pluginReport {
-	return pluginReport{
-		Name: pluginName,
-		Type: pluginType,
-		RBAC: plugin.Context.RBAC,
+func generatePluginsReport(pluginsConfig map[string]interface{}, plugins config.Plugins, pluginType plugin.Type) {
+	for name, pluginValue := range plugins {
+		if !pluginValue.Enabled {
+			continue
+		}
+		pluginsConfig[name] = pluginReport{
+			Name: name,
+			Type: pluginType,
+			RBAC: getAnonymizedRBAC(pluginValue.Context.RBAC),
+		}
 	}
+}
+
+func getAnonymizedRBAC(rbac *config.PolicyRule) *config.PolicyRule {
+	// Group.
+	rbac.Group.Prefix = anonymizedValue(rbac.Group.Prefix)
+	for key, name := range rbac.Group.Static.Values {
+		rbac.Group.Static.Values[key] = anonymizedValue(name)
+	}
+	// User.
+	rbac.User.Prefix = anonymizedValue(rbac.User.Prefix)
+	rbac.User.Static.Value = anonymizedValue(rbac.User.Static.Value)
+	return rbac
+}
+
+func anonymizedValue(value string) string {
+	if value == "" || value == config.RBACDefaultGroup || value == config.RBACDefaultUser {
+		return value
+	}
+	return "***"
 }
