@@ -151,6 +151,132 @@ func TestSegmentReporter_ReportBotEnabled(t *testing.T) {
 	compareMessagesAgainstGoldenFile(t, segmentCli.messages)
 }
 
+func TestSegmentReporter_ReportPluginsEnabled(t *testing.T) {
+	// given
+	identity := fixIdentity()
+	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
+
+	// when
+	err := segmentReporter.ReportPluginsEnabled(map[string]config.Executors{
+		"botkube/helm_11yy1": {
+			DisplayName: "helm",
+			Plugins: map[string]config.Plugin{
+				"botkube/helm": {
+					Enabled: true,
+					Config:  "{}",
+					Context: config.PluginContext{
+						RBAC: &config.PolicyRule{
+							User: config.UserPolicySubject{
+								Type: config.StaticPolicySubjectType,
+								Static: config.UserStaticSubject{
+									Value: "user-name",
+								},
+								Prefix: "custom-user-prefix",
+							},
+							Group: config.GroupPolicySubject{
+								Type: config.StaticPolicySubjectType,
+								Static: config.GroupStaticSubject{
+									Values: []string{
+										config.RBACDefaultGroup,
+										"custom-group-name",
+									},
+								},
+								Prefix: "custom-group-prefix",
+							},
+						},
+					},
+				},
+			},
+		},
+		"botkube/kubectl_44yy4": {
+			DisplayName: "kubectl",
+			Plugins: map[string]config.Plugin{
+				"botkube/kubectl": {
+					Enabled: true,
+					Config:  "{}",
+					Context: config.PluginContext{
+						RBAC: &config.PolicyRule{
+							User: config.UserPolicySubject{
+								Type: config.StaticPolicySubjectType,
+								Static: config.UserStaticSubject{
+									Value: "user-name",
+								},
+								Prefix: "custom-user-prefix",
+							},
+							Group: config.GroupPolicySubject{
+								Type: config.ChannelNamePolicySubjectType,
+								Static: config.GroupStaticSubject{
+									Values: []string{},
+								},
+								Prefix: "custom-channel-prefix",
+							},
+						},
+					},
+				},
+			},
+		},
+	}, map[string]config.Sources{
+		"botkube/kubernetes_22yy2": {
+			DisplayName: "k8s",
+			Plugins: map[string]config.Plugin{
+				"botkube/kubernetes": {
+					Enabled: true,
+					Config:  "{}",
+					Context: config.PluginContext{
+						RBAC: &config.PolicyRule{
+							User: config.UserPolicySubject{
+								Type: config.StaticPolicySubjectType,
+								Static: config.UserStaticSubject{
+									Value: config.RBACDefaultUser,
+								},
+							},
+							Group: config.GroupPolicySubject{
+								Type: config.StaticPolicySubjectType,
+								Static: config.GroupStaticSubject{
+									Values: []string{
+										config.RBACDefaultGroup,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"botkube/keptn_33yy3": {
+			DisplayName: "keptn",
+			Plugins: map[string]config.Plugin{
+				"botkube/kubernetes": {
+					Enabled: false,
+					Config:  "{}",
+					Context: config.PluginContext{
+						RBAC: &config.PolicyRule{
+							User: config.UserPolicySubject{
+								Type: config.EmptyPolicySubjectType,
+								Static: config.UserStaticSubject{
+									Value: "",
+								},
+							},
+							Group: config.GroupPolicySubject{
+								Type: config.StaticPolicySubjectType,
+								Static: config.GroupStaticSubject{
+									Values: []string{
+										config.RBACDefaultGroup,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// then
+	compareMessagesAgainstGoldenFile(t, segmentCli.messages)
+}
+
 func TestSegmentReporter_ReportSinkEnabled(t *testing.T) {
 	// given
 	identity := fixIdentity()

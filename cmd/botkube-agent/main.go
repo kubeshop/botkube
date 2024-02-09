@@ -152,6 +152,10 @@ func run(ctx context.Context) (err error) {
 	if err != nil {
 		return reportFatalError("while registering current identity", err)
 	}
+	err = analyticsReporter.ReportPluginsEnabled(conf.Executors, conf.Sources)
+	if err != nil {
+		logger.Errorf("while reporting plugins configuration: %v", err.Error())
+	}
 
 	statusReporter.SetLogger(logger)
 	statusReporter.SetResourceVersion(cfgVersion)

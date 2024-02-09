@@ -1,0 +1,76 @@
+[
+	{
+		"type": "track",
+		"messageId": "0",
+		"anonymousId": "cluster-id",
+		"event": "Plugin enabled",
+		"timestamp": "2009-11-17T20:34:58.651387237Z",
+		"properties": {
+			"botkube/helm": {
+				"Name": "botkube/helm",
+				"Type": "executor",
+				"RBAC": {
+					"User": {
+						"Type": "Static",
+						"Static": {
+							"Value": "***"
+						},
+						"Prefix": "***"
+					},
+					"Group": {
+						"Type": "Static",
+						"Static": {
+							"Values": [
+								"botkube-plugins-default",
+								"***"
+							]
+						},
+						"Prefix": "***"
+					}
+				}
+			},
+			"botkube/kubectl": {
+				"Name": "botkube/kubectl",
+				"Type": "executor",
+				"RBAC": {
+					"User": {
+						"Type": "Static",
+						"Static": {
+							"Value": "***"
+						},
+						"Prefix": "***"
+					},
+					"Group": {
+						"Type": "ChannelName",
+						"Static": {
+							"Values": []
+						},
+						"Prefix": "***"
+					}
+				}
+			},
+			"botkube/kubernetes": {
+				"Name": "botkube/kubernetes",
+				"Type": "source",
+				"RBAC": {
+					"User": {
+						"Type": "Static",
+						"Static": {
+							"Value": "botkube-internal-static-user"
+						},
+						"Prefix": ""
+					},
+					"Group": {
+						"Type": "Static",
+						"Static": {
+							"Values": [
+								"botkube-plugins-default"
+							]
+						},
+						"Prefix": ""
+					}
+				}
+			}
+		}
+	}
+]

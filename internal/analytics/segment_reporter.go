@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeshop/botkube/internal/analytics/batched"
+	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/kubeshop/botkube/pkg/version"
@@ -42,6 +43,12 @@ type BatchedDataStore interface {
 	HeartbeatProperties() batched.HeartbeatProperties
 	IncrementTimeWindowInHours()
 	Reset()
+}
+
+type pluginReport struct {
+	Name string
+	Type plugin.Type
+	RBAC *config.PolicyRule
 }
 
 // SegmentReporter is a default Reporter implementation that uses Twilio Segment.
@@ -104,6 +111,18 @@ func (r *SegmentReporter) ReportBotEnabled(platform config.CommPlatformIntegrati
 		"type":                 config.BotIntegrationType,
 		"communicationGroupID": commGroupIdx,
 	})
+}
+
+// ReportPluginsEnabled reports plugins enabled.
+func (r *SegmentReporter) ReportPluginsEnabled(executors map[string]config.Executors, sources map[string]config.Sources) error {
+	pluginsConfig := make(map[string]interface{})
+	for _, values := range executors {
+		r.generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeExecutor)
+	}
+	for _, values := range sources {
+		r.generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeSource)
+	}
+	return r.reportEvent("Plugin enabled", pluginsConfig)
 }
 
 // ReportSinkEnabled reports an enabled sink.
@@ -332,4 +351,35 @@ func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.In
 	}
 
 	return workerNodesCount, controlPlaneNodesCount, nil
+}
+
+func (r *SegmentReporter) generatePluginsReport(pluginsConfig map[string]interface{}, plugins config.Plugins, pluginType plugin.Type) {
+	for name, pluginValue := range plugins {
+		if !pluginValue.Enabled {
+			continue
+		}
+		pluginsConfig[name] = pluginReport{
+			Name: name,
+			Type: pluginType,
+			RBAC: r.getAnonymizedRBAC(pluginValue.Context.RBAC),
+		}
+	}
+}
+
+func (r *SegmentReporter) getAnonymizedRBAC(rbac *config.PolicyRule) *config.PolicyRule {
+	rbac.Group.Prefix = r.anonymizedValue(rbac.Group.Prefix)
+	for key, name := range rbac.Group.Static.Values {
+		rbac.Group.Static.Values[key] = r.anonymizedValue(name)
+	}
+
+	rbac.User.Prefix = r.anonymizedValue(rbac.User.Prefix)
+	rbac.User.Static.Value = r.anonymizedValue(rbac.User.Static.Value)
+	return rbac
+}
+
+func (r *SegmentReporter) anonymizedValue(value string) string {
+	if value == "" || value == config.RBACDefaultGroup || value == config.RBACDefaultUser {
+		return value
+	}
+	return "***"
 }

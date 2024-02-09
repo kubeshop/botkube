@@ -53,6 +53,11 @@ func (n NoopReporter) ReportFatalError(_ error) error {
 	return nil
 }
 
+// ReportPluginsEnabled reports plugins enabled.
+func (n NoopReporter) ReportPluginsEnabled(_ map[string]config.Executors, _ map[string]config.Sources) error {
+	return nil
+}
+
 // Run runs the reporter.
 func (n NoopReporter) Run(_ context.Context) error {
 	return nil

@@ -87,7 +87,7 @@ func generateUserSubject(rbac config.UserPolicySubject, group config.GroupPolicy
 		user = rbac.Prefix + input.Channel
 	default:
 		if group.Type != config.EmptyPolicySubjectType {
-			user = "botkube-internal-static-user"
+			user = config.RBACDefaultUser
 		}
 	}
 	return
