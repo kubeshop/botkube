@@ -314,7 +314,7 @@ func run(ctx context.Context) (err error) {
 		if commGroupCfg.CloudTeams.Enabled {
 			ctb, err := bot.NewCloudTeams(commGroupLogger.WithField(botLogFieldKey, "CloudTeams"), commGroupMeta, commGroupCfg.CloudTeams, conf.Settings.ClusterName, executorFactory, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating CloudSlack bot", err)
+				return reportFatalError("while creating CloudTeams bot", err)
 			}
 			scheduleBotNotifier(ctb)
 		}
