@@ -172,10 +172,6 @@ func (s *SlackTester) ThirdChannel() Channel {
 	return s.thirdChannel
 }
 
-func (s *SlackTester) MDFormatter() interactive.MDFormatter {
-	return s.mdFormatter
-}
-
 func (s *SlackTester) PostInitialMessage(t *testing.T, channelName string) {
 	t.Helper()
 	t.Log("Posting welcome message...")
@@ -467,9 +463,6 @@ func (s *SlackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID
 	return s.WaitForInteractiveMessagePosted(userID, channelID, 1, s.AssertEquals(printedBlocks))
 }
 
-func (s *SlackTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error {
-	return s.WaitForMessagePosted(userID, channelID, 1, s.AssertEquals(renderedMsg))
-}
 
 func (s *SlackTester) SetTimeout(timeout time.Duration) {
 	s.cfg.MessageWaitTimeout = timeout

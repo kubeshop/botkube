@@ -43,10 +43,8 @@ type BotDriver interface {
 	BotName() string
 	BotUserID() string
 	TesterUserID() string
-	MDFormatter() interactive.MDFormatter
 	WaitForInteractiveMessagePostedRecentlyEqual(userID string, channelID string, message interactive.CoreMessage) error
 	WaitForLastInteractiveMessagePostedEqual(userID string, channelID string, message interactive.CoreMessage) error
-	WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error
 	SetTimeout(timeout time.Duration)
 	Timeout() time.Duration
 	ReplaceBotNamePlaceholder(msg *interactive.CoreMessage, clusterName string)

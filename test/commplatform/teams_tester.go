@@ -187,10 +187,6 @@ func (s *TeamsTester) ThirdChannel() Channel {
 	return s.thirdChannel
 }
 
-func (s *TeamsTester) MDFormatter() interactive.MDFormatter {
-	return s.renderer.MDFormatter()
-}
-
 func (s *TeamsTester) PostInitialMessage(t *testing.T, channelName string) {
 	t.Helper()
 	t.Log("Posting welcome message...")
@@ -341,10 +337,6 @@ func (s *TeamsTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, chann
 
 func (s *TeamsTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	return s.waitForAdaptiveCardMessage(userID, channelID, 1, msg)
-}
-
-func (s *TeamsTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(_, _, _ string) error {
-	return errors.New("not implemented")
 }
 
 func (s *TeamsTester) WaitForMessagePostedWithFileUpload(_, _ string, _ FileUploadAssertion) error {

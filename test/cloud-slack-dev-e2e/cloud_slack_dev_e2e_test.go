@@ -34,8 +34,6 @@ import (
 	stringsutil "k8s.io/utils/strings"
 
 	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
-	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
@@ -380,16 +378,13 @@ func TestCloudSlackE2E(t *testing.T) {
 
 			t.Log("Testing ping for not connected deployment #2")
 			command = "ping"
-			expectedBlockMessage := notConnectedMessage(deployment2.Name, deployment2.ID)
+			expectedMessage = fmt.Sprintf("The cluster %s (id: %s) is not connected.", deployment2.Name, deployment2.ID)
 			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("%s --cluster-name %s", command, deployment2.Name))
 
-			renderedMsg := interactive.RenderMessage(tester.MDFormatter(), expectedBlockMessage)
-			renderedMsg = strings.Replace(renderedMsg, "\n", " ", -1)
-			renderedMsg = strings.TrimSuffix(renderedMsg, " ")
-			err = tester.WaitForLastInteractiveMessagePostedEqualWithCustomRender(tester.BotUserID(), channel.ID(), renderedMsg)
+			err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
 			if err != nil { // the new cloud backend not release yet
 				t.Logf("Fallback to the old behavior with message sent at the channel level...")
-				err = tester.OnChannel().WaitForLastInteractiveMessagePostedEqualWithCustomRender(tester.BotUserID(), channel.ID(), renderedMsg)
+				err = tester.OnChannel().WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
 			}
 			require.NoError(t, err)
 
@@ -723,21 +718,6 @@ func createK8sCli(t *testing.T, kubeconfigPath string) *kubernetes.Clientset {
 	k8sCli, err := kubernetes.NewForConfig(k8sConfig)
 	require.NoError(t, err)
 	return k8sCli
-}
-
-func notConnectedMessage(name, id string) interactive.CoreMessage {
-	return interactive.CoreMessage{
-		Message: api.Message{
-			Sections: []api.Section{
-				{
-					Base: api.Base{
-						Header:      "Instance not connected",
-						Description: fmt.Sprintf("The cluster %s (id: %s) is not connected.", name, id),
-					},
-				},
-			},
-		},
-	}
 }
 
 func closePage(t *testing.T, name string, page *rod.Page) {

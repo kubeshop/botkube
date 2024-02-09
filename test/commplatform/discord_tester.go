@@ -93,10 +93,6 @@ func (d *DiscordTester) ThirdChannel() Channel {
 	return d.thirdChannel
 }
 
-func (d *DiscordTester) MDFormatter() interactive.MDFormatter {
-	return d.mdFormatter
-}
-
 func (d *DiscordTester) InitUsers(t *testing.T) {
 	t.Helper()
 
@@ -413,10 +409,6 @@ func (d *DiscordTester) WaitForInteractiveMessagePostedRecentlyEqual(userID, cha
 func (d *DiscordTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
 	markdown := strings.TrimSpace(interactive.RenderMessage(d.mdFormatter, msg))
 	return d.WaitForMessagePosted(userID, channelID, 1, d.AssertEquals(markdown))
-}
-
-func (d *DiscordTester) WaitForLastInteractiveMessagePostedEqualWithCustomRender(userID, channelID string, renderedMsg string) error {
-	return d.WaitForMessagePosted(userID, channelID, 1, d.AssertEquals(renderedMsg))
 }
 
 func (d *DiscordTester) SetTimeout(timeout time.Duration) {
