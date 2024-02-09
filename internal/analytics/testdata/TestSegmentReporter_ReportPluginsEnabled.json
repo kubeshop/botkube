@@ -29,14 +29,34 @@
 					}
 				}
 			},
+			"botkube/kubectl": {
+				"Name": "botkube/kubectl",
+				"Type": "executor",
+				"RBAC": {
+					"User": {
+						"Type": "Static",
+						"Static": {
+							"Value": "***"
+						},
+						"Prefix": "***"
+					},
+					"Group": {
+						"Type": "ChannelName",
+						"Static": {
+							"Values": []
+						},
+						"Prefix": "***"
+					}
+				}
+			},
 			"botkube/kubernetes": {
 				"Name": "botkube/kubernetes",
 				"Type": "source",
 				"RBAC": {
 					"User": {
-						"Type": "",
+						"Type": "Static",
 						"Static": {
-							"Value": ""
+							"Value": "botkube-internal-static-user"
 						},
 						"Prefix": ""
 					},

@@ -188,6 +188,33 @@ func TestSegmentReporter_ReportPluginsEnabled(t *testing.T) {
 				},
 			},
 		},
+		"botkube/kubectl_44yy4": {
+			DisplayName: "kubectl",
+			Plugins: map[string]config.Plugin{
+				"botkube/kubectl": {
+					Enabled: true,
+					Config:  "{}",
+					Context: config.PluginContext{
+						RBAC: &config.PolicyRule{
+							User: config.UserPolicySubject{
+								Type: config.StaticPolicySubjectType,
+								Static: config.UserStaticSubject{
+									Value: "user-name",
+								},
+								Prefix: "custom-user-prefix",
+							},
+							Group: config.GroupPolicySubject{
+								Type: config.ChannelNamePolicySubjectType,
+								Static: config.GroupStaticSubject{
+									Values: []string{},
+								},
+								Prefix: "custom-channel-prefix",
+							},
+						},
+					},
+				},
+			},
+		},
 	}, map[string]config.Sources{
 		"botkube/kubernetes_22yy2": {
 			DisplayName: "k8s",
@@ -198,9 +225,9 @@ func TestSegmentReporter_ReportPluginsEnabled(t *testing.T) {
 					Context: config.PluginContext{
 						RBAC: &config.PolicyRule{
 							User: config.UserPolicySubject{
-								Type: config.EmptyPolicySubjectType,
+								Type: config.StaticPolicySubjectType,
 								Static: config.UserStaticSubject{
-									Value: "",
+									Value: config.RBACDefaultUser,
 								},
 							},
 							Group: config.GroupPolicySubject{
