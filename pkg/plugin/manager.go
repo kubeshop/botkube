@@ -16,7 +16,9 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
+	stringutil "k8s.io/utils/strings"
 
+	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/api/source"
@@ -24,6 +26,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/httpx"
 	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/templatex"
 )
 
 const (
@@ -35,6 +38,7 @@ const (
 	DependencyDirEnvName = "PLUGIN_DEPENDENCY_DIR"
 
 	defaultHealthCheckInterval = 10 * time.Second
+	printHeaderValueCharCount  = 3
 )
 
 // pluginMap is the map of plugins we can dispense.
@@ -45,13 +49,19 @@ var pluginMap = map[string]plugin.Plugin{
 	TypeExecutor.String(): &executor.Plugin{},
 }
 
+// IndexRenderData returns plugin index render data.
+type IndexRenderData struct {
+	Remote remote.Config `yaml:"remote"`
+}
+
 // Manager provides functionality for managing executor and source plugins.
 type Manager struct {
-	isStarted  atomic.Bool
-	log        logrus.FieldLogger
-	logConfig  config.Logger
-	cfg        config.PluginManagement
-	httpClient *http.Client
+	isStarted       atomic.Bool
+	log             logrus.FieldLogger
+	logConfig       config.Logger
+	cfg             config.PluginManagement
+	httpClient      *http.Client
+	indexRenderData IndexRenderData
 
 	sourceSupervisorChan   chan pluginMetadata
 	executorSupervisorChan chan pluginMetadata
@@ -79,9 +89,15 @@ func NewManager(logger logrus.FieldLogger, logCfg config.Logger, cfg config.Plug
 	executorsStore := newStore[executor.Executor]()
 	sourcesStore := newStore[source.Source]()
 
+	remoteCfg, _ := remote.GetConfig()
+	indexRenderData := IndexRenderData{
+		Remote: remoteCfg,
+	}
+
 	return &Manager{
 		cfg:                    cfg,
 		httpClient:             httpx.NewHTTPClient(),
+		indexRenderData:        indexRenderData,
 		sourceSupervisorChan:   sourceSupervisorChan,
 		executorSupervisorChan: executorSupervisorChan,
 		schedulerChan:          schedulerChan,
@@ -310,7 +326,7 @@ func (m *Manager) loadRepositoriesMetadata(ctx context.Context, forceUpdate bool
 				"forceUpdate": forceUpdate,
 			}).Info("Downloading repository index")
 
-			err := m.fetchIndex(ctx, path, entry.URL)
+			err := m.fetchIndex(ctx, path, entry)
 			if err != nil {
 				return fmt.Errorf("while fetching index for %q repository with URL %q: %w", repo, entry.URL, err)
 			}
@@ -334,11 +350,27 @@ func (m *Manager) loadRepositoriesMetadata(ctx context.Context, forceUpdate bool
 	return nil
 }
 
-func (m *Manager) fetchIndex(ctx context.Context, path, url string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+func (m *Manager) fetchIndex(ctx context.Context, path string, repo config.PluginsRepository) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, repo.URL, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("while creating request: %w", err)
 	}
+
+	headers, err := m.renderPluginIndexHeaders(repo.Headers)
+	if err != nil {
+		return fmt.Errorf("while rendering plugin index header: %w", err)
+	}
+
+	var strBuilder strings.Builder
+	for key, value := range headers {
+		strBuilder.WriteString(fmt.Sprintf("%s=%s\n", key, stringutil.ShortenString(value, printHeaderValueCharCount)))
+		req.Header.Set(key, value)
+	}
+
+	m.log.WithFields(logrus.Fields{
+		"headers": strBuilder.String(),
+		"url":     repo.URL,
+	}).Debug("Fetching index via GET request...")
 
 	res, err := m.httpClient.Do(req)
 	if err != nil {
@@ -365,6 +397,23 @@ func (m *Manager) fetchIndex(ctx context.Context, path, url string) error {
 		return fmt.Errorf("while saving index body: %w", err)
 	}
 	return nil
+}
+
+func (m *Manager) renderPluginIndexHeaders(headers map[string]string) (map[string]string, error) {
+	out := make(map[string]string)
+
+	errs := multierror.New()
+	for key, value := range headers {
+		renderedValue, err := templatex.RenderStringIfTemplate(value, m.indexRenderData)
+		if err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("while rendering header %q: %w", key, err))
+			continue
+		}
+
+		out[key] = renderedValue
+	}
+
+	return out, errs.ErrorOrNil()
 }
 
 func createGRPCClients[C any](ctx context.Context, logger logrus.FieldLogger, logConfig config.Logger, pluginMeta map[string]pluginMetadata, pluginType Type, supervisorChan chan pluginMetadata, healthCheckInterval time.Duration) (*storePlugins[C], error) {

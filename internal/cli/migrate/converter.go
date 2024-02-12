@@ -112,7 +112,8 @@ func (c *Converter) convertExecutors(executors map[string]bkconfig.Executors) ([
 
 			rawCfg, err := json.Marshal(p.Config)
 			if err != nil {
-				return nil, err
+				errs = multierror.Append(errs, fmt.Errorf("while marshalling config for executor %q: %w", name, err))
+				continue
 			}
 			displayName := conf.DisplayName
 			if displayName == "" {
@@ -148,7 +149,8 @@ func (c *Converter) convertSources(sources map[string]bkconfig.Sources) ([]*gqlM
 			}
 			rawCfg, err := json.Marshal(p.Config)
 			if err != nil {
-				return nil, err
+				errs = multierror.Append(errs, fmt.Errorf("while marshalling config for source %q: %w", name, err))
+				continue
 			}
 			displayName := conf.DisplayName
 			if displayName == "" {

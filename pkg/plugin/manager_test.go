@@ -7,7 +7,9 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
 )
@@ -18,7 +20,7 @@ func TestCollectEnabledRepositories(t *testing.T) {
 
 		enabledExecutors    []string
 		enabledSources      []string
-		definedRepositories map[string]config.PluginsRepositories
+		definedRepositories map[string]config.PluginsRepository
 
 		expErrMsg string
 	}{
@@ -104,4 +106,68 @@ func TestNewPluginOSRunCommand_HappyPath(t *testing.T) {
 		break
 	}
 	assert.True(t, found)
+}
+
+func TestManager_RenderPluginIndexHeaders(t *testing.T) {
+	// given
+	remoteCfg := remote.Config{
+		Endpoint:   "http://endpoint",
+		Identifier: "identifier",
+		APIKey:     "api-key",
+	}
+
+	for _, testCase := range []struct {
+		Name           string
+		InHeaders      map[string]string
+		ExpectedOut    map[string]string
+		ExpectedErrMsg string
+	}{
+		{
+			Name: "Success",
+			InHeaders: map[string]string{
+				"API-Key":    "{{ .Remote.APIKey }}",
+				"URL":        "{{ .Remote.Endpoint }}",
+				"Identifier": "{{ .Remote.Identifier }}",
+				"Combined":   "{{ .Remote.Identifier }} / {{ .Remote.APIKey }}",
+				"Static":     "Value",
+			},
+			ExpectedOut: map[string]string{
+				"API-Key":    remoteCfg.APIKey,
+				"URL":        remoteCfg.Endpoint,
+				"Identifier": remoteCfg.Identifier,
+				"Combined":   remoteCfg.Identifier + " / " + remoteCfg.APIKey,
+				"Static":     "Value",
+			},
+		},
+		{
+			Name: "Error",
+			InHeaders: map[string]string{
+				"Err": "{{ .Remote.ID }}",
+			},
+			ExpectedErrMsg: heredoc.Doc(`
+				1 error occurred:
+					* while rendering header "Err": while rendering string "{{ .Remote.ID }}": template: tpl:1:10: executing "tpl" at <.Remote.ID>: can't evaluate field ID in type remote.Config`),
+		},
+	} {
+		t.Run(testCase.Name, func(t *testing.T) {
+			manager := &Manager{
+				indexRenderData: IndexRenderData{
+					Remote: remoteCfg,
+				},
+			}
+
+			// when
+			out, err := manager.renderPluginIndexHeaders(testCase.InHeaders)
+
+			// then
+			if testCase.ExpectedErrMsg != "" {
+				require.Error(t, err)
+				assert.EqualError(t, err, testCase.ExpectedErrMsg)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, testCase.ExpectedOut, out)
+		})
+	}
 }
