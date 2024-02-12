@@ -3,7 +3,8 @@
 {{- $communications := .Values.communications }}
 {{- if .Values.existingCommunicationsSecretName }}
   {{- $secret := lookup "v1" "Secret" .Release.Namespace .Values.existingCommunicationsSecretName | default dict  }}
-  {{- $data := b64dec (index $secret.data "comm_config.yaml") -}}
+  {{- $secretData := $secret.data | default dict -}}
+  {{- $data := b64dec (index $secretData "comm_config.yaml" | default "") -}}
   {{- $dataYaml := $data | fromYaml -}}
   {{- $communications =  $dataYaml.communications }}
 {{- end }}
