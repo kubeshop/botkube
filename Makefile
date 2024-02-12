@@ -64,8 +64,11 @@ container-image-single: pre-build
 release-snapshot:
 	@./hack/goreleaser.sh release_snapshot
 
+build-single-arch-cli:
+	@./hack/goreleaser.sh build_single_arch_cli
+
 release-snapshot-cli:
-	@./hack/goreleaser.sh release_snapshot_cli
+	@./hack/goreleaser.sh build_single_arch_cli
 
 # Build project and save images with IMAGE_TAG tag
 save-images:

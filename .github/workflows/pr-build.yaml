@@ -273,7 +273,7 @@ jobs:
           key: ${{ runner.os }}-botkube-cli
 
       - name: Build CLI
-        run: make release-snapshot-cli
+        run: make build-single-arch-cli
 
       - name: Add Botkube CLI to env
         run: |

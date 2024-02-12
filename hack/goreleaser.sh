@@ -43,10 +43,9 @@ release_snapshot() {
     docker manifest push ${IMAGE_REGISTRY}/${CFG_EXPORTER_IMAGE_REPOSITORY}:${GORELEASER_CURRENT_TAG}
 }
 
-release_snapshot_cli() {
-  prepare
+build_single_arch_cli() {
   export GORELEASER_CURRENT_TAG=v9.99.9-dev
-  goreleaser build --clean --snapshot --id botkube-cli
+  goreleaser build --clean --snapshot --id botkube-cli --single-target
 }
 
 save_images() {
@@ -247,7 +246,7 @@ build_single() {
 
 usage() {
   cat <<EOM
-Usage: ${0} [build|release|release_snapshot|release_snapshot_cli]
+Usage: ${0} [build|release|release_snapshot|build_single_arch_cli]
 Where,
   build: Builds project with goreleaser without pushing images.
   release_snapshot: Builds project without publishing release. It builds and pushes Botkube image with v9.99.9-dev image tag.
@@ -272,8 +271,8 @@ build_single)
 release_snapshot)
   release_snapshot
   ;;
-release_snapshot_cli)
-  release_snapshot_cli
+build_single_arch_cli)
+  build_single_arch_cli
   ;;
 save_images)
   save_images
