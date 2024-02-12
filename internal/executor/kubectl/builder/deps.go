@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/kubeshop/botkube/internal/command"
+	"github.com/kubeshop/botkube/pkg/api"
 )
 
 type (
@@ -29,6 +30,6 @@ type (
 
 	// AuthChecker provides an option to check if we can run a kubectl commands with a given permission.
 	AuthChecker interface {
-		CheckUserAccess(ns, verb, resource, name string) error
+		ValidateUserAccess(ns, verb, resource, name string) (bool, *api.Section)
 	}
 )

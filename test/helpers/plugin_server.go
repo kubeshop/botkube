@@ -26,7 +26,7 @@ func main() {
 	portInt, err := strconv.Atoi(port)
 	loggerx.ExitOnError(err, "while starting server")
 
-	binDir := filepath.Join(dir, "plugin-dist")
+	binDir := filepath.Join(dir, "../plugin-dist")
 	indexEndpoint, startServerFn := fake.NewPluginServer(fake.PluginConfig{
 		BinariesDirectory: binDir,
 		Server: fake.PluginServer{
