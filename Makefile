@@ -67,9 +67,6 @@ release-snapshot:
 build-single-arch-cli:
 	@./hack/goreleaser.sh build_single_arch_cli
 
-release-snapshot-cli:
-	@./hack/goreleaser.sh build_single_arch_cli
-
 # Build project and save images with IMAGE_TAG tag
 save-images:
 	@./hack/goreleaser.sh save_images
