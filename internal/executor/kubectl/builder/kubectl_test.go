@@ -16,6 +16,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/execute/kubectl"
 	"github.com/kubeshop/botkube/pkg/loggerx"
+	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
 const (
@@ -161,7 +162,7 @@ func TestShouldPrintErrMessageIfUserHasInsufficientPerms(t *testing.T) {
 		state      = fixStateForAllDropdowns()
 		kcExecutor = &fakeKcExecutor{}
 		nsLister   = &fakeNamespaceLister{}
-		authCheck  = &fakeAuthChecker{fixErr: errors.New("not enough permissions")}
+		authCheck  = &fakeAuthChecker{fixFeedbackMsg: ptr.FromType(fixMissingPermsFeedbackMessage())}
 		guard      = kubectl.NewFakeCommandGuard()
 		cmd        = "@builder --verbs"
 		expMsg     = fixInsufficientPermsMessage(fixAllDropdown(true)...)
@@ -193,22 +194,26 @@ func fixInsufficientPermsMessage(dropdowns ...api.Select) api.Message {
 					Items: dropdowns,
 				},
 			},
-			{
-				Base: api.Base{
-					Header: "Missing permissions",
-					Body: api.Body{
-						Plaintext: "not enough permissions",
-					},
-				},
-				Context: api.ContextItems{
-					api.ContextItem{
-						Text: "To learn more about `kubectl` RBAC visit https://docs.botkube.io/configuration/executor/kubectl.",
-					},
-				},
-			},
+			fixMissingPermsFeedbackMessage(),
 		},
 		OnlyVisibleForYou: true,
 		ReplaceOriginal:   true,
+	}
+}
+
+func fixMissingPermsFeedbackMessage() api.Section {
+	return api.Section{
+		Base: api.Base{
+			Header: "Missing permissions",
+			Body: api.Body{
+				Plaintext: "not enough permissions",
+			},
+		},
+		Context: api.ContextItems{
+			api.ContextItem{
+				Text: "To learn more about `kubectl` RBAC visit https://docs.botkube.io/configuration/executor/kubectl.",
+			},
+		},
 	}
 }
 
@@ -571,11 +576,14 @@ func (f *fakeNamespaceLister) List(_ context.Context, _ metav1.ListOptions) (*co
 }
 
 type fakeAuthChecker struct {
-	fixErr error
+	fixFeedbackMsg *api.Section
 }
 
-func (r *fakeAuthChecker) CheckUserAccess(ns, verb, resource, name string) error {
-	return r.fixErr
+func (r *fakeAuthChecker) ValidateUserAccess(ns, verb, resource, name string) (bool, *api.Section) {
+	if r.fixFeedbackMsg != nil {
+		return false, r.fixFeedbackMsg
+	}
+	return true, nil
 }
 
 type fakeErrCommandGuard struct {

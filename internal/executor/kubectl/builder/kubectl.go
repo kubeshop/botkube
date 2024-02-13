@@ -442,25 +442,10 @@ func (e *Kubectl) buildCommandPreview(state stateDetails) []api.Section {
 		return []api.Section{InternalErrorSection()}
 	}
 
-	err = e.authCheck.CheckUserAccess(state.namespace, state.verb, state.resourceType, state.resourceName)
-	if err != nil {
-		return []api.Section{
-			{
-				Base: api.Base{
-					Header: "Missing permissions",
-					Body: api.Body{
-						Plaintext: err.Error(),
-					},
-				},
-				Context: []api.ContextItem{
-					{
-						Text: "To learn more about `kubectl` RBAC visit https://docs.botkube.io/configuration/executor/kubectl.",
-					},
-				},
-			},
-		}
+	allowed, authMsgFeedback := e.authCheck.ValidateUserAccess(state.namespace, state.verb, state.resourceType, state.resourceName)
+	if !allowed && authMsgFeedback != nil {
+		return []api.Section{*authMsgFeedback}
 	}
-
 	if resourceDetails.SlashSeparatedInCommand && state.resourceName == "" {
 		// we should not render the command as it will be invalid anyway without the resource name
 		return nil
@@ -487,7 +472,11 @@ func (e *Kubectl) buildCommandPreview(state stateDetails) []api.Section {
 		cmd = fmt.Sprintf("%s --filter=%q", cmd, state.filter)
 	}
 
-	return PreviewSection(cmd, FilterSection())
+	out := PreviewSection(cmd, FilterSection())
+	if authMsgFeedback != nil {
+		out = append(out, *authMsgFeedback)
+	}
+	return out
 }
 
 func (e *Kubectl) message(msg string) (api.Message, error) {
