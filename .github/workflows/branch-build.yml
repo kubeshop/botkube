@@ -150,6 +150,7 @@ jobs:
           make build-plugins
 
       - name: CLI Cache
+        if: matrix.integration != 'discord'
         uses: actions/cache@v3
         with:
           path: |
@@ -159,6 +160,7 @@ jobs:
           key: ${{ runner.os }}-botkube-cli
 
       - name: Build CLI
+        if: matrix.integration != 'discord'
         run: make build-single-arch-cli
 
       - name: Add Botkube CLI to env
@@ -192,6 +194,19 @@ jobs:
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
 
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        if: ${{ failure() }}
+        env:
+          SLACK_USERNAME: Botkube Cloud CI
+          SLACK_COLOR: 'red'
+          SLACK_TITLE: 'Message'
+          SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
+          SLACK_MESSAGE: 'Integration ${{ matrix.integration }} test failed :scream:'
+          SLACK_ICON_EMOJI: ':this-is-fine-fire:'
+          SLACK_WEBHOOK: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
+          SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
+
   cli-migration-e2e:
     name: CLI Migration E2E tests
     runs-on: ubuntu-latest
@@ -202,8 +217,6 @@ jobs:
     concurrency:
       group: cli-migration-e2e
       cancel-in-progress: false
-    strategy:
-      fail-fast: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

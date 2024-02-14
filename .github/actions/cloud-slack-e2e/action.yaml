@@ -65,16 +65,19 @@ runs:
       run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
 
     - name: Create k3d cluster
+      id: k3d
       shell: bash
       run: "k3d cluster create cloud-slack-e2e-cluster --wait --timeout=5m"
 
     - name: Setup Go modules
+      id: modules
       uses: ./.github/actions/setup-go-mod-private
       with:
         access_token: ${{ inputs.access_token }}
         username: ${{ env.GIT_USER }}
 
     - name: Run e2e tests
+      id: tests
       shell: bash
       env:
         SLACK_WORKSPACE_NAME: ${{ inputs.slack_workspace_name }}
@@ -96,7 +99,6 @@ runs:
         DEBUG_MODE: "true"
       run: |
         KUBECONFIG=$(k3d kubeconfig write cloud-slack-e2e-cluster) make test-cloud-slack-dev-e2e
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       if: ${{ always() }}
@@ -109,15 +111,27 @@ runs:
       if: ${{ failure() }}
       uses: ./.github/actions/dump-cluster
 
+    - name: Detect failed jobs
+      if: ${{ failure() }}
+      id: footer
+      shell: bash
+      run: |
+        FOOTER=''
+        if [[ ${{ steps.k3d.outcome }}     == failure ]]; then FOOTER='Failed to setup k3d cluster'; fi
+        if [[ ${{ steps.modules.outcome }} == failure ]]; then FOOTER='Failed to setup Go modules'; fi
+        if [[ ${{ steps.tests.outcome }}   == failure ]]; then FOOTER='Failed to run e2e tests'; fi
+
+        echo "footer=${FOOTER}" >> $GITHUB_OUTPUT
+
     - name: Slack Notification
       uses: rtCamp/action-slack-notify@v2
       if: ${{ failure() }}
       env:
+        SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
         SLACK_USERNAME: Botkube Cloud CI
         SLACK_COLOR: 'red'
         SLACK_TITLE: 'Message'
-        SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
-        SLACK_MESSAGE: "Cloud Slack ${{ inputs.e2e_type }} E2E tests failed :scream:" 
+        SLACK_MESSAGE: "Cloud Slack ${{ inputs.e2e_type }} E2E tests failed :scream:"
         SLACK_ICON_EMOJI: ':this-is-fine-fire:'
-        SLACK_FOOTER: "Fingers crossed it's just an outdated/flaky test..."
+        SLACK_FOOTER: ${{ steps.footer.outputs.footer }}
         SLACK_WEBHOOK: ${{ inputs.slack_alerts_webhook }}
