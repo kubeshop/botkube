@@ -26,7 +26,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/formatx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const (
@@ -92,7 +92,7 @@ func (k *KustomizeDiffCmdService) ShouldHandle(command string) (*DiffCommand, bo
 		Diff *DiffCommand `arg:"subcommand:diff"`
 	}
 
-	err := pluginx.ParseCommand(PluginName, command, &diffCmd)
+	err := plugin.ParseCommand(PluginName, command, &diffCmd)
 	if err != nil {
 		// if we cannot parse, it means that unknown command was specified
 		k.log.WithError(err).Debug("Cannot parse input command into diff ones.")
@@ -154,7 +154,7 @@ func (k *KustomizeDiffCmdService) postGitHubComment(ctx context.Context, diffCmd
 	}
 
 	commentBody := fmt.Sprintf(gitHubDiffCommentTpl, header, formatx.CodeBlock(string(data)))
-	return gh.Run(ctx, cmd, cfg, pluginx.ExecuteCommandStdin(strings.NewReader(commentBody)))
+	return gh.Run(ctx, cmd, cfg, plugin.ExecuteCommandStdin(strings.NewReader(commentBody)))
 }
 
 func (k *KustomizeDiffCmdService) runKustomizeDiff(ctx context.Context, diffCmd *DiffCommand, kubeConfigPath string, kubeConfigBytes []byte, cfg Config) (executor.ExecuteOutput, error) {
@@ -171,10 +171,10 @@ func (k *KustomizeDiffCmdService) runKustomizeDiff(ctx context.Context, diffCmd 
 	defer os.RemoveAll(workdir)
 
 	out, changesDetected, err := k.runDiffCmd(ctx, kustomizeDiff.ToCmdString(),
-		pluginx.ExecuteCommandEnvs(map[string]string{
+		plugin.ExecuteCommandEnvs(map[string]string{
 			"KUBECONFIG": kubeConfigPath,
 		}),
-		pluginx.ExecuteCommandWorkingDir(workdir),
+		plugin.ExecuteCommandWorkingDir(workdir),
 	)
 	if err != nil {
 		k.log.WithError(err).WithField("command", kustomizeDiff.ToCmdString()).Error("Failed to run command.")
@@ -224,10 +224,10 @@ func (k *KustomizeDiffCmdService) runKustomizeDiff(ctx context.Context, diffCmd 
 func (k *KustomizeDiffCmdService) tryToGetPRDetails(ctx context.Context, out string, diff *KustomizationDiffCommand, workdir string, cfg Config) ([]api.TextField, []api.Button) {
 	resolvePRDetailsCmd := fmt.Sprintf("gh pr view %s --json author,state,url", diff.GitHubRef)
 	rawDetails, err := ExecuteCommand(ctx, resolvePRDetailsCmd,
-		pluginx.ExecuteCommandEnvs(map[string]string{
+		plugin.ExecuteCommandEnvs(map[string]string{
 			"GH_TOKEN": cfg.GitHub.Auth.AccessToken,
 		}),
-		pluginx.ExecuteCommandWorkingDir(workdir),
+		plugin.ExecuteCommandWorkingDir(workdir),
 	)
 	if err != nil {
 		k.log.WithError(err).Debug("while getting pull request details")
@@ -282,8 +282,8 @@ func (k *KustomizeDiffCmdService) storeDiff(out string) (string, error) {
 	return cacheID, k.cache.Set(cacheID, []byte(out))
 }
 
-func (*KustomizeDiffCmdService) runDiffCmd(ctx context.Context, in string, opts ...pluginx.ExecuteCommandMutation) (string, bool, error) {
-	out, err := pluginx.ExecuteCommand(ctx, in, opts...)
+func (*KustomizeDiffCmdService) runDiffCmd(ctx context.Context, in string, opts ...plugin.ExecuteCommandMutation) (string, bool, error) {
+	out, err := plugin.ExecuteCommand(ctx, in, opts...)
 	if err != nil {
 		if out.ExitCode == 1 { // the diff commands returns 1 if changes are detected
 			return out.Stdout, true, nil
@@ -368,8 +368,8 @@ func (k *KustomizeDiffCmdService) cloneResources(ctx context.Context, diff *Kust
 	}
 
 	// it may occur that it won't be a GitHub repository, but we proceed anyway.
-	opts := []pluginx.ExecuteCommandMutation{
-		pluginx.ExecuteCommandEnvs(map[string]string{
+	opts := []plugin.ExecuteCommandMutation{
+		plugin.ExecuteCommandEnvs(map[string]string{
 			"GH_TOKEN": cfg.GitHub.Auth.AccessToken,
 		}),
 	}
@@ -381,23 +381,23 @@ func (k *KustomizeDiffCmdService) cloneResources(ctx context.Context, diff *Kust
 
 	cloneCmd := fmt.Sprintf("gh repo clone %s %s -- --depth 1", url, dir)
 	k.log.WithField("githubCmd", cloneCmd).Debug("Cloning GitHub repository...")
-	_, err = pluginx.ExecuteCommand(ctx, cloneCmd, opts...)
+	_, err = plugin.ExecuteCommand(ctx, cloneCmd, opts...)
 	if err != nil {
 		return "", err
 	}
 
-	opts = append(opts, pluginx.ExecuteCommandWorkingDir(dir))
+	opts = append(opts, plugin.ExecuteCommandWorkingDir(dir))
 
-	gitSetupOpts := append(opts, pluginx.ExecuteCommandDependencyDir("")) // we want to execute a globally installed binary.
+	gitSetupOpts := append(opts, plugin.ExecuteCommandDependencyDir("")) // we want to execute a globally installed binary.
 	// because we clone with --depth 1 we have issues as described here: https://github.com/cli/cli/issues/4287
-	_, err = pluginx.ExecuteCommand(ctx, `git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"`, gitSetupOpts...)
+	_, err = plugin.ExecuteCommand(ctx, `git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"`, gitSetupOpts...)
 	if err != nil {
 		return "", fmt.Errorf("while setting up git repo: %w", err)
 	}
 
 	checkoutCmd := fmt.Sprintf("gh pr checkout %s", diff.GitHubRef)
 	k.log.WithField("checkoutCmd", checkoutCmd).Debug("Checking out pull request")
-	_, err = pluginx.ExecuteCommand(ctx, checkoutCmd, opts...)
+	_, err = plugin.ExecuteCommand(ctx, checkoutCmd, opts...)
 	if err != nil {
 		return "", err
 	}

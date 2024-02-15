@@ -7,14 +7,14 @@ import (
 	"sync"
 
 	"github.com/alexflint/go-arg"
-	"github.com/hashicorp/go-plugin"
+	goplugin "github.com/hashicorp/go-plugin"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
 	thmate "github.com/kubeshop/botkube/internal/executor/thread-mate"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const pluginName = "thread-mate"
@@ -67,12 +67,12 @@ func (t *ThreadMateExecutor) init(cfg thmate.Config, kubeconfig []byte) (*thmate
 
 // Execute returns a given command as a response.
 func (t *ThreadMateExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
-	if err := pluginx.ValidateKubeConfigProvided(pluginName, in.Context.KubeConfig); err != nil {
+	if err := plugin.ValidateKubeConfigProvided(pluginName, in.Context.KubeConfig); err != nil {
 		return executor.ExecuteOutput{}, err
 	}
 
 	var cmd thmate.Commands
-	err := pluginx.ParseCommand(pluginName, in.Command, &cmd)
+	err := plugin.ParseCommand(pluginName, in.Command, &cmd)
 	switch {
 	case err == nil:
 	case errors.Is(err, arg.ErrHelp):
@@ -151,7 +151,7 @@ func (*ThreadMateExecutor) Help(context.Context) (api.Message, error) {
 }
 
 func main() {
-	executor.Serve(map[string]plugin.Plugin{
+	executor.Serve(map[string]goplugin.Plugin{
 		pluginName: &executor.Plugin{
 			Executor: NewThreadMateExecutor(),
 		},

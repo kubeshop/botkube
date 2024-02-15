@@ -13,7 +13,6 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/action"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/bot"
@@ -21,6 +20,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 // Dispatcher provides functionality to starts a given plugin, watches for incoming events and calling all notifiers to dispatch received event.

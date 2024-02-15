@@ -11,11 +11,11 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
 
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 // PluginExecutor provides functionality to run registered Botkube plugins.

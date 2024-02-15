@@ -9,7 +9,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 type (
@@ -50,7 +50,7 @@ func (k *GitHubCmdService) ShouldHandle(command string) (*GitHubCommand, bool) {
 		GitHub *GitHubCommand `arg:"subcommand:gh"`
 	}
 
-	err := pluginx.ParseCommand(PluginName, command, &gh)
+	err := plugin.ParseCommand(PluginName, command, &gh)
 	if err != nil {
 		// if we cannot parse, it means that unknown command was specified
 		k.log.WithError(err).Debug("Cannot parse input command into gh ones.")
@@ -63,10 +63,10 @@ func (k *GitHubCmdService) ShouldHandle(command string) (*GitHubCommand, bool) {
 	return gh.GitHub, true
 }
 
-func (k *GitHubCmdService) Run(ctx context.Context, diffCmd *GitHubCommand, cfg Config, opts ...pluginx.ExecuteCommandMutation) (executor.ExecuteOutput, error) {
+func (k *GitHubCmdService) Run(ctx context.Context, diffCmd *GitHubCommand, cfg Config, opts ...plugin.ExecuteCommandMutation) (executor.ExecuteOutput, error) {
 	cmdToRun := "gh " + strings.Join(diffCmd.Command, " ")
 
-	opts = append(opts, pluginx.ExecuteCommandEnvs(map[string]string{
+	opts = append(opts, plugin.ExecuteCommandEnvs(map[string]string{
 		"GH_TOKEN": cfg.GitHub.Auth.AccessToken,
 	}))
 

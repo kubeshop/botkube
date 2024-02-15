@@ -12,7 +12,7 @@ import (
 	"github.com/kubeshop/botkube/internal/executor/x/template"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 // Runner runs command and parse its output if needed.
@@ -103,19 +103,19 @@ func (i *Runner) getTemplates(ctx context.Context, cfg Config) ([]template.Templ
 }
 
 // RunInstalledCommand runs a given user command for already installed CLIs.
-func RunInstalledCommand(ctx context.Context, tmp pluginx.TmpDir, in string, envs map[string]string) (string, error) {
-	opts := []pluginx.ExecuteCommandMutation{
-		pluginx.ExecuteCommandEnvs(envs),
+func RunInstalledCommand(ctx context.Context, tmp plugin.TmpDir, in string, envs map[string]string) (string, error) {
+	opts := []plugin.ExecuteCommandMutation{
+		plugin.ExecuteCommandEnvs(envs),
 	}
 
 	path, custom := tmp.Get()
 	if custom {
 		// we installed all assets in different directory, e.g. because we run it locally,
 		// so we override the default deps path
-		opts = append(opts, pluginx.ExecuteCommandDependencyDir(path))
+		opts = append(opts, plugin.ExecuteCommandDependencyDir(path))
 	}
 
-	out, err := pluginx.ExecuteCommand(ctx, in, opts...)
+	out, err := plugin.ExecuteCommand(ctx, in, opts...)
 	if err != nil {
 		return "", err
 	}

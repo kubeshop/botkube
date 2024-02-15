@@ -1,10 +1,8 @@
-package pluginx
+package plugin
 
 import (
 	"os"
 	"path"
-
-	"github.com/kubeshop/botkube/internal/plugin"
 )
 
 // TmpDir represents temporary directory.
@@ -16,7 +14,7 @@ func (t TmpDir) Get() (string, bool) {
 		return string(t), true
 	}
 
-	depDir := os.Getenv(plugin.DependencyDirEnvName)
+	depDir := os.Getenv(DependencyDirEnvName)
 	if depDir != "" {
 		return depDir, false
 	}

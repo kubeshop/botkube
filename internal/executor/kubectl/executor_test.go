@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 func TestSetDefaultNamespace(t *testing.T) {
@@ -52,9 +52,9 @@ func TestSetDefaultNamespace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			var gotCmd string
-			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
+			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...plugin.ExecuteCommandMutation) (plugin.ExecuteCommandOutput, error) {
 				gotCmd = rawCmd
-				return pluginx.ExecuteCommandOutput{
+				return plugin.ExecuteCommandOutput{
 					Stdout: "mocked",
 				}, nil
 			})
@@ -103,9 +103,9 @@ func TestSetOptionsCommand(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			var wasKubectlCalled bool
-			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
+			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...plugin.ExecuteCommandMutation) (plugin.ExecuteCommandOutput, error) {
 				wasKubectlCalled = true
-				return pluginx.ExecuteCommandOutput{
+				return plugin.ExecuteCommandOutput{
 					Stdout: "mocked",
 				}, nil
 			})
@@ -154,9 +154,9 @@ func TestNotSupportedCommandsAndFlags(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
 			var wasKubectlCalled bool
-			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
+			mockFn := NewMockedBinaryRunner(func(ctx context.Context, rawCmd string, mutators ...plugin.ExecuteCommandMutation) (plugin.ExecuteCommandOutput, error) {
 				wasKubectlCalled = true
-				return pluginx.ExecuteCommandOutput{
+				return plugin.ExecuteCommandOutput{
 					Stdout: "mocked",
 				}, nil
 			})

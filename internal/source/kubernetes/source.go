@@ -24,7 +24,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/source"
 	pkgConfig "github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 var _ source.Source = (*Source)(nil)
@@ -76,7 +76,7 @@ func NewSource(version string) *Source {
 
 // Stream streams Kubernetes events
 func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
-	if err := pluginx.ValidateKubeConfigProvided(PluginName, input.Context.KubeConfig); err != nil {
+	if err := plugin.ValidateKubeConfigProvided(PluginName, input.Context.KubeConfig); err != nil {
 		return source.StreamOutput{}, err
 	}
 

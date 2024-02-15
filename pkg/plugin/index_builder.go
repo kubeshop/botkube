@@ -235,7 +235,7 @@ func (i *IndexBuilder) appendIndexEntry(entries map[string][]pluginBinariesIndex
 		"name": pName,
 		"os":   os,
 		"arch": arch,
-	}).Debug("Indexing plugin...")
+	}).Debug("Indexing ..")
 
 	key := fmt.Sprintf("%s/%s", pType, pName)
 	entries[key] = append(entries[key], pluginBinariesIndex{

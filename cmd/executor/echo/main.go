@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-plugin"
+	goplugin "github.com/hashicorp/go-plugin"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 var (
@@ -51,7 +51,7 @@ func (*EchoExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 // Execute returns a given command as response.
 func (*EchoExecutor) Execute(_ context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
 	var cfg Config
-	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
+	err := plugin.MergeExecutorConfigs(in.Configs, &cfg)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}
@@ -80,7 +80,7 @@ func (*EchoExecutor) Help(context.Context) (api.Message, error) {
 }
 
 func main() {
-	executor.Serve(map[string]plugin.Plugin{
+	executor.Serve(map[string]goplugin.Plugin{
 		pluginName: &executor.Plugin{
 			Executor: &EchoExecutor{},
 		},

@@ -1,4 +1,4 @@
-package pluginx
+package plugin
 
 import (
 	"bytes"
@@ -11,8 +11,6 @@ import (
 	"github.com/alexflint/go-arg"
 	"github.com/gookit/color"
 	"github.com/mattn/go-shellwords"
-
-	"github.com/kubeshop/botkube/internal/plugin"
 )
 
 // ParseCommand processes a given command string and stores the result in a given destination.
@@ -79,7 +77,7 @@ func ExecuteCommandWithEnvs(ctx context.Context, rawCmd string, envs map[string]
 // ExecuteCommand is a simple wrapper around exec.CommandContext to simplify running a given command.
 func ExecuteCommand(ctx context.Context, rawCmd string, mutators ...ExecuteCommandMutation) (ExecuteCommandOutput, error) {
 	opts := ExecuteCommandOptions{
-		DependencyDir: os.Getenv(plugin.DependencyDirEnvName),
+		DependencyDir: os.Getenv(DependencyDirEnvName),
 	}
 	for _, mutate := range mutators {
 		if mutate == nil {

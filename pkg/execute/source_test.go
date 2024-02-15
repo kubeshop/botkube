@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 func TestSourceExecutor(t *testing.T) {

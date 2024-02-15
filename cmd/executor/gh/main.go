@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/hashicorp/go-plugin"
+	goplugin "github.com/hashicorp/go-plugin"
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const (
@@ -74,18 +74,18 @@ func (*GHExecutor) Metadata(context.Context) (api.MetadataOutput, error) {
 
 // Execute returns a given command as a response.
 func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
-	if err := pluginx.ValidateKubeConfigProvided(pluginName, in.Context.KubeConfig); err != nil {
+	if err := plugin.ValidateKubeConfigProvided(pluginName, in.Context.KubeConfig); err != nil {
 		return executor.ExecuteOutput{}, err
 	}
 
 	var cfg Config
-	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
+	err := plugin.MergeExecutorConfigs(in.Configs, &cfg)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
 
 	var cmd Commands
-	err = pluginx.ParseCommand(pluginName, in.Command, &cmd)
+	err = plugin.ParseCommand(pluginName, in.Command, &cmd)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while parsing input command: %w", err)
 	}
@@ -98,7 +98,7 @@ func (e *GHExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exe
 
 	log := loggerx.New(cfg.Log)
 
-	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	kubeConfigPath, deleteFn, err := plugin.PersistKubeConfig(ctx, in.Context.KubeConfig)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeconfig file: %w", err)
 	}
@@ -159,7 +159,7 @@ var depsDownloadLinks = map[string]api.Dependency{
 }
 
 func main() {
-	executor.Serve(map[string]plugin.Plugin{
+	executor.Serve(map[string]goplugin.Plugin{
 		pluginName: &executor.Plugin{
 			Executor: &GHExecutor{},
 		},
@@ -173,7 +173,7 @@ func createGitHubIssue(cfg Config, title, mdBody string) (string, error) {
 		"GH_TOKEN": cfg.GitHub.Token,
 	}
 
-	output, err := pluginx.ExecuteCommand(context.Background(), cmd, pluginx.ExecuteCommandEnvs(envs))
+	output, err := plugin.ExecuteCommand(context.Background(), cmd, plugin.ExecuteCommandEnvs(envs))
 	if err != nil {
 		return "", err
 	}
@@ -193,11 +193,11 @@ func getIssueDetails(ctx context.Context, namespace, name, kubeConfigPath string
 		namespace = defaultNamespace
 	}
 
-	logs, err := pluginx.ExecuteCommand(ctx, fmt.Sprintf("kubectl --kubeconfig=%s logs %s -n %s --tail %d", kubeConfigPath, name, namespace, logsTailLines))
+	logs, err := plugin.ExecuteCommand(ctx, fmt.Sprintf("kubectl --kubeconfig=%s logs %s -n %s --tail %d", kubeConfigPath, name, namespace, logsTailLines))
 	if err != nil {
 		return IssueDetails{}, fmt.Errorf("while getting logs: %w", err)
 	}
-	ver, err := pluginx.ExecuteCommand(ctx, fmt.Sprintf("kubectl --kubeconfig=%s version -o yaml", kubeConfigPath))
+	ver, err := plugin.ExecuteCommand(ctx, fmt.Sprintf("kubectl --kubeconfig=%s version -o yaml", kubeConfigPath))
 	if err != nil {
 		return IssueDetails{}, fmt.Errorf("while getting version: %w", err)
 	}

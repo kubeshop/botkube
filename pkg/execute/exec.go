@@ -9,12 +9,12 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/maputil"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 var (

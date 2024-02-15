@@ -13,7 +13,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const kc = "KUBECONFIG"
@@ -48,7 +48,7 @@ func TestExecutorHelmInstall(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// given
-			execOutput := pluginx.ExecuteCommandOutput{
+			execOutput := plugin.ExecuteCommandOutput{
 				Stdout: "mocked",
 			}
 
@@ -58,9 +58,9 @@ func TestExecutorHelmInstall(t *testing.T) {
 				gotCmd  string
 				gotEnvs map[string]string
 			)
-			hExec.executeCommand = func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
+			hExec.executeCommand = func(ctx context.Context, rawCmd string, mutators ...plugin.ExecuteCommandMutation) (plugin.ExecuteCommandOutput, error) {
 				gotCmd = rawCmd
-				var opts pluginx.ExecuteCommandOptions
+				var opts plugin.ExecuteCommandOptions
 				for _, mutate := range mutators {
 					mutate(&opts)
 				}
@@ -186,14 +186,14 @@ func TestExecutorConfigMerging(t *testing.T) {
 	// given
 	hExec := NewExecutor("testing")
 	var gotEnvs map[string]string
-	hExec.executeCommand = func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
-		var opts pluginx.ExecuteCommandOptions
+	hExec.executeCommand = func(ctx context.Context, rawCmd string, mutators ...plugin.ExecuteCommandMutation) (plugin.ExecuteCommandOutput, error) {
+		var opts plugin.ExecuteCommandOptions
 		for _, mutate := range mutators {
 			mutate(&opts)
 		}
 
 		gotEnvs = opts.Envs
-		return pluginx.ExecuteCommandOutput{}, nil
+		return plugin.ExecuteCommandOutput{}, nil
 	}
 
 	configA := Config{
@@ -265,6 +265,6 @@ func mustYAMLMarshal(t *testing.T, in any) []byte {
 	return out
 }
 
-func noopExecuteCommand(context.Context, string, ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error) {
-	return pluginx.ExecuteCommandOutput{}, nil
+func noopExecuteCommand(context.Context, string, ...plugin.ExecuteCommandMutation) (plugin.ExecuteCommandOutput, error) {
+	return plugin.ExecuteCommandOutput{}, nil
 }

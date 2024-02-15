@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/kubeshop/botkube/pkg/formatx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 // deleteConfirmPhase represent a confirmation phase for deletion. Taken from flux: v2.0.1.
@@ -38,9 +38,9 @@ func normalize(in string) string {
 }
 
 // ExecuteCommand is a syntax sugar for running CLI commands.
-func ExecuteCommand(ctx context.Context, in string, opts ...pluginx.ExecuteCommandMutation) (string, error) {
-	opts = append(opts, pluginx.ExecuteClearColorCodes())
-	out, err := pluginx.ExecuteCommand(ctx, in, opts...)
+func ExecuteCommand(ctx context.Context, in string, opts ...plugin.ExecuteCommandMutation) (string, error) {
+	opts = append(opts, plugin.ExecuteClearColorCodes())
+	out, err := plugin.ExecuteCommand(ctx, in, opts...)
 	if err != nil {
 		return "", err
 	}

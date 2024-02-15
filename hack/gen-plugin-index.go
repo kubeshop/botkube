@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/loggerx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
