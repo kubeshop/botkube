@@ -172,6 +172,7 @@ type Conversation struct {
 	SlackState       *slack.BlockActionStates
 	URL              string
 	Text             string
+	ParentActivityID string
 }
 
 // NewDefaultInput an input for NewDefault

@@ -442,6 +442,7 @@ func (b *SocketSlack) handleMessage(ctx context.Context, event slackMessage) err
 			SlackState:       event.State,
 			URL:              permalink,
 			Text:             event.Text,
+			ParentActivityID: event.GetTimestamp(),
 		},
 		Message: request,
 		User: execute.UserInput{
@@ -568,6 +569,11 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interacti
 			if resp.Message.UserHandle != "" {
 				id = resp.Message.UserHandle
 			}
+
+			if resp.Message.ParentActivityID != "" {
+				options = append(options, slack.MsgOptionTS(resp.Message.ParentActivityID))
+			}
+
 			_, _, err = b.client.PostMessageContext(ctx, id, options...)
 			if err != nil {
 				return fmt.Errorf("while posting Slack message: %w", slackError(err, event.Channel))

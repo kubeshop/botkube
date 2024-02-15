@@ -1,8 +1,7 @@
-package fake
+package plugin
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/plugin"
 	"log"
 	"net/http"
 	"os"
@@ -16,26 +15,21 @@ import (
 const indexFileEndpoint = "/botkube.yaml"
 
 type (
-	// PluginConfig holds configuration for fake plugin server.
-	PluginConfig struct {
+	// StaticPluginServerConfig holds configuration for fake plugin server.
+	StaticPluginServerConfig struct {
 		BinariesDirectory string
-		Server            PluginServer
-	}
-
-	// PluginServer holds configuration for HTTP plugin server.
-	PluginServer struct {
-		Host string `envconfig:"default=http://host.k3d.internal"`
-		Port int    `envconfig:"default=3000"`
+		Host              string `envconfig:"default=http://host.k3d.internal"`
+		Port              int    `envconfig:"default=3000"`
 	}
 )
 
-// NewPluginServer return function to start the fake plugin HTTP server.
-func NewPluginServer(cfg PluginConfig) (string, func() error) {
+// NewStaticPluginServer return function to start the static plugin HTTP server suitable for local development or e2e tests.
+func NewStaticPluginServer(cfg StaticPluginServerConfig) (string, func() error) {
 	fs := http.FileServer(http.Dir(cfg.BinariesDirectory))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	basePath := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	builder := plugin.NewIndexBuilder(loggerx.NewNoop())
+	basePath := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	builder := NewIndexBuilder(loggerx.NewNoop())
 
 	http.HandleFunc(indexFileEndpoint, func(w http.ResponseWriter, _ *http.Request) {
 		isArchive := os.Getenv("OUTPUT_MODE") == "archive"
@@ -57,7 +51,7 @@ func NewPluginServer(cfg PluginConfig) (string, func() error) {
 		}
 	})
 
-	addr := fmt.Sprintf(":%d", cfg.Server.Port)
+	addr := fmt.Sprintf(":%d", cfg.Port)
 	log.Printf("Listening on %s...", addr)
 
 	server := &http.Server{

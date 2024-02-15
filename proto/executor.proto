@@ -25,12 +25,18 @@ message ExecuteContext {
 	bytes slackState = 2;
 	bytes kubeConfig = 3;
 	MessageContext message = 4;
+	IncomingWebhookContext incomingWebhook = 5;
+}
+
+message IncomingWebhookContext {
+	string baseSourceURL = 1;
 }
 
 message MessageContext {
 	string text = 1;
 	string url = 2;
-	UserContext user = 3;
+	string parentActivityId = 3;
+	UserContext user = 4;
 }
 
 message UserContext {
