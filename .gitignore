@@ -1,5 +1,5 @@
 # Binaries for programs and plugins
-#*.exe
+*.exe
 *.exe~
 *.dll
 *.so
@@ -24,7 +24,7 @@ tags
 *.bak
 
 # macOS
-#.DS_Store
+.DS_Store
 .AppleDouble
 .LSOverride
 ._*
