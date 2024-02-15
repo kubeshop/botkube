@@ -1,8 +1,11 @@
 package plugin
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/dustin/go-humanize"
@@ -153,4 +156,33 @@ func (in Index) Validate() error {
 	}
 
 	return issues.ErrorOrNil()
+}
+
+// Get returns the JSON schema.
+// When RefURL is not empty, Get tries to fetch the schema from the URL.
+func (s *JSONSchema) Get(ctx context.Context, httpCli *http.Client) (json.RawMessage, error) {
+	if s.Value != "" {
+		return json.RawMessage(s.Value), nil
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.RefURL, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("while creating request: %w", err)
+	}
+
+	res, err := httpCli.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("while fetching JSON schema by RefURL %q: %w", s.RefURL, err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("while getting JSON schema: got status code: %d", res.StatusCode)
+	}
+
+	var out json.RawMessage
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
