@@ -545,7 +545,7 @@ func (m *Manager) ensurePluginDownloaded(ctx context.Context, binPath string, in
 
 		err = downloadBinary(ctx, binPath, url, true)
 		if err != nil {
-			return fmt.Errorf("while downloading dependency from URL %q: %w", url, err)
+			return fmt.Errorf("while downloading dependency from URL %q (checksum: %q): %w", url.URL, url.Checksum, err)
 		}
 	}
 

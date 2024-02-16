@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +17,7 @@ var allowedExt = map[string]struct{}{
 }
 
 // downloadBinary downloads binary into specific destination.
-func downloadBinary(ctx context.Context, destPath string, url URL, autoDetectFilename bool) error {
+func downloadBinary(ctx context.Context, destPath string, binaryURL URL, autoDetectFilename bool) error {
 	dir, filename := filepath.Split(destPath)
 	err := os.MkdirAll(dir, dirPerms)
 	if err != nil {
@@ -35,10 +36,18 @@ func downloadBinary(ctx context.Context, destPath string, url URL, autoDetectFil
 		}
 	}
 
-	urlWithGoGetterMagicParams := fmt.Sprintf("%s?filename=%s", url.URL, filename)
-	if url.Checksum != "" {
-		urlWithGoGetterMagicParams = fmt.Sprintf("%s&checksum=%s", urlWithGoGetterMagicParams, url.Checksum)
+	parsedURL, err := url.Parse(binaryURL.URL)
+	if err != nil {
+		return fmt.Errorf("while parsing URL %q: %w", binaryURL.URL, err)
 	}
+	// Add go-getter magic params
+	queryParams := parsedURL.Query()
+	queryParams.Set("filename", filename)
+	if binaryURL.Checksum != "" {
+		queryParams.Set("checksum", binaryURL.Checksum)
+	}
+	parsedURL.RawQuery = queryParams.Encode()
+	urlWithGoGetterMagicParams := parsedURL.String()
 
 	getterCli := &getter.Client{
 		Ctx:  ctx,
@@ -50,11 +59,11 @@ func downloadBinary(ctx context.Context, destPath string, url URL, autoDetectFil
 
 	err = getterCli.Get()
 	if err != nil {
-		return fmt.Errorf("while downloading binary from URL %q: %w", url, err)
+		return fmt.Errorf("while downloading binary with go-getter via url %s: %w", urlWithGoGetterMagicParams, err)
 	}
 
 	if stat, err := os.Stat(tmpDestPath); err == nil && stat.IsDir() {
-		if autoDetectFilename && hasArchiveExtension(url.URL) {
+		if autoDetectFilename && hasArchiveExtension(parsedURL.Path) {
 			filename, err = getFirstFileInDirectory(tmpDestPath)
 			if err != nil {
 				return fmt.Errorf("while getting binary name")
