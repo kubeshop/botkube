@@ -45,6 +45,6 @@ jobs:
           botkube_cloud_free_organization_id: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
           botkube_cloud_plugin_repo_url: "https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"
 
-          slack_alerts_webhook: ${{ secrets.SLACK_PROD_ALERTS_WEBHOOK }}
+          slack_alerts_webhook: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
 
           e2e_type: "PROD"
