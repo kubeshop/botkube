@@ -2,6 +2,7 @@ package fake
 
 import (
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/plugin"
 	"log"
 	"net/http"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
 )
 
 const indexFileEndpoint = "/botkube.yaml"
@@ -35,7 +35,7 @@ func NewPluginServer(cfg PluginConfig) (string, func() error) {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	basePath := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	builder := pluginx.NewIndexBuilder(loggerx.NewNoop())
+	builder := plugin.NewIndexBuilder(loggerx.NewNoop())
 
 	http.HandleFunc(indexFileEndpoint, func(w http.ResponseWriter, _ *http.Request) {
 		isArchive := os.Getenv("OUTPUT_MODE") == "archive"

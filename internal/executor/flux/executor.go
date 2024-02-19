@@ -14,7 +14,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 var (
@@ -90,19 +90,19 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		return executor.ExecuteOutput{}, err
 	}
 
-	if err := pluginx.ValidateKubeConfigProvided(PluginName, in.Context.KubeConfig); err != nil {
+	if err := plugin.ValidateKubeConfigProvided(PluginName, in.Context.KubeConfig); err != nil {
 		return executor.ExecuteOutput{}, err
 	}
 
 	var cfg Config
-	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
+	err := plugin.MergeExecutorConfigs(in.Configs, &cfg)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}
 
 	log := loggerx.New(cfg.Logger)
 
-	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	kubeConfigPath, deleteFn, err := plugin.PersistKubeConfig(ctx, in.Context.KubeConfig)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeconfig file: %w", err)
 	}
@@ -142,7 +142,7 @@ func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 	}
 
 	return x.NewRunner(log, renderer).RunWithTemplates(templates, state.ExtractSlackState(in.Context.SlackState), command, func() (string, error) {
-		out, err := ExecuteCommand(ctx, command.ToExecute, pluginx.ExecuteCommandEnvs(map[string]string{
+		out, err := ExecuteCommand(ctx, command.ToExecute, plugin.ExecuteCommandEnvs(map[string]string{
 			"KUBECONFIG": kubeConfigPath,
 		}))
 		if err != nil {

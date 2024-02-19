@@ -7,7 +7,7 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/alexflint/go-arg"
-	"github.com/hashicorp/go-plugin"
+	goplugin "github.com/hashicorp/go-plugin"
 	"github.com/sirupsen/logrus"
 
 	"github.com/kubeshop/botkube/internal/executor/x"
@@ -18,7 +18,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/formatx"
 	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 // version is set via ldflags by GoReleaser.
@@ -89,7 +89,7 @@ func escapePositionals(in string) string {
 func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
 	var cmd Commands
 	in.Command = escapePositionals(in.Command)
-	err := pluginx.ParseCommand(pluginName, in.Command, &cmd)
+	err := plugin.ParseCommand(pluginName, in.Command, &cmd)
 	switch err {
 	case nil:
 	case arg.ErrHelp:
@@ -106,7 +106,7 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 			{Ref: getDefaultTemplateSource()},
 		},
 	}
-	if err := pluginx.MergeExecutorConfigs(in.Configs, &cfg); err != nil {
+	if err := plugin.MergeExecutorConfigs(in.Configs, &cfg); err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging configs: %v", err)
 	}
 
@@ -166,7 +166,7 @@ func (i *XExecutor) Execute(ctx context.Context, in executor.ExecuteInput) (exec
 				"runCommand":  downloadCmd,
 			}).Info("Installing binary...")
 
-			if _, err := pluginx.ExecuteCommand(ctx, downloadCmd, pluginx.ExecuteCommandEnvs(map[string]string{
+			if _, err := plugin.ExecuteCommand(ctx, downloadCmd, plugin.ExecuteCommandEnvs(map[string]string{
 				"EGET_BIN": dir,
 			})); err != nil {
 				return "", err
@@ -186,7 +186,7 @@ func (i *XExecutor) getKubeconfig(ctx context.Context, log logrus.FieldLogger, i
 	if len(in.Context.KubeConfig) == 0 {
 		return "", func() {}, nil
 	}
-	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	kubeConfigPath, deleteFn, err := plugin.PersistKubeConfig(ctx, in.Context.KubeConfig)
 	if err != nil {
 		return "", func() {}, fmt.Errorf("while writing kubeconfig file: %w", err)
 	}
@@ -200,7 +200,7 @@ func (i *XExecutor) getKubeconfig(ctx context.Context, log logrus.FieldLogger, i
 }
 
 func main() {
-	executor.Serve(map[string]plugin.Plugin{
+	executor.Serve(map[string]goplugin.Plugin{
 		pluginName: &executor.Plugin{
 			Executor: &XExecutor{},
 		},

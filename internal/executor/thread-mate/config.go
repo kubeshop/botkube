@@ -9,7 +9,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/multierror"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 var (
@@ -77,7 +77,7 @@ func MergeConfigs(configs []*executor.Config) (Config, error) {
 	}
 
 	var out Config
-	if err := pluginx.MergeExecutorConfigsWithDefaults(defaults, configs, &out); err != nil {
+	if err := plugin.MergeExecutorConfigsWithDefaults(defaults, configs, &out); err != nil {
 		return Config{}, fmt.Errorf("while merging configuration: %w", err)
 	}
 

@@ -12,7 +12,6 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics"
 	"github.com/kubeshop/botkube/internal/audit"
-	"github.com/kubeshop/botkube/internal/plugin"
 	remoteapi "github.com/kubeshop/botkube/internal/remote"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -20,6 +19,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 // Config contains configuration for ArgoCD source plugin.
@@ -107,7 +107,7 @@ func mergeConfigs(configs []*source.Config) (Config, error) {
 	}
 
 	var out Config
-	if err := pluginx.MergeSourceConfigsWithDefaults(defaultCfg, configs, &out); err != nil {
+	if err := plugin.MergeSourceConfigsWithDefaults(defaultCfg, configs, &out); err != nil {
 		return Config{}, err
 	}
 

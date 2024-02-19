@@ -1,4 +1,4 @@
-package pluginx
+package plugin
 
 import (
 	"github.com/knadh/koanf"

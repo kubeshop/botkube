@@ -32,7 +32,6 @@ import (
 	"github.com/kubeshop/botkube/internal/heartbeat"
 	"github.com/kubeshop/botkube/internal/insights"
 	"github.com/kubeshop/botkube/internal/kubex"
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/internal/source"
 	"github.com/kubeshop/botkube/internal/status"
 	"github.com/kubeshop/botkube/internal/storage"
@@ -47,6 +46,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/maputil"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
+	"github.com/kubeshop/botkube/pkg/plugin"
 	"github.com/kubeshop/botkube/pkg/sink"
 	"github.com/kubeshop/botkube/pkg/version"
 )

@@ -10,7 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/executor"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const (
@@ -51,14 +51,14 @@ var _ executor.Executor = &Executor{}
 // Executor provides functionality for running Helm CLI.
 type Executor struct {
 	pluginVersion  string
-	executeCommand func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error)
+	executeCommand func(ctx context.Context, rawCmd string, mutators ...plugin.ExecuteCommandMutation) (plugin.ExecuteCommandOutput, error)
 }
 
 // NewExecutor returns a new Executor instance.
 func NewExecutor(ver string) *Executor {
 	return &Executor{
 		pluginVersion:  ver,
-		executeCommand: pluginx.ExecuteCommand,
+		executeCommand: plugin.ExecuteCommand,
 	}
 }
 
@@ -94,7 +94,7 @@ func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 // - history
 // - get [all|manifest|hooks|notes]
 func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
-	if err := pluginx.ValidateKubeConfigProvided(PluginName, in.Context.KubeConfig); err != nil {
+	if err := plugin.ValidateKubeConfigProvided(PluginName, in.Context.KubeConfig); err != nil {
 		return executor.ExecuteOutput{}, err
 	}
 
@@ -105,7 +105,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 
 	var wasHelpRequested bool
 	var helmCmd Commands
-	err = pluginx.ParseCommand(PluginName, in.Command, &helmCmd)
+	err = plugin.ParseCommand(PluginName, in.Command, &helmCmd)
 	switch err {
 	case nil:
 	case arg.ErrHelp:
@@ -119,7 +119,7 @@ func (e *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (execu
 		in.Command = fmt.Sprintf("%s -n %s", in.Command, cfg.DefaultNamespace)
 	}
 
-	kubeConfigPath, deleteFn, err := pluginx.PersistKubeConfig(ctx, in.Context.KubeConfig)
+	kubeConfigPath, deleteFn, err := plugin.PersistKubeConfig(ctx, in.Context.KubeConfig)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while writing kubeconfig file: %w", err)
 	}
@@ -197,7 +197,7 @@ func (e *Executor) handleHelmCommand(ctx context.Context, cmd command, cfg Confi
 		"KUBECONFIG":       kubeConfig,
 	}
 
-	out, err := e.executeCommand(ctx, rawCmd, pluginx.ExecuteCommandEnvs(envs))
+	out, err := e.executeCommand(ctx, rawCmd, plugin.ExecuteCommandEnvs(envs))
 	if err != nil {
 		return executor.ExecuteOutput{}, err
 	}

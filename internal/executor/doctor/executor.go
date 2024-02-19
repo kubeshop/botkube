@@ -17,7 +17,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api/executor"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const (
@@ -75,7 +75,7 @@ func (d *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 // Execute returns a given command as a response.
 func (d *Executor) Execute(ctx context.Context, in executor.ExecuteInput) (executor.ExecuteOutput, error) {
 	var cfg Config
-	err := pluginx.MergeExecutorConfigs(in.Configs, &cfg)
+	err := plugin.MergeExecutorConfigs(in.Configs, &cfg)
 	if err != nil {
 		return executor.ExecuteOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}

@@ -1,6 +1,12 @@
 package plugin
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api/v1"
 	"sigs.k8s.io/yaml"
@@ -13,10 +19,12 @@ const (
 	kubeconfigDefaultNamespace = "default"
 )
 
+// KubeConfigInput defines the input for GenerateKubeConfig.
 type KubeConfigInput struct {
 	Channel string
 }
 
+// GenerateKubeConfig generates kubeconfig based on RBAC policy.
 func GenerateKubeConfig(restCfg *rest.Config, clusterName string, pluginCtx config.PluginContext, input KubeConfigInput) ([]byte, error) {
 	if clusterName == "" {
 		clusterName = kubeconfigDefaultValue
@@ -103,4 +111,39 @@ func generateGroupSubject(rbac config.GroupPolicySubject, input KubeConfigInput)
 		group = append(group, rbac.Prefix+input.Channel)
 	}
 	return
+}
+
+// PersistKubeConfig creates a temporary kubeconfig file and returns its path and a function to delete it.
+func PersistKubeConfig(_ context.Context, kc []byte) (string, func(context.Context) error, error) {
+	if len(kc) == 0 {
+		return "", nil, fmt.Errorf("received empty kube config")
+	}
+
+	file, err := os.CreateTemp("", "kubeconfig-")
+	if err != nil {
+		return "", nil, errors.Wrap(err, "while writing kube config to file")
+	}
+
+	abs, err := filepath.Abs(file.Name())
+	if err != nil {
+		return "", nil, errors.Wrap(err, "while writing kube config to file")
+	}
+
+	if _, err = file.Write(kc); err != nil {
+		return "", nil, errors.Wrap(err, "while writing kube config to file")
+	}
+
+	deleteFn := func(context.Context) error {
+		return os.RemoveAll(abs)
+	}
+
+	return abs, deleteFn, nil
+}
+
+// ValidateKubeConfigProvided returns an error if a given kubeconfig is empty or nil.
+func ValidateKubeConfigProvided(pluginName string, kubeconfig []byte) error {
+	if len(kubeconfig) != 0 {
+		return nil
+	}
+	return fmt.Errorf("The kubeconfig data is missing. Please make sure that you have specified a valid RBAC configuration for %q plugin. Learn more at https://docs.botkube.io/configuration/rbac.", pluginName)
 }

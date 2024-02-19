@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/go-plugin"
+	goplugin "github.com/hashicorp/go-plugin"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -20,7 +20,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 var (
@@ -84,7 +84,7 @@ func (CMWatcher) Metadata(_ context.Context) (api.MetadataOutput, error) {
 // Stream sends an event when a given ConfigMap is matched against the criteria defined in config.
 func (CMWatcher) Stream(ctx context.Context, in source.StreamInput) (source.StreamOutput, error) {
 	var cfg Config
-	err := pluginx.MergeSourceConfigsWithDefaults(defaultConfig, in.Configs, &cfg)
+	err := plugin.MergeSourceConfigsWithDefaults(defaultConfig, in.Configs, &cfg)
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configuration: %w", err)
 	}
@@ -163,7 +163,7 @@ func listenEvents(ctx context.Context, kubeConfig []byte, obj Object, sink chan 
 }
 
 func main() {
-	source.Serve(map[string]plugin.Plugin{
+	source.Serve(map[string]goplugin.Plugin{
 		pluginName: &source.Plugin{
 			Source: &CMWatcher{},
 		},

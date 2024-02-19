@@ -15,7 +15,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 func TestRunnerRawOutput(t *testing.T) {
@@ -76,7 +76,7 @@ func TestRunnerNoExecuteTemplate(t *testing.T) {
 				Ref: filepath.Join("./testdata/", t.Name()),
 			},
 		},
-		TmpDir: pluginx.TmpDir(t.TempDir()),
+		TmpDir: plugin.TmpDir(t.TempDir()),
 		Logger: config.Logger{},
 	}
 

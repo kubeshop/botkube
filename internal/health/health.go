@@ -9,9 +9,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 
-	"github.com/kubeshop/botkube/internal/plugin"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/httpx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const (

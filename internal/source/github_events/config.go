@@ -10,7 +10,7 @@ import (
 	"github.com/kubeshop/botkube/internal/source/github_events/templates"
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 type (
@@ -205,7 +205,7 @@ func MergeConfigs(configs []*source.Config) (Config, error) {
 		},
 	}
 	var out Config
-	if err := pluginx.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
+	if err := plugin.MergeSourceConfigsWithDefaults(defaults, configs, &out); err != nil {
 		return Config{}, err
 	}
 

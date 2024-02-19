@@ -9,20 +9,20 @@ import (
 	"github.com/gookit/color"
 	"github.com/spf13/pflag"
 
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 const binaryName = "kubectl"
 
 // BinaryRunner runs a kubectl binary.
 type BinaryRunner struct {
-	executeCommand func(ctx context.Context, rawCmd string, mutators ...pluginx.ExecuteCommandMutation) (pluginx.ExecuteCommandOutput, error)
+	executeCommand func(ctx context.Context, rawCmd string, mutators ...plugin.ExecuteCommandMutation) (plugin.ExecuteCommandOutput, error)
 }
 
 // NewBinaryRunner returns a new BinaryRunner instance.
 func NewBinaryRunner() *BinaryRunner {
 	return &BinaryRunner{
-		executeCommand: pluginx.ExecuteCommand,
+		executeCommand: plugin.ExecuteCommand,
 	}
 }
 
@@ -55,7 +55,7 @@ func (e *BinaryRunner) RunKubectlCommand(ctx context.Context, kubeConfigPath, de
 	}
 
 	runCmd := fmt.Sprintf("%s %s", binaryName, cmd)
-	out, err := e.executeCommand(ctx, runCmd, pluginx.ExecuteCommandEnvs(envs))
+	out, err := e.executeCommand(ctx, runCmd, plugin.ExecuteCommandEnvs(envs))
 	if err != nil {
 		return "", err
 	}
