@@ -119,6 +119,10 @@ func (e *PluginExecutor) Execute(ctx context.Context, bindings []string, slackSt
 					Mention:     cmdCtx.User.Mention,
 					DisplayName: cmdCtx.User.DisplayName,
 				},
+				ParentActivityID: cmdCtx.Conversation.ParentActivityID,
+			},
+			IncomingWebhook: executor.IncomingWebhookDetailsContext{
+				BaseSourceURL: e.cfg.Plugins.IncomingWebhook.InClusterBaseURL + "/sources/v1",
 			},
 		},
 	})

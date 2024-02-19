@@ -53,6 +53,13 @@ type (
 		// Limitations:
 		//   - It's available only for SocketSlack. In the future, it may be adopted across other platforms.
 		Message Message
+
+		IncomingWebhook IncomingWebhookDetailsContext
+	}
+
+	// IncomingWebhookDetailsContext holds source incoming webhook context.
+	IncomingWebhookDetailsContext struct {
+		BaseSourceURL string
 	}
 
 	// Message holds information about the message that triggered a given Executor.
@@ -60,6 +67,10 @@ type (
 		Text string
 		URL  string
 		User User
+
+		// ParentActivityID is the ID of the parent activity. If user follows with messages in a thread, this ID represents the originating message that started that thread.
+		// Otherwise, it's the ID of the initial message.
+		ParentActivityID string
 	}
 
 	// User represents the user that sent a message.
@@ -93,7 +104,7 @@ type (
 //
 // NOTE: In the future we can consider using VersionedPlugins. These can be used to negotiate
 // a compatible version between client and server. If this is set, Handshake.ProtocolVersion is not required.
-const ProtocolVersion = 2
+const ProtocolVersion = 3
 
 var _ plugin.GRPCPlugin = &Plugin{}
 
@@ -133,12 +144,16 @@ func (p *grpcClient) Execute(ctx context.Context, in ExecuteInput) (ExecuteOutpu
 			IsInteractivitySupported: in.Context.IsInteractivitySupported,
 			KubeConfig:               in.Context.KubeConfig,
 			Message: &MessageContext{
-				Text: in.Context.Message.Text,
-				Url:  in.Context.Message.URL,
+				Text:             in.Context.Message.Text,
+				Url:              in.Context.Message.URL,
+				ParentActivityId: in.Context.Message.ParentActivityID,
 				User: &UserContext{
 					Mention:     in.Context.Message.User.Mention,
 					DisplayName: in.Context.Message.User.DisplayName,
 				},
+			},
+			IncomingWebhook: &IncomingWebhookContext{
+				BaseSourceURL: in.Context.IncomingWebhook.BaseSourceURL,
 			},
 		},
 	}
@@ -241,6 +256,9 @@ func (p *grpcServer) Execute(ctx context.Context, request *ExecuteRequest) (*Exe
 			IsInteractivitySupported: request.Context.IsInteractivitySupported,
 			KubeConfig:               request.Context.KubeConfig,
 			Message:                  p.toMessageIfPresent(request.Context.Message),
+			IncomingWebhook: IncomingWebhookDetailsContext{
+				BaseSourceURL: request.Context.IncomingWebhook.BaseSourceURL,
+			},
 		},
 	})
 	if err != nil {
@@ -281,9 +299,10 @@ func (*grpcServer) toMessageIfPresent(msg *MessageContext) Message {
 	}
 
 	return Message{
-		Text: msg.Text,
-		URL:  msg.Url,
-		User: user,
+		Text:             msg.Text,
+		URL:              msg.Url,
+		ParentActivityID: msg.ParentActivityId,
+		User:             user,
 	}
 }
 

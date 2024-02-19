@@ -108,7 +108,7 @@ type (
 //
 // NOTE: In the future we can consider using VersionedPlugins. These can be used to negotiate
 // a compatible version between client and server. If this is set, Handshake.ProtocolVersion is not required.
-const ProtocolVersion = 2
+const ProtocolVersion = 3
 
 var _ plugin.GRPCPlugin = &Plugin{}
 

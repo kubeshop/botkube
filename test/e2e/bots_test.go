@@ -17,7 +17,6 @@ import (
 	"botkube.io/botube/test/botkubex"
 	"botkube.io/botube/test/commplatform"
 	"botkube.io/botube/test/diff"
-	"botkube.io/botube/test/fake"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/anthhub/forwarder"
 	"github.com/hasura/go-graphql-client"
@@ -40,6 +39,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/httpx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 	"github.com/kubeshop/botkube/pkg/ptr"
 )
 
@@ -87,7 +87,7 @@ type Config struct {
 		Port      int    `envconfig:"default=2115"`
 		LocalPort int    `envconfig:"default=2115"`
 	}
-	Plugins   fake.PluginConfig
+	Plugins   plugin.StaticPluginServerConfig
 	ConfigMap struct {
 		Namespace string `envconfig:"default=botkube"`
 	}
@@ -215,7 +215,7 @@ func runBotTest(t *testing.T,
 	var indexEndpoint string
 	if botDriver.Type() == commplatform.DiscordBot {
 		t.Log("Starting plugin server...")
-		endpoint, startServerFn := fake.NewPluginServer(appCfg.Plugins)
+		endpoint, startServerFn := plugin.NewStaticPluginServer(appCfg.Plugins)
 		indexEndpoint = endpoint
 		go func() {
 			require.NoError(t, startServerFn())

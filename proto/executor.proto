@@ -6,8 +6,11 @@ option go_package = "pkg/api/executor";
 
 package executor;
 
+// Config holds the Executor configuration.
 message Config {
 	// rawYAML contains the Executor configuration in YAML definitions.
+	// Configuration data is unique per executor.
+	// Botkube related configuration details are stored in ExecuteContext instead.
 	bytes rawYAML = 1;
 }
 
@@ -21,28 +24,64 @@ message ExecuteRequest {
 }
 
 message ExecuteContext {
+	// isInteractivitySupported is set to true only if communication platform supports interactive Messages 
+	// with buttons, select menus, etc. If set to false, you should send only text based messages.
 	bool isInteractivitySupported = 1;
+	// slackState represents modal state. It's available only if:
+	//  - IsInteractivitySupported is set to true,
+	//  - and interactive actions were used in the response Message.
+	// This is an alpha feature and may change in the future.
+	// Most likely, it will be generalized to support all communication platforms.
 	bytes slackState = 2;
+	// kubeConfig is the slice of byte representation of kubeconfig file content.
+	// it is available only if context.rbac is configured for a given plugins. Otherwise, it is empty.
 	bytes kubeConfig = 3;
+	// message holds message details that triggered a given Executor.
 	MessageContext message = 4;
+	// incomingWebhook holds details about Botkube built-in incoming webhook configuration.
+	IncomingWebhookContext incomingWebhook = 5;
+}
+
+// IncomingWebhookContext holds information about the built-in incoming webhook that
+// allows triggering HandleExternalRequest on a given source.
+message IncomingWebhookContext {
+	string baseSourceURL = 1;
 }
 
 message MessageContext {
+	// text is the text of the message in the raw format.
 	string text = 1;
+	// url is the URL of the message. Can be used to open the message in a browser.
 	string url = 2;
-	UserContext user = 3;
+	// parentActivityId is the ID of the parent activity. If user follows with messages in a thread, this ID represents the originating message that started that thread.
+	// Otherwise, it's the ID of the initial message.
+	string parentActivityId = 3;
+	// user holds user details that wrote a given message.
+	UserContext user = 4;
 }
 
 message UserContext {
+	// mention represents a user platforms specific mention of the user.  
 	string mention = 1;
+	// displayName represents user display name. It can be empty.
 	string displayName = 2;
 }
 
 message ExecuteResponse {
+	// message represents the output of processing a given input command.
+	// You can construct a complex message or just use one of our helper functions:
+	//   - api.NewCodeBlockMessage("body", true)
+	//   - api.NewPlaintextMessage("body", true)
 	bytes message = 1;
+	// messages holds a collection of messages that should be dispatched to the user in the context of a given command execution.
+	// To avoid spamming, you can specify max 15 messages.
+	// Limitations:
+	//   - It's available only for SocketSlack. In the future, it may be adopted across other platforms.
+	//   - Interactive message filtering is not available. (https://docs.botkube.io/usage/interactive-output-filtering)
 	repeated bytes messages = 2;
 }
 
+// MetadataResponse represents metadata of a given plugin. Data is used to generate a plugin index file.
 message MetadataResponse {
 	// version is a version of a given plugin. It should follow the SemVer syntax.
 	string version = 1;
@@ -58,6 +97,7 @@ message MetadataResponse {
 	bool recommended = 6;
 }
 
+// JSONSchema represents a JSON schema of a given plugin configuration.
 message JSONSchema {
 	// value is the string value of the JSON schema.
 	string value = 1;
@@ -65,12 +105,18 @@ message JSONSchema {
 	string ref_url = 2;
 }
 
+// Dependency represents a dependency of a given plugin. All binaries are downloaded before the plugin is started. 
 message Dependency {
 	// urls is the map of URL of the dependency. The key is in format of "os/arch", such as "linux/amd64".
 	map<string, string> urls = 1;
 }
 
+// HelpResponse represents help of a given plugin.
 message HelpResponse {
+	// help is the help of a given plugin.
+	// You can construct a complex message with buttons etc, or just use one of our helper functions:
+	//   - api.NewCodeBlockMessage("body", true)
+	//   - api.NewPlaintextMessage("body", true)
 	bytes help = 1;
 }
 

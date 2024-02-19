@@ -162,7 +162,7 @@ For faster development, you can also build and run Botkube outside K8s cluster.
 1. Start fake plugins server to serve binaries from [`dist`](dist) folder:
 
    ```bash
-   go run test/helpers/plugin_server.go
+   go run hack/target/serve-plugins/main.go
    ```
 
    > **Note**
