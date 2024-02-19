@@ -514,6 +514,7 @@ func (b *CloudSlack) handleMessage(ctx context.Context, event slackMessage) erro
 			IsKnown:          exists,
 			CommandOrigin:    event.CommandOrigin,
 			SlackState:       event.State,
+			ParentActivityID: event.GetTimestamp(),
 		},
 		Message: request,
 		User: execute.UserInput{
@@ -587,7 +588,7 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 			return fmt.Errorf("while posting Slack message visible only to user: %w", err)
 		}
 	} else {
-		if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
+		if ts := b.getThreadOptionIfNeeded(resp, event, file); ts != nil {
 			options = append(options, ts)
 		}
 
@@ -636,7 +637,7 @@ func (b *CloudSlack) BotName() string {
 	return fmt.Sprintf("<@%s>", b.botID)
 }
 
-func (b *CloudSlack) getThreadOptionIfNeeded(event slackMessage, file *slack.File) slack.MsgOption {
+func (b *CloudSlack) getThreadOptionIfNeeded(resp interactive.CoreMessage, event slackMessage, file *slack.File) slack.MsgOption {
 	if file != nil {
 		// If the message was already as a file attachment, reply it a given thread
 		for _, share := range file.Shares.Public {
@@ -644,6 +645,10 @@ func (b *CloudSlack) getThreadOptionIfNeeded(event slackMessage, file *slack.Fil
 				return slack.MsgOptionTS(share[0].Ts)
 			}
 		}
+	}
+
+	if resp.ParentActivityID != "" {
+		return slack.MsgOptionTS(resp.Message.ParentActivityID)
 	}
 
 	if ts := event.GetTimestamp(); ts != "" {

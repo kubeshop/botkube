@@ -16,7 +16,6 @@ enum MessageType {
 
 message Message {
   string teamId = 1;
-  string activityId = 2;
   string conversationId = 3;
   MessageType messageType = 4;
   bytes data = 5;
