@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/pluginx"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 	loggerx.ExitOnError(err, "while casting server port value")
 
 	binDir := filepath.Join(dir, *pluginsDir)
-	indexEndpoint, startServerFn := pluginx.NewStaticPluginServer(pluginx.StaticPluginServerConfig{
+	indexEndpoint, startServerFn := plugin.NewStaticPluginServer(plugin.StaticPluginServerConfig{
 		BinariesDirectory: binDir,
 		Host:              *host,
 		Port:              portInt,

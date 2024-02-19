@@ -62,7 +62,7 @@ type Message struct {
 	UserHandle        string      `json:"userHandle,omitempty" yaml:"userHandle"`
 
 	// ParentActivityID represents the originating message that started a thread. If set, message will be sent in that thread instead of the default one.
-	ParentActivityID string `json:"parentActivityId" yaml:"parentActivityId"`
+	ParentActivityID string `json:"parentActivityId,omitempty" yaml:"parentActivityId,omitempty"`
 }
 
 func (msg *Message) IsEmpty() bool {

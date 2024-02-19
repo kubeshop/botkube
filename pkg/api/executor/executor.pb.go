@@ -21,12 +21,15 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Config holds the Executor configuration.
 type Config struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
 	// rawYAML contains the Executor configuration in YAML definitions.
+	// Configuration data is unique per executor.
+	// Botkube related configuration details are stored in ExecuteContext instead.
 	RawYAML []byte `protobuf:"bytes,1,opt,name=rawYAML,proto3" json:"rawYAML,omitempty"`
 }
 
@@ -140,11 +143,23 @@ type ExecuteContext struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	IsInteractivitySupported bool                    `protobuf:"varint,1,opt,name=isInteractivitySupported,proto3" json:"isInteractivitySupported,omitempty"`
-	SlackState               []byte                  `protobuf:"bytes,2,opt,name=slackState,proto3" json:"slackState,omitempty"`
-	KubeConfig               []byte                  `protobuf:"bytes,3,opt,name=kubeConfig,proto3" json:"kubeConfig,omitempty"`
-	Message                  *MessageContext         `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
-	IncomingWebhook          *IncomingWebhookContext `protobuf:"bytes,5,opt,name=incomingWebhook,proto3" json:"incomingWebhook,omitempty"`
+	// isInteractivitySupported is set to true only if communication platform supports interactive Messages
+	// with buttons, select menus, etc. If set to false, you should send only text based messages.
+	IsInteractivitySupported bool `protobuf:"varint,1,opt,name=isInteractivitySupported,proto3" json:"isInteractivitySupported,omitempty"`
+	// slackState represents modal state. It's available only if:
+	//   - IsInteractivitySupported is set to true,
+	//   - and interactive actions were used in the response Message.
+	//
+	// This is an alpha feature and may change in the future.
+	// Most likely, it will be generalized to support all communication platforms.
+	SlackState []byte `protobuf:"bytes,2,opt,name=slackState,proto3" json:"slackState,omitempty"`
+	// kubeConfig is the slice of byte representation of kubeconfig file content.
+	// it is available only if context.rbac is configured for a given plugins. Otherwise, it is empty.
+	KubeConfig []byte `protobuf:"bytes,3,opt,name=kubeConfig,proto3" json:"kubeConfig,omitempty"`
+	// message holds message details that triggered a given Executor.
+	Message *MessageContext `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	// incomingWebhook holds details about Botkube built-in incoming webhook configuration.
+	IncomingWebhook *IncomingWebhookContext `protobuf:"bytes,5,opt,name=incomingWebhook,proto3" json:"incomingWebhook,omitempty"`
 }
 
 func (x *ExecuteContext) Reset() {
@@ -214,6 +229,8 @@ func (x *ExecuteContext) GetIncomingWebhook() *IncomingWebhookContext {
 	return nil
 }
 
+// IncomingWebhookContext holds information about the built-in incoming webhook that
+// allows triggering HandleExternalRequest on a given source.
 type IncomingWebhookContext struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -266,10 +283,15 @@ type MessageContext struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Text             string       `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
-	Url              string       `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
-	ParentActivityId string       `protobuf:"bytes,3,opt,name=parentActivityId,proto3" json:"parentActivityId,omitempty"`
-	User             *UserContext `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`
+	// text is the text of the message in the raw format.
+	Text string `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	// url is the URL of the message. Can be used to open the message in a browser.
+	Url string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	// parentActivityId is the ID of the parent activity. If user follows with messages in a thread, this ID represents the originating message that started that thread.
+	// Otherwise, it's the ID of the initial message.
+	ParentActivityId string `protobuf:"bytes,3,opt,name=parentActivityId,proto3" json:"parentActivityId,omitempty"`
+	// user holds user details that wrote a given message.
+	User *UserContext `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`
 }
 
 func (x *MessageContext) Reset() {
@@ -337,7 +359,9 @@ type UserContext struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Mention     string `protobuf:"bytes,1,opt,name=mention,proto3" json:"mention,omitempty"`
+	// mention represents a user platforms specific mention of the user.
+	Mention string `protobuf:"bytes,1,opt,name=mention,proto3" json:"mention,omitempty"`
+	// displayName represents user display name. It can be empty.
 	DisplayName string `protobuf:"bytes,2,opt,name=displayName,proto3" json:"displayName,omitempty"`
 }
 
@@ -392,7 +416,16 @@ type ExecuteResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Message  []byte   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	// message represents the output of processing a given input command.
+	// You can construct a complex message or just use one of our helper functions:
+	//   - api.NewCodeBlockMessage("body", true)
+	//   - api.NewPlaintextMessage("body", true)
+	Message []byte `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	// messages holds a collection of messages that should be dispatched to the user in the context of a given command execution.
+	// To avoid spamming, you can specify max 15 messages.
+	// Limitations:
+	//   - It's available only for SocketSlack. In the future, it may be adopted across other platforms.
+	//   - Interactive message filtering is not available. (https://docs.botkube.io/usage/interactive-output-filtering)
 	Messages [][]byte `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
 }
 
@@ -442,6 +475,7 @@ func (x *ExecuteResponse) GetMessages() [][]byte {
 	return nil
 }
 
+// MetadataResponse represents metadata of a given plugin. Data is used to generate a plugin index file.
 type MetadataResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -535,6 +569,7 @@ func (x *MetadataResponse) GetRecommended() bool {
 	return false
 }
 
+// JSONSchema represents a JSON schema of a given plugin configuration.
 type JSONSchema struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -592,6 +627,7 @@ func (x *JSONSchema) GetRefUrl() string {
 	return ""
 }
 
+// Dependency represents a dependency of a given plugin. All binaries are downloaded before the plugin is started.
 type Dependency struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -640,11 +676,16 @@ func (x *Dependency) GetUrls() map[string]string {
 	return nil
 }
 
+// HelpResponse represents help of a given plugin.
 type HelpResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// help is the help of a given plugin.
+	// You can construct a complex message with buttons etc, or just use one of our helper functions:
+	//   - api.NewCodeBlockMessage("body", true)
+	//   - api.NewPlaintextMessage("body", true)
 	Help []byte `protobuf:"bytes,1,opt,name=help,proto3" json:"help,omitempty"`
 }
 
