@@ -9,84 +9,9 @@ before:
     - go mod download
 
 builds:
-  - id: doctor
-    main: cmd/executor/doctor/main.go
-    binary: executor_doctor_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
   - id: echo
     main: cmd/executor/echo/main.go
     binary: executor_echo_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
-  - id: exec
-    main: cmd/executor/exec/main.go
-    binary: executor_exec_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
-  - id: flux
-    main: cmd/executor/flux/main.go
-    binary: executor_flux_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
-  - id: gh
-    main: cmd/executor/gh/main.go
-    binary: executor_gh_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
-  - id: helm
-    main: cmd/executor/helm/main.go
-    binary: executor_helm_{{ .Os }}_{{ .Arch }}
 
     no_unique_dist_dir: true
     env:
@@ -114,69 +39,9 @@ builds:
       - arm64
     goarm:
       - 7
-  - id: thread-mate
-    main: cmd/executor/thread-mate/main.go
-    binary: executor_thread-mate_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
-  - id: argocd
-    main: cmd/source/argocd/main.go
-    binary: source_argocd_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
   - id: cm-watcher
     main: cmd/source/cm-watcher/main.go
     binary: source_cm-watcher_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
-  - id: github-events
-    main: cmd/source/github-events/main.go
-    binary: source_github-events_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
-  - id: keptn
-    main: cmd/source/keptn/main.go
-    binary: source_keptn_{{ .Os }}_{{ .Arch }}
 
     no_unique_dist_dir: true
     env:
@@ -204,56 +69,11 @@ builds:
       - arm64
     goarm:
       - 7
-  - id: prometheus
-    main: cmd/source/prometheus/main.go
-    binary: source_prometheus_{{ .Os }}_{{ .Arch }}
-
-    no_unique_dist_dir: true
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    goarm:
-      - 7
 
 archives:
       
-  - builds: [doctor]
-    id: doctor
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
   - builds: [echo]
     id: echo
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
-  - builds: [exec]
-    id: exec
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
-  - builds: [flux]
-    id: flux
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
-  - builds: [gh]
-    id: gh
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
-  - builds: [helm]
-    id: helm
     files:
       - none*
     name_template: "{{ .Binary }}"
@@ -264,44 +84,14 @@ archives:
       - none*
     name_template: "{{ .Binary }}"
       
-  - builds: [thread-mate]
-    id: thread-mate
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
-  - builds: [argocd]
-    id: argocd
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
   - builds: [cm-watcher]
     id: cm-watcher
     files:
       - none*
     name_template: "{{ .Binary }}"
       
-  - builds: [github-events]
-    id: github-events
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
-  - builds: [keptn]
-    id: keptn
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
   - builds: [kubernetes]
     id: kubernetes
-    files:
-      - none*
-    name_template: "{{ .Binary }}"
-      
-  - builds: [prometheus]
-    id: prometheus
     files:
       - none*
     name_template: "{{ .Binary }}"
