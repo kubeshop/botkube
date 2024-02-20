@@ -285,7 +285,6 @@ func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActi
 				MessageType:    pb.MessageType_MESSAGE_EXECUTOR,
 				TeamId:         channel.teamID,
 				ConversationId: conversationRef.Conversation.ID,
-				ActivityId:     conversationRef.ActivityID, // activity ID allows us to send it as a thread message
 				Data:           raw,
 			},
 		}, nil
@@ -309,6 +308,7 @@ func (b *CloudTeams) processMessage(ctx context.Context, act schema.Activity, ch
 			SourceBindings:   channel.Bindings.Sources,
 			CommandOrigin:    b.mapToCommandOrigin(act),
 			DisplayName:      channelDisplayName,
+			ParentActivityID: act.Conversation.ID,
 		},
 		Message: trimmedMsg,
 		User: execute.UserInput{
@@ -389,7 +389,6 @@ func (b *CloudTeams) sendAgentActivity(ctx context.Context, msg interactive.Core
 			Message: &pb.Message{
 				MessageType:    pb.MessageType_MESSAGE_SOURCE,
 				TeamId:         channel.teamID,
-				ActivityId:     "", // empty so it will be sent on root instead of sending as a thread message
 				ConversationId: channel.ID,
 				Data:           raw,
 			},
