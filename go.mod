@@ -34,7 +34,7 @@ require (
 	github.com/gookit/color v1.5.2
 	github.com/gorilla/mux v1.8.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
-	github.com/hashicorp/go-getter v1.7.1
+	github.com/hashicorp/go-getter v1.7.3
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.10
@@ -280,3 +280,5 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
+
+replace github.com/hashicorp/go-getter v1.7.3 => github.com/kubeshop/go-getter v0.0.0-20240219121353-061e752b1b28

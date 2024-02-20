@@ -1204,11 +1204,13 @@ configWatcher:
 plugins:
   # -- Directory, where downloaded plugins are cached.
   cacheDir: "/tmp"
-  # -- List of plugins repositories.
+  # -- List of plugins repositories. Each repository defines the URL and optional `headers`
   repositories:
     # -- This repository serves officially supported Botkube plugins.
     botkube:
       url: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
+      # headers: {} # optional headers for plugins repository.
+
   # -- Configure Incoming webhook for source plugins.
   incomingWebhook:
     enabled: true

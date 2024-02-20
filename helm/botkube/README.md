@@ -270,17 +270,17 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [configWatcher.inCluster.informerResyncPeriod](./values.yaml#L1201) | string | `"10m"` | Resync period for the Config Watcher informers. |
 | [plugins](./values.yaml#L1204) | object | `{"cacheDir":"/tmp","healthCheckInterval":"10s","incomingWebhook":{"enabled":true,"port":2115,"targetPort":2115},"repositories":{"botkube":{"url":"https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"}},"restartPolicy":{"threshold":10,"type":"DeactivatePlugin"}}` | Configuration for Botkube executors and sources plugins. |
 | [plugins.cacheDir](./values.yaml#L1206) | string | `"/tmp"` | Directory, where downloaded plugins are cached. |
-| [plugins.repositories](./values.yaml#L1208) | object | `{"botkube":{"url":"https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"}}` | List of plugins repositories. |
+| [plugins.repositories](./values.yaml#L1208) | object | `{"botkube":{"url":"https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"}}` | List of plugins repositories. Each repository defines the URL and optional `headers` |
 | [plugins.repositories.botkube](./values.yaml#L1210) | object | `{"url":"https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
-| [plugins.incomingWebhook](./values.yaml#L1213) | object | `{"enabled":true,"port":2115,"targetPort":2115}` | Configure Incoming webhook for source plugins. |
-| [plugins.restartPolicy](./values.yaml#L1218) | object | `{"threshold":10,"type":"DeactivatePlugin"}` | Botkube Restart Policy on plugin failure. |
-| [plugins.restartPolicy.type](./values.yaml#L1220) | string | `"DeactivatePlugin"` | Restart policy type. Allowed values: "RestartAgent", "DeactivatePlugin". |
-| [plugins.restartPolicy.threshold](./values.yaml#L1222) | int | `10` | Number of restarts before policy takes into effect. |
-| [config](./values.yaml#L1226) | object | `{"provider":{"apiKey":"","endpoint":"https://api.botkube.io/graphql","identifier":""}}` | Configuration for synchronizing Botkube configuration. |
-| [config.provider](./values.yaml#L1228) | object | `{"apiKey":"","endpoint":"https://api.botkube.io/graphql","identifier":""}` | Base provider definition. |
-| [config.provider.identifier](./values.yaml#L1231) | string | `""` | Unique identifier for remote Botkube settings. If set to an empty string, Botkube won't fetch remote configuration. |
-| [config.provider.endpoint](./values.yaml#L1233) | string | `"https://api.botkube.io/graphql"` | Endpoint to fetch Botkube settings from. |
-| [config.provider.apiKey](./values.yaml#L1235) | string | `""` | Key passed as a `X-API-Key` header to the provider's endpoint. |
+| [plugins.incomingWebhook](./values.yaml#L1215) | object | `{"enabled":true,"port":2115,"targetPort":2115}` | Configure Incoming webhook for source plugins. |
+| [plugins.restartPolicy](./values.yaml#L1220) | object | `{"threshold":10,"type":"DeactivatePlugin"}` | Botkube Restart Policy on plugin failure. |
+| [plugins.restartPolicy.type](./values.yaml#L1222) | string | `"DeactivatePlugin"` | Restart policy type. Allowed values: "RestartAgent", "DeactivatePlugin". |
+| [plugins.restartPolicy.threshold](./values.yaml#L1224) | int | `10` | Number of restarts before policy takes into effect. |
+| [config](./values.yaml#L1228) | object | `{"provider":{"apiKey":"","endpoint":"https://api.botkube.io/graphql","identifier":""}}` | Configuration for synchronizing Botkube configuration. |
+| [config.provider](./values.yaml#L1230) | object | `{"apiKey":"","endpoint":"https://api.botkube.io/graphql","identifier":""}` | Base provider definition. |
+| [config.provider.identifier](./values.yaml#L1233) | string | `""` | Unique identifier for remote Botkube settings. If set to an empty string, Botkube won't fetch remote configuration. |
+| [config.provider.endpoint](./values.yaml#L1235) | string | `"https://api.botkube.io/graphql"` | Endpoint to fetch Botkube settings from. |
+| [config.provider.apiKey](./values.yaml#L1237) | string | `""` | Key passed as a `X-API-Key` header to the provider's endpoint. |
 
 ### AWS IRSA on EKS support
 

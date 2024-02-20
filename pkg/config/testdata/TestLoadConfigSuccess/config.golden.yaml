@@ -178,6 +178,7 @@ plugins:
     repositories:
         botkube:
             url: http://localhost:3000/botkube.yaml
+            headers: {}
     incomingWebhook:
         enabled: false
         port: 0

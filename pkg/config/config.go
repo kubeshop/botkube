@@ -143,11 +143,11 @@ type Config struct {
 
 // PluginManagement holds Botkube plugin management related configuration.
 type PluginManagement struct {
-	CacheDir            string                         `yaml:"cacheDir"`
-	Repositories        map[string]PluginsRepositories `yaml:"repositories"`
-	IncomingWebhook     IncomingWebhook                `yaml:"incomingWebhook"`
-	RestartPolicy       PluginRestartPolicy            `yaml:"restartPolicy"`
-	HealthCheckInterval time.Duration                  `yaml:"healthCheckInterval"`
+	CacheDir            string                       `yaml:"cacheDir"`
+	Repositories        map[string]PluginsRepository `yaml:"repositories"`
+	IncomingWebhook     IncomingWebhook              `yaml:"incomingWebhook"`
+	RestartPolicy       PluginRestartPolicy          `yaml:"restartPolicy"`
+	HealthCheckInterval time.Duration                `yaml:"healthCheckInterval"`
 }
 
 type PluginRestartPolicy struct {
@@ -166,9 +166,10 @@ func (p PluginRestartPolicyType) ToLower() string {
 	return strings.ToLower(string(p))
 }
 
-// PluginsRepositories holds the Plugin repository information.
-type PluginsRepositories struct {
-	URL string `yaml:"url"`
+// PluginsRepository holds the Plugin repository information.
+type PluginsRepository struct {
+	URL     string `yaml:"url"`
+	Headers map[string]string
 }
 
 // IncomingWebhook contains configuration for incoming source webhook.
