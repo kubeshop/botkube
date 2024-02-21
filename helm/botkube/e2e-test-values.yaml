@@ -298,10 +298,6 @@ executors:
       config:
         changeResponseToUpperCase: true
 
-    botkube/helm:
-      context: *defaultPluginContext
-      enabled: true
-
   'rbac-with-no-configuration':
     botkube/echo:
       enabled: true

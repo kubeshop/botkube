@@ -111,7 +111,7 @@ func TestSegmentReporter_ReportCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	err = segmentReporter.ReportCommand(analytics.ReportCommandInput{
-		Platform:   config.SlackCommPlatformIntegration,
+		Platform:   config.CloudSlackCommPlatformIntegration,
 		PluginName: "botkube/kubectl",
 		Command:    "get",
 		Origin:     command.ButtonClickOrigin,
@@ -136,7 +136,7 @@ func TestSegmentReporter_ReportBotEnabled(t *testing.T) {
 	segmentReporter, segmentCli := fakeSegmentReporterWithIdentity(identity)
 
 	// when
-	err := segmentReporter.ReportBotEnabled(config.SlackCommPlatformIntegration, 1)
+	err := segmentReporter.ReportBotEnabled(config.CloudSlackCommPlatformIntegration, 1)
 	require.NoError(t, err)
 
 	// when
@@ -326,7 +326,7 @@ func TestSegmentReporter_Run(t *testing.T) {
 
 	err := segmentReporter.ReportHandledEventSuccess(analytics.ReportEventInput{
 		IntegrationType:       config.BotIntegrationType,
-		Platform:              config.SlackCommPlatformIntegration,
+		Platform:              config.CloudSlackCommPlatformIntegration,
 		PluginName:            "botkube/kubernetes",
 		AnonymizedEventFields: eventDetails,
 	})
@@ -351,7 +351,7 @@ func TestSegmentReporter_Run(t *testing.T) {
 	require.NoError(t, err)
 	err = segmentReporter.ReportHandledEventSuccess(analytics.ReportEventInput{
 		IntegrationType:       config.BotIntegrationType,
-		Platform:              config.SlackCommPlatformIntegration,
+		Platform:              config.CloudSlackCommPlatformIntegration,
 		PluginName:            "botkube/kubernetes",
 		AnonymizedEventFields: eventDetails,
 	})

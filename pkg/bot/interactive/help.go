@@ -55,7 +55,7 @@ func (h *HelpMessage) Build() CoreMessage {
 
 func (h *HelpMessage) cluster() []api.Section {
 	switch h.platform {
-	case config.SlackCommPlatformIntegration, config.DiscordCommPlatformIntegration, config.MattermostCommPlatformIntegration:
+	case config.DiscordCommPlatformIntegration, config.MattermostCommPlatformIntegration:
 		return []api.Section{
 			{
 				Base: api.Base{

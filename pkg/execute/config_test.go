@@ -28,7 +28,7 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 			CmdCtx: CommandContext{
 				Args:           []string{"config"},
 				Conversation:   Conversation{Alias: channelAlias, ID: "conv-id"},
-				Platform:       config.SlackCommPlatformIntegration,
+				Platform:       config.SocketSlackCommPlatformIntegration,
 				ClusterName:    configTestClusterName,
 				ExecutorFilter: newExecutorTextFilter(""),
 			},

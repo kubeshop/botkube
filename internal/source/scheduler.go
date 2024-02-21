@@ -173,14 +173,6 @@ func (d *Scheduler) generateConfigs(ctx context.Context) error {
 			}
 		}
 
-		if commGroupCfg.Slack.Enabled {
-			for _, channel := range commGroupCfg.Slack.Channels {
-				if err := d.generateSourceConfigs(ctx, config.SlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
-					return err
-				}
-			}
-		}
-
 		if commGroupCfg.SocketSlack.Enabled {
 			for _, channel := range commGroupCfg.SocketSlack.Channels {
 				if err := d.generateSourceConfigs(ctx, config.SocketSlackCommPlatformIntegration.IsInteractive(), channel.Bindings.Sources); err != nil {
@@ -197,11 +189,6 @@ func (d *Scheduler) generateConfigs(ctx context.Context) error {
 			}
 		}
 
-		if commGroupCfg.Teams.Enabled {
-			if err := d.generateSourceConfigs(ctx, config.TeamsCommPlatformIntegration.IsInteractive(), commGroupCfg.Teams.Bindings.Sources); err != nil {
-				return err
-			}
-		}
 		if commGroupCfg.CloudTeams.Enabled {
 			for _, teams := range commGroupCfg.CloudTeams.Teams {
 				for _, channel := range teams.Channels {

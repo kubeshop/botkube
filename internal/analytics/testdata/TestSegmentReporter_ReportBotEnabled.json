@@ -7,7 +7,7 @@
 		"timestamp": "2009-11-17T20:34:58.651387237Z",
 		"properties": {
 			"communicationGroupID": 1,
-			"platform": "slack",
+			"platform": "cloudSlack",
 			"type": "bot"
 		}
 	},

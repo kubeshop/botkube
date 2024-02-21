@@ -42,10 +42,6 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 	)
 
 	for _, commGroupCfg := range cfg.Communications {
-		if commGroupCfg.Slack.Enabled {
-			collect(boundExecutors, boundSources, commGroupCfg.Slack.Channels)
-		}
-
 		if commGroupCfg.SocketSlack.Enabled {
 			collect(boundExecutors, boundSources, commGroupCfg.SocketSlack.Channels)
 		}
@@ -56,15 +52,6 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 
 		if commGroupCfg.Mattermost.Enabled {
 			collect(boundExecutors, boundSources, commGroupCfg.Mattermost.Channels)
-		}
-
-		if commGroupCfg.Teams.Enabled {
-			for _, name := range commGroupCfg.Teams.Bindings.Executors {
-				boundExecutors[name] = struct{}{}
-			}
-			for _, name := range commGroupCfg.Teams.Bindings.Sources {
-				boundSources[name] = struct{}{}
-			}
 		}
 
 		if commGroupCfg.CloudTeams.Enabled {

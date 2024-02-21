@@ -303,7 +303,7 @@ func runBotTest(t *testing.T,
 	// Discord bot needs a bit more time to connect to Discord API.
 	time.Sleep(appCfg.Discord.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
-	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
+	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build()
 	botDriver.ReplaceBotNamePlaceholder(&expMessage, appCfg.ClusterName)
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.FirstChannel().ID(),
@@ -329,7 +329,8 @@ func runBotTest(t *testing.T,
 
 	t.Run("Help", func(t *testing.T) {
 		command := "help"
-		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, []string{"botkube/helm", "botkube/kubectl"}).Build()
+
+		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build()
 		botDriver.ReplaceBotNamePlaceholder(&expectedMessage, appCfg.ClusterName)
 		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),
@@ -385,6 +386,10 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Helm Executor", func(t *testing.T) {
+			if botDriver.Type() == commplatform.DiscordBot {
+				t.Skip("Skipped as the Botkube Cloud plugin isn't currently tested for this platform.")
+			}
+
 			command := "helm install --help"
 			expectedBody := codeBlock(heredoc.Doc(`
 				Installs a chart archive.
@@ -434,6 +439,10 @@ func runBotTest(t *testing.T,
 		})
 
 		t.Run("Helm Executor help", func(t *testing.T) {
+			if botDriver.Type() == commplatform.DiscordBot {
+				t.Skip("Skipped as the Botkube Cloud plugin isn't currently tested for this platform.")
+			}
+
 			command := "helm help"
 			expectedBody := codeBlock(heredoc.Doc(`
 				The official Botkube plugin for the Helm CLI.
@@ -1245,11 +1254,20 @@ func runBotTest(t *testing.T,
 
 	t.Run("List executors", func(t *testing.T) {
 		command := "list executors"
+
 		expectedBody := codeBlock(heredoc.Doc(`
 			EXECUTOR                   ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
 			botkube/echo@v0.0.0-latest true    e       0/1      Running 
-			botkube/helm               true            0/1      Running 
+			botkube/kubectl            true    k, kc   0/1      Running 
+			botkubeCloud/helm          true            0/1      Running`))
+
+		if botDriver.Type() == commplatform.DiscordBot {
+			// Cloud plugins are not tested on Discord
+			expectedBody = codeBlock(heredoc.Doc(`
+			EXECUTOR                   ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
+			botkube/echo@v0.0.0-latest true    e       0/1      Running 
 			botkube/kubectl            true    k, kc   0/1      Running`))
+		}
 
 		if botDriver.Type() == commplatform.TeamsBot {
 			expectedBody = trimRightWhitespace(expectedBody)
@@ -1774,4 +1792,13 @@ func createCloudDeployment(t *testing.T, gqlCli *Client, driver commplatform.Bot
 		return gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, appCfg.ClusterName, appCfg.ConfigProvider.SlackWorkspaceTeamID, driver.FirstChannel().Name(), driver.SecondChannel().Name(), driver.ThirdChannel().Name())
 	}
 	return nil
+}
+
+func getHelpExecutors(botDriverType commplatform.DriverType) []string {
+	executors := []string{"botkube/kubectl"}
+	if botDriverType != commplatform.DiscordBot {
+		executors = append(executors, "botkubeCloud/helm")
+	}
+
+	return executors
 }

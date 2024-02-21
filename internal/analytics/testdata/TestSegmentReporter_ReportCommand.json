@@ -23,7 +23,7 @@
 			"command": "get",
 			"filtered": true,
 			"origin": "buttonClick",
-			"platform": "slack",
+			"platform": "cloudSlack",
 			"plugin": "botkube/kubectl"
 		}
 	},

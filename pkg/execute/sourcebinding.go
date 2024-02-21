@@ -211,14 +211,6 @@ func (e *SourceBindingExecutor) generateUnknownMessage(unknown []string) interac
 
 func (e *SourceBindingExecutor) currentlySelectedOptions(commGroupName string, platform config.CommPlatformIntegration, conversationID string) []string {
 	switch platform {
-	case config.SlackCommPlatformIntegration:
-		channels := e.cfg.Communications[commGroupName].Slack.Channels
-		for _, channel := range channels {
-			if channel.Identifier() != conversationID {
-				continue
-			}
-			return channel.Bindings.Sources
-		}
 	case config.CloudSlackCommPlatformIntegration:
 		channels := e.cfg.Communications[commGroupName].CloudSlack.Channels
 		for _, channel := range channels {
@@ -251,8 +243,6 @@ func (e *SourceBindingExecutor) currentlySelectedOptions(commGroupName string, p
 			}
 			return channel.Bindings.Sources
 		}
-	case config.TeamsCommPlatformIntegration:
-		return e.cfg.Communications[commGroupName].Teams.Bindings.Sources
 	}
 	return nil
 }

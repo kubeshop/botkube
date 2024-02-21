@@ -71,41 +71,9 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
 			},
 		},
 		{
-			Name:                "Empty state files - MS Teams",
-			InputPlatform:       config.TeamsCommPlatformIntegration,
-			InputChannel:        "foo",
-			InputSourceBindings: []string{"first", "second"},
-			InputCfgMap: &v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      cfg.ConfigMap.Name,
-					Namespace: cfg.ConfigMap.Namespace,
-				},
-				Data: map[string]string{
-					cfg.FileName: "",
-				},
-			},
-			Expected: &v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      cfg.ConfigMap.Name,
-					Namespace: cfg.ConfigMap.Namespace,
-				},
-				Data: map[string]string{
-					cfg.FileName: heredoc.Doc(`
-                      communications:
-                        default-group:
-                          teams:
-                            bindings:
-                              sources:
-                                - first
-                                - second
-					`),
-				},
-			},
-		},
-		{
 			Name:                "Existing state files",
 			InputChannel:        "general",
-			InputPlatform:       config.SlackCommPlatformIntegration,
+			InputPlatform:       config.SocketSlackCommPlatformIntegration,
 			InputSourceBindings: []string{"new", "newer"},
 			InputCfgMap: &v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -116,7 +84,7 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
 					cfg.FileName: heredoc.Doc(`
                       communications:
                         default-group:
-                          slack:
+                          socketSlack:
                             channels:
                               foo:
                                 bindings:
@@ -141,7 +109,7 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
 					cfg.FileName: heredoc.Doc(`
                       communications:
                         default-group:
-                          slack:
+                          socketSlack:
                             channels:
                               foo:
                                 bindings:
@@ -153,73 +121,6 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
                                   sources:
                                     - new
                                     - newer
-					`),
-				},
-			},
-		},
-		{
-			Name:                "Existing state files - MS Teams",
-			InputChannel:        "anything",
-			InputPlatform:       config.TeamsCommPlatformIntegration,
-			InputSourceBindings: []string{"new", "newer"},
-			InputCfgMap: &v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      cfg.ConfigMap.Name,
-					Namespace: cfg.ConfigMap.Namespace,
-				},
-				Data: map[string]string{
-					cfg.FileName: heredoc.Doc(`
-                      communications:
-                        default-group:
-                          slack:
-                            channels:
-                              foo:
-                                bindings:
-                                  sources:
-                                    - foo
-                                    - bar
-                              general:
-                                bindings:
-                                  sources:
-                                    - old
-                                    - older
-                                    - oldest
-                          teams:
-                            bindings:
-                              sources:
-                                - old
-                                - older
-                                - oldest
-					`),
-				},
-			},
-			Expected: &v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      cfg.ConfigMap.Name,
-					Namespace: cfg.ConfigMap.Namespace,
-				},
-				Data: map[string]string{
-					cfg.FileName: heredoc.Doc(`
-                      communications:
-                        default-group:
-                          slack:
-                            channels:
-                              foo:
-                                bindings:
-                                  sources:
-                                    - foo
-                                    - bar
-                              general:
-                                bindings:
-                                  sources:
-                                    - old
-                                    - older
-                                    - oldest
-                          teams:
-                            bindings:
-                              sources:
-                                - new
-                                - newer
 					`),
 				},
 			},
@@ -240,7 +141,7 @@ func TestPersistenceManager_PersistSourceBindings(t *testing.T) {
 		{
 			Name:                "No ConfigMap",
 			InputChannel:        "foo",
-			InputPlatform:       config.SlackCommPlatformIntegration,
+			InputPlatform:       config.SocketSlackCommPlatformIntegration,
 			InputSourceBindings: []string{"source"},
 			InputCfgMap:         &v1.ConfigMap{},
 			ExpectedErrMessage:  `while getting the ConfigMap: configmaps "foo" not found`,
@@ -326,7 +227,7 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
 		{
 			Name:          "Existing state files",
 			InputChannel:  "general",
-			InputPlatform: config.SlackCommPlatformIntegration,
+			InputPlatform: config.SocketSlackCommPlatformIntegration,
 			InputEnabled:  true,
 			InputCfgMap: &v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -337,7 +238,7 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
 					cfg.FileName: heredoc.Doc(`
                       communications:
                         default-group:
-                          slack:
+                          socketSlack:
                             channels:
                               foo:
                                 notification:
@@ -357,7 +258,7 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
 					cfg.FileName: heredoc.Doc(`
                       communications:
                         default-group:
-                          slack:
+                          socketSlack:
                             channels:
                               foo:
                                 notification:
@@ -385,7 +286,7 @@ func TestPersistenceManager_PersistNotificationsEnabled(t *testing.T) {
 		{
 			Name:               "No ConfigMap",
 			InputChannel:       "foo",
-			InputPlatform:      config.SlackCommPlatformIntegration,
+			InputPlatform:      config.SocketSlackCommPlatformIntegration,
 			InputEnabled:       false,
 			InputCfgMap:        &v1.ConfigMap{},
 			ExpectedErrMessage: `while getting the ConfigMap: configmaps "foo" not found`,

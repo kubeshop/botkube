@@ -1,8 +1,9 @@
 communications:
   'default-group':
-    slack:
+    socketSlack:
       enabled: false
-      token: 'TOKEN'
+      botToken: 'xoxb-223'
+      appToken: "xapp-223"
       channels:
         'botkube':
           name: 'botkube'

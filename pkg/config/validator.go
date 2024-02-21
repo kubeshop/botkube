@@ -83,7 +83,6 @@ func ValidateStruct(in any) (ValidateResult, error) {
 		return ValidateResult{}, err
 	}
 
-	validate.RegisterStructValidation(slackStructTokenValidator, Slack{})
 	validate.RegisterStructValidation(socketSlackValidator, SocketSlack{})
 	validate.RegisterStructValidation(discordValidator, Discord{})
 	validate.RegisterStructValidation(cloudSlackValidator, CloudSlack{})
@@ -157,24 +156,6 @@ func registerAliasValidator(validate *validator.Validate, trans ut.Translator) e
 	return registerTranslation(validate, trans, map[string]string{
 		invalidAliasCommandTag: "Command prefix '{0}' not found in executors or builtin commands",
 	})
-}
-
-func slackStructTokenValidator(sl validator.StructLevel) {
-	slack, ok := sl.Current().Interface().(Slack)
-
-	if !ok || !slack.Enabled {
-		return
-	}
-
-	if slack.Token == "" {
-		sl.ReportError(slack.Token, "Token", "Token", "required", "")
-		return
-	}
-
-	if !strings.HasPrefix(slack.Token, botTokenPrefix) {
-		msg := fmt.Sprintf("must have the %s prefix. Learn more at https://docs.botkube.io/installation/slack/#install-botkube-slack-app-to-your-slack-workspace", botTokenPrefix)
-		sl.ReportError(slack.Token, "Token", "Token", "invalid_slack_token", msg)
-	}
 }
 
 func socketSlackValidator(sl validator.StructLevel) {

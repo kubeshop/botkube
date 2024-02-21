@@ -39,10 +39,9 @@ const (
 	// mattermostMaxMessageSize max size before a message should be uploaded as a file.
 	mattermostMaxMessageSize = 3990
 
-	httpsScheme                   = "https"
-	mattermostBotMentionRegexFmt  = "^@(?i)%s"
-	mattermostMessageChannelSize  = 100
-	mattermostMessageWorkersCount = 10
+	httpsScheme                  = "https"
+	mattermostBotMentionRegexFmt = "^@(?i)%s"
+	responseFileName             = "response.txt"
 )
 
 // TODO:

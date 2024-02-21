@@ -16,7 +16,7 @@ import (
 
 const (
 	groupName = "testing-source-bindings"
-	platform  = config.SlackCommPlatformIntegration
+	platform  = config.SocketSlackCommPlatformIntegration
 	userID    = "Joe"
 )
 
@@ -229,7 +229,7 @@ func TestSourceBindingsMultiSelectMessage(t *testing.T) {
 		},
 		Communications: map[string]config.Communications{
 			groupName: {
-				Slack: config.Slack{
+				SocketSlack: config.SocketSlack{
 					Channels: config.IdentifiableMap[config.ChannelBindingsByName]{
 						conversation.ID: config.ChannelBindingsByName{
 							Name: conversation.ID,
@@ -304,7 +304,7 @@ func TestSourceBindingsMultiSelectMessageWithIncorrectBindingConfig(t *testing.T
 		},
 		Communications: map[string]config.Communications{
 			groupName: {
-				Slack: config.Slack{
+				SocketSlack: config.SocketSlack{
 					Channels: config.IdentifiableMap[config.ChannelBindingsByName]{
 						conversation.ID: config.ChannelBindingsByName{
 							Name: conversation.ID,
