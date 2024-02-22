@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	// using latest version (without `--version` flag)
+	// using latest version (without `--version` flag; `--devel` allows to use the version with `-{commitHash}` suffix)
 	helmCmdFmt = `helm upgrade botkube --install --namespace botkube --create-namespace --wait \
 	--set communications.default-group.discord.enabled=true \
 	--set communications.default-group.discord.channels.default.id=%s \
@@ -38,6 +38,7 @@ const (
 	--set executors.k8s-default-tools.botkube/kubectl.enabled=true \
 	--set analytics.disable=true \
 	--set image.tag=v9.99.9-dev \
+	--devel \
 	--set plugins.repositories.botkube.url=https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml \
 	botkube/botkube`
 
