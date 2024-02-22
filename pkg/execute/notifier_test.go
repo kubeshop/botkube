@@ -15,7 +15,7 @@ const (
 	channelAlias  = "alias"
 	commGroupName = "comm-group"
 	clusterName   = "cluster-name"
-	testPlatform  = config.SlackCommPlatformIntegration
+	testPlatform  = config.SocketSlackCommPlatformIntegration
 )
 
 func TestNotifierExecutorStart(t *testing.T) {

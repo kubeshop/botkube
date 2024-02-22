@@ -271,14 +271,6 @@ func run(ctx context.Context) (err error) {
 		}
 
 		// Run bots
-		if commGroupCfg.Slack.Enabled {
-			sb, err := bot.NewSlack(commGroupLogger.WithField(botLogFieldKey, "Slack"), commGroupMeta, commGroupCfg.Slack, executorFactory, analyticsReporter)
-			if err != nil {
-				return reportFatalError("while creating Slack bot", err)
-			}
-			scheduleBotNotifier(sb)
-		}
-
 		if commGroupCfg.SocketSlack.Enabled {
 			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupMeta, commGroupCfg.SocketSlack, executorFactory, analyticsReporter)
 			if err != nil {
@@ -301,14 +293,6 @@ func run(ctx context.Context) (err error) {
 				return reportFatalError("while creating Mattermost bot", err)
 			}
 			scheduleBotNotifier(mb)
-		}
-
-		if commGroupCfg.Teams.Enabled {
-			tb, err := bot.NewTeams(commGroupLogger.WithField(botLogFieldKey, "MS Teams"), commGroupMeta, commGroupCfg.Teams, conf.Settings.ClusterName, executorFactory, analyticsReporter)
-			if err != nil {
-				return reportFatalError("while creating Teams bot", err)
-			}
-			scheduleBotNotifier(tb)
 		}
 
 		if commGroupCfg.CloudTeams.Enabled {

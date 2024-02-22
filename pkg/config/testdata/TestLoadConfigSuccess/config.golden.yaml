@@ -41,20 +41,6 @@ executors:
 aliases: {}
 communications:
     default-workspace:
-        slack:
-            enabled: true
-            channels:
-                alias:
-                    name: SLACK_CHANNEL
-                    notification:
-                        disabled: true
-                    bindings:
-                        sources:
-                            - k8s-events
-                        executors:
-                            - k8s-tools
-                    messageTriggers: []
-            token: xoxb-token-from-env
         socketSlack:
             enabled: true
             channels:
@@ -101,16 +87,6 @@ communications:
                             - k8s-events
                         executors:
                             - k8s-tools
-        teams:
-            enabled: false
-            appID: APPLICATION_ID
-            appPassword: APPLICATION_PASSWORD
-            port: "3978"
-            bindings:
-                sources:
-                    - k8s-events
-                executors:
-                    - k8s-tools
         webhook:
             enabled: false
             url: WEBHOOK_URL

@@ -145,8 +145,7 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 		{
 			name: "no tokens",
 			expErrMsg: heredoc.Doc(`
-				found critical validation errors: 5 errors occurred:
-					* Key: 'Config.Communications[default-workspace].Slack.Token' Token is a required field
+				found critical validation errors: 4 errors occurred:
 					* Key: 'Config.Communications[default-workspace].SocketSlack.AppToken' AppToken is a required field
 					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken is a required field
 					* Key: 'Config.Communications[default-workspace].SocketSlack.BotToken' BotToken must have the xoxb- prefix. Learn more at https://docs.botkube.io/installation/socketslack/#obtain-bot-token
@@ -205,7 +204,7 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			name: "RBAC helm executors are different",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 1 error occurred:
-					* Key: 'Config.Communications[default-group].Slack.Channels[botkube].Bindings.helm-1' Binding is referencing plugins of same kind with different RBAC. 'helm-1' and 'helm-2' bindings must be identical when used together.`),
+					* Key: 'Config.Communications[default-group].SocketSlack.Channels[botkube].Bindings.helm-1' Binding is referencing plugins of same kind with different RBAC. 'helm-1' and 'helm-2' bindings must be identical when used together.`),
 			configs: [][]byte{
 				readTestdataFile(t, "executors-rbac.yaml"),
 			},
@@ -214,7 +213,7 @@ func TestLoadedConfigValidationErrors(t *testing.T) {
 			name: "RBAC cm sources are different",
 			expErrMsg: heredoc.Doc(`
 				found critical validation errors: 1 error occurred:
-					* Key: 'Config.Communications[default-group].Slack.Channels[botkube].Bindings.cm-1' Binding is referencing plugins of same kind with different RBAC. 'cm-1' and 'cm-2' bindings must be identical when used together.`),
+					* Key: 'Config.Communications[default-group].SocketSlack.Channels[botkube].Bindings.cm-1' Binding is referencing plugins of same kind with different RBAC. 'cm-1' and 'cm-2' bindings must be identical when used together.`),
 			configs: [][]byte{
 				readTestdataFile(t, "sources-rbac.yaml"),
 			},

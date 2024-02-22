@@ -12,7 +12,6 @@ env:
   HELM_DOCS_VERSION: 1.11.0
   CHART_REPOSITORY: https://storage.googleapis.com/botkube-latest-main-charts
   LATEST_PLUGIN_INDEX_URL: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
-  LATEST_X_PLUGIN_TPLS_URL: github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=main
 
 jobs:
   process-chart:

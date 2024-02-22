@@ -30,8 +30,12 @@ import (
 )
 
 const (
-	originKeyName = "originName"
+	originKeyName            = "originName"
+	teamsBotMentionPrefixFmt = "^<at>%s</at>"
 )
+
+// mdEmojiTag finds the emoji tags
+var mdEmojiTag = regexp.MustCompile(`:(\w+):`)
 
 var _ Bot = &CloudTeams{}
 
@@ -493,4 +497,33 @@ func teamsCloudChannelsConfig(teams []config.TeamsBindings) map[string]teamsClou
 		}
 	}
 	return out
+}
+
+func teamsBotMentionRegex(botName string) (*regexp.Regexp, error) {
+	botMentionRegex, err := regexp.Compile(fmt.Sprintf(teamsBotMentionPrefixFmt, botName))
+	if err != nil {
+		return nil, fmt.Errorf("while compiling bot mention regex: %w", err)
+	}
+
+	return botMentionRegex, nil
+}
+
+// replaceEmojiTagsWithActualOne replaces the emoji tag with actual emoji.
+func replaceEmojiTagsWithActualOne(content string) string {
+	return mdEmojiTag.ReplaceAllStringFunc(content, func(s string) string {
+		return emojiMapping[s]
+	})
+}
+
+// emojiMapping holds mapping between emoji tags and actual ones.
+var emojiMapping = map[string]string{
+	":rocket:":                  "🚀",
+	":warning:":                 "⚠️",
+	":white_check_mark:":        "✅",
+	":arrows_counterclockwise:": "🔄",
+	":exclamation:":             "❗",
+	":cricket:":                 "🦗",
+	":no_entry_sign:":           "🚫",
+	":large_green_circle:":      "🟢",
+	":new:":                     "🆕",
 }

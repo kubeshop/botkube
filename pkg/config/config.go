@@ -79,9 +79,6 @@ const (
 type CommPlatformIntegration string
 
 const (
-	// SlackCommPlatformIntegration defines Slack integration.
-	SlackCommPlatformIntegration CommPlatformIntegration = "slack"
-
 	// SocketSlackCommPlatformIntegration defines Slack integration.
 	SocketSlackCommPlatformIntegration CommPlatformIntegration = "socketSlack"
 
@@ -464,24 +461,13 @@ type ChannelNotification struct {
 
 // Communications contains communication platforms that are supported.
 type Communications struct {
-	Slack         Slack         `yaml:"slack,omitempty"`
 	SocketSlack   SocketSlack   `yaml:"socketSlack,omitempty"`
 	CloudSlack    CloudSlack    `yaml:"cloudSlack,omitempty"`
 	Mattermost    Mattermost    `yaml:"mattermost,omitempty"`
 	Discord       Discord       `yaml:"discord,omitempty"`
-	Teams         Teams         `yaml:"teams,omitempty"`
 	CloudTeams    CloudTeams    `yaml:"cloudTeams,omitempty"`
 	Webhook       Webhook       `yaml:"webhook,omitempty"`
 	Elasticsearch Elasticsearch `yaml:"elasticsearch,omitempty"`
-}
-
-// Slack holds Slack integration config.
-// Deprecated: Legacy Slack integration has been deprecated and removed from the Slack App Directory.
-// Use SocketSlack integration instead.
-type Slack struct {
-	Enabled  bool                                   `yaml:"enabled"`
-	Channels IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	Token    string                                 `yaml:"token,omitempty"`
 }
 
 // SocketSlack configuration to authentication and send notifications

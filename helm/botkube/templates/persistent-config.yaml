@@ -55,16 +55,6 @@ data:
                   {{- end -}}
             {{- end }}
         {{- end -}}
-        {{- /* MS Teams - we could check if the $commPlatform has bindings, but then webhook would also apply  */ -}}
-        {{- if (eq $commPlatformName "teams") }}
-        {{ $commPlatformName }}:
-          bindings:
-            {{- $bindings := $commPlatform.bindings | default nil }}
-            sources:
-            {{- with $bindings.sources -}}
-              {{ toYaml . | nindent 14 }}
-            {{- end -}}
-        {{- end }}
       {{- end }}
     {{- end }}
 ---
@@ -103,7 +93,6 @@ data:
                 disabled: {{ $channNotifCfg.disabled | default false }}
             {{- end }}
         {{- end -}}
-        {{/* MS Teams doesn't support notification configuration via Botkube commands. */}}
       {{- end }}
     {{- end }}
 {{- end }}

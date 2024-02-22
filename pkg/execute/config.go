@@ -63,13 +63,11 @@ func (e *ConfigExecutor) renderBotkubeConfiguration() (string, error) {
 	// hide sensitive info
 	// TODO: avoid printing sensitive data without need to resetting them manually (which is an error-prone approach)
 	for key, val := range cfg.Communications {
-		val.Slack.Token = redactedSecretStr
 		val.SocketSlack.AppToken = redactedSecretStr
 		val.SocketSlack.BotToken = redactedSecretStr
 		val.Elasticsearch.Password = redactedSecretStr
 		val.Discord.Token = redactedSecretStr
 		val.Mattermost.Token = redactedSecretStr
-		val.Teams.AppPassword = redactedSecretStr
 		val.CloudSlack.Token = redactedSecretStr
 
 		// To keep the printed config readable, we don't print the certificate bytes.

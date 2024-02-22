@@ -31,6 +31,17 @@ import (
 //    - split to multiple files in a separate package,
 //    - review all the methods and see if they can be simplified.
 
+// slackMaxMessageSize max size before a message should be uploaded as a file.
+//
+// "The text for the block, in the form of a text object.
+//
+//	Maximum length for the text in this field is 3000 characters.  (..)"
+//
+// source: https://api.slack.com/reference/block-kit/blocks#section
+const (
+	slackMaxMessageSize = 3001
+)
+
 var _ Bot = &SocketSlack{}
 
 // SocketSlack listens for user's message, execute commands and sends back the response.
@@ -750,4 +761,22 @@ func (b *SocketSlack) GetStatus() health.PlatformStatus {
 		Restarts: "0/0",
 		Reason:   b.failureReason,
 	}
+}
+
+func uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {
+	params := slack.FileUploadParameters{
+		Filename:        "Response.txt",
+		Title:           "Response.txt",
+		InitialComment:  resp.Description,
+		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
+		Channels:        []string{channel},
+		ThreadTimestamp: ts,
+	}
+
+	file, err := client.UploadFileContext(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("while uploading file: %w", err)
+	}
+
+	return file, nil
 }

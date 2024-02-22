@@ -286,7 +286,7 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 							Enabled: true,
 						},
 						{
-							Name:        "botkube/helm",
+							Name:        "botkubeCloud/helm",
 							DisplayName: "Helm",
 							Type:        gqlModel.PluginTypeExecutor,
 							Configurations: []*gqlModel.PluginConfigurationInput{
@@ -684,7 +684,7 @@ func (c *Client) CreateBasicDeploymentWithCloudTeams(t *testing.T, clusterName, 
 							},
 						},
 						{
-							Name:        "botkube/helm",
+							Name:        "botkubeCloud/helm",
 							DisplayName: "Helm",
 							Enabled:     true,
 							Type:        gqlModel.PluginTypeExecutor,

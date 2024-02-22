@@ -291,7 +291,12 @@ func (s *SlackTester) getMessages(channelID string, limitMessages int) ([]slack.
 	history, err := s.cli.GetConversationHistory(&slack.GetConversationHistoryParameters{
 		ChannelID: channelID, Limit: limitMessages,
 	})
-	return history.Messages, err
+
+	if history != nil {
+		return history.Messages, err
+	}
+
+	return nil, err
 }
 
 func (s *SlackTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
@@ -462,7 +467,6 @@ func (s *SlackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID
 	printedBlocks := sPrintBlocks(bot.NewSlackRenderer().RenderAsSlackBlocks(msg))
 	return s.WaitForInteractiveMessagePosted(userID, channelID, 1, s.AssertEquals(printedBlocks))
 }
-
 
 func (s *SlackTester) SetTimeout(timeout time.Duration) {
 	s.cfg.MessageWaitTimeout = timeout

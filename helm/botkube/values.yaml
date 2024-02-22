@@ -60,23 +60,6 @@ rbac:
         - apiGroups: ["*"]
           resources: ["*"]
           verbs: ["get", "watch", "list"]
-    'argocd':
-      # -- Set it to `true` when using ArgoCD source plugin.
-      create: false
-      rules:
-        - apiGroups: [""]
-          resources: ["configmaps"]
-          verbs: ["get", "update"]
-        - apiGroups: ["argoproj.io"]
-          resources: ["applications"]
-          verbs: ["get", "patch"]
-    'flux-read-patch':
-      # -- Set it to `true` when using Flux executor plugin to enable `flux diff`.
-      create: false
-      rules:
-        - apiGroups: ["*"]
-          resources: ["*"]
-          verbs: ["get", "watch", "list", "patch"]
 
 ## Kubeconfig settings used by Botkube.
 kubeconfig:
@@ -471,124 +454,6 @@ sources:
           - type: apps/v1/daemonsets
           - type: batch/v1/jobs
 
-  k8s-err-events-with-ai-support:
-    displayName: "Kubernetes Errors with AI support"
-
-    # -- Describes Kubernetes source configuration.
-    # @default -- See the `values.yaml` file for full object.
-    botkube/kubernetes:
-      context: *default-plugin-context
-      enabled: false
-      config:
-        # -- Define extra buttons to be displayed beside notification message.
-        extraButtons:
-          - enabled: true
-            trigger:
-              type: ["error"]
-            button:
-              displayName: "Get Help"
-              commandTpl: "doctor --resource={{ .Kind | lower }}/{{ .Name }} --namespace={{ .Namespace }} --error={{ .Reason }} --bk-cmd-header='AI assistance'"
-
-        # -- Describes namespaces for every Kubernetes resources you want to watch or exclude.
-        # These namespaces are applied to every resource specified in the resources list.
-        # However, every specified resource can override this by using its own namespaces object.
-        namespaces: *k8s-events-namespaces
-
-        # -- Describes event constraints for Kubernetes resources.
-        # These constraints are applied for every resource specified in the `resources` list, unless they are overridden by the resource's own `events` object.
-        event:
-          # -- Lists all event types to be watched.
-          types:
-            - error
-
-        # -- Describes the Kubernetes resources you want to watch.
-        # @default -- See the `values.yaml` file for full object.
-        resources:
-          - type: v1/pods
-          - type: v1/services
-          - type: networking.k8s.io/v1/ingresses
-          - type: v1/nodes
-            event:
-              message:
-                exclude:
-                  - ".*nf_conntrack_buckets.*" # Ignore node related noisy messages from GKE clusters
-          - type: v1/namespaces
-          - type: v1/persistentvolumes
-          - type: v1/persistentvolumeclaims
-          - type: v1/configmaps
-          - type: rbac.authorization.k8s.io/v1/roles
-          - type: rbac.authorization.k8s.io/v1/rolebindings
-          - type: rbac.authorization.k8s.io/v1/clusterrolebindings
-          - type: rbac.authorization.k8s.io/v1/clusterroles
-          - type: apps/v1/deployments
-          - type: apps/v1/statefulsets
-          - type: apps/v1/daemonsets
-          - type: batch/v1/jobs
-
-  'prometheus':
-    ## Prometheus source configuration
-    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
-    botkube/prometheus:
-      # -- If true, enables `prometheus` source.
-      enabled: false
-      config:
-        # -- Prometheus endpoint without api version and resource.
-        url: "http://localhost:9090"
-        # -- If set as true, Prometheus source plugin will not send alerts that is created before plugin start time.
-        ignoreOldAlerts: true
-        # -- Only the alerts that have state provided in this config will be sent as notification. https://pkg.go.dev/github.com/prometheus/prometheus/rules#AlertState
-        alertStates: ["firing", "pending", "inactive"]
-        # -- Logging configuration
-        log:
-          # -- Log level
-          level: info
-  'keptn':
-    ## Keptn source configuration
-    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
-    botkube/keptn:
-      # -- If true, enables `keptn` source.
-      enabled: false
-      config:
-        # -- Keptn API Gateway URL.
-        url: "http://api-gateway-nginx.keptn.svc.cluster.local/api"
-        # -- Keptn API Token to access events through API Gateway.
-        token: ""
-        # -- Optional Keptn project.
-        project: ""
-        # -- Optional Keptn Service name under the project.
-        service: ""
-        # -- Logging configuration
-        log:
-          # -- Log level
-          level: info
-
-  'argocd':
-    botkube/argocd:
-      enabled: false
-      context:
-        rbac:
-          group:
-            type: Static
-            static:
-              values: ["argocd"]
-      # -- Config contains configuration for ArgoCD source plugin.
-      # This section lists only basic options, and uses default triggers and templates
-      # which are based on ArgoCD Notification Catalog ones (https://github.com/argoproj/argo-cd/blob/master/notifications_catalog/install.yaml).
-      # Advanced customization (including triggers and templates) is described in the documentation.
-      config:
-        defaultSubscriptions:
-          # -- Provide application name and namespace to subscribe to all events for a given application.
-          applications:
-            - name: "guestbook"
-              namespace: "argocd"
-        argoCD:
-          # -- ArgoCD UI base URL. It is used for generating links in the incoming events.
-          uiBaseUrl: http://localhost:8080
-          # -- ArgoCD Notifications ConfigMap reference.
-          notificationsConfigMap:
-            name: argocd-notifications-cm
-            namespace: argocd
-
 # -- Map of executors. Executor contains configuration for running `kubectl` commands.
 # The property name under `executors` is an alias for a given configuration. You can define multiple executor configurations with different names.
 # Key name is used as a binding reference.
@@ -597,23 +462,6 @@ sources:
 ## Format: executors.{alias}
 executors:
   k8s-default-tools:
-    ## Helm executor configuration
-    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
-    botkube/helm:
-      displayName: "Helm"
-      # -- If true, enables `helm` commands execution.
-      enabled: false
-      config:
-        # Configures the default Namespace for executing Botkube `helm` commands. If not set, uses 'default'.
-        defaultNamespace: "default"
-        # -- Allowed values are configmap, secret, memory.
-        helmDriver: "secret"
-        # -- Location for storing Helm configuration.
-        helmConfigDir: "/tmp/helm/"
-        # -- Location for storing cached files. Must be under the Helm config directory.
-        helmCacheDir: "/tmp/helm/.cache"
-      context: *default-plugin-context
-
     ## Kubectl executor configuration
     ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
     botkube/kubectl:
@@ -640,70 +488,6 @@ executors:
       #      resources: [ "deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses", "replicasets", "secrets", "cronjobs", "jobs" ]
       context: *default-plugin-context
 
-  bins-management:
-    ## Exec executor configuration.
-    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
-    botkube/exec:
-      displayName: "Exec"
-      enabled: false
-      context: *default-plugin-context
-      ## -- Custom exec plugin configuration.
-      config:
-        ## -- An array of templates that define how to convert the command output into an interactive message.
-        templates:
-          ## -- Link to templates source
-          ## It uses the go-getter library, which supports multiple URL formats (such as HTTP, Git repositories, or S3) and is able to unpack archives.
-          ## For more details, see the documentation at https://github.com/hashicorp/go-getter.
-          - ref: github.com/kubeshop/botkube//cmd/executor/exec/templates?ref=main
-
-  ai:
-    ## Doctor executor configuration.
-    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
-    botkube/doctor:
-      displayName: "Doctor AI"
-      enabled: false
-      context: *default-plugin-context
-      ## -- Custom doctor plugin configuration.
-      config:
-        #  # To see the plugin standard output you need to enable it. Learn more at https://docs.botkube.io/plugin/debugging/.
-        #  log:
-        #    level: "info"
-        ## -- Open API key for accessing the ChatGPT engine. You can get it at https://platform.openai.com/account/api-keys.
-        apiKey: ""
-        ## -- OpenAI API Base URL. If empty, the default "https://api.openai.com/v1" value is used.
-        apiBaseUrl: ""
-        ## -- Default engine to use. If empty, "text-davinci-003" engine is used.
-        defaultEngine: ""
-        ## -- Optional organization ID for requests.
-        organizationID: ""
-        ## -- User agent to use for requests. If empty, the default value is used ("go-gpt3").
-        userAgent: ""
-
-  flux:
-    # Flux executor configuration.
-    ## Plugin name syntax: <repo>/<plugin>[@<version>]. If version is not provided, the latest version from repository is used.
-    botkube/flux:
-      displayName: "Flux"
-      enabled: false
-      context:
-        rbac:
-          group:
-            type: Static
-            static:
-              values: ["botkube-plugins-default", "flux-read-patch"]
-      ## -- Flux executor plugin configuration.
-      config:
-        # -- Logging configuration
-        log:
-          # -- Log level
-          level: info
-        github:
-          auth:
-            # GitHub access token.
-            # Instructions for token creation: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/#creating-a-token.
-            # Lack of token may limit functionality, e.g., adding comments to pull requests or approving them.
-            accessToken: ""
-
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
 # Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.
@@ -717,12 +501,6 @@ aliases:
   k:
     command: kubectl
     displayName: "Kubectl alias"
-  chatgpt:
-    command: doctor
-    displayName: "Doctor alias"
-  x:
-    command: exec
-    displayName: "Exec alias"
 
 ## Multi-word alias example:
 #  kgp:
@@ -761,15 +539,10 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - k8s-default-tools
-              - bins-management
-              - ai
-              - flux
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
-              - k8s-err-events-with-ai-support
-              - argocd
       # -- Slack bot token for your own Slack app.
       # [Ref doc](https://api.slack.com/authentication/token-types).
       botToken: ''
@@ -803,43 +576,10 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - k8s-default-tools
-              - bins-management
-              - ai
-              - flux
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
-              - k8s-err-events-with-ai-support
-              - argocd
-
-    ## Settings for MS Teams.
-    teams:
-      # -- If true, enables MS Teams bot.
-      enabled: false
-      # -- The Bot name set while registering Bot to MS Teams.
-      botName: 'Botkube'
-      # -- The Botkube application ID generated while registering Bot to MS Teams.
-      appID: 'APPLICATION_ID'
-      # -- The Botkube application password generated while registering Bot to MS Teams.
-      appPassword: 'APPLICATION_PASSWORD'
-      bindings:
-        # -- Executor bindings apply to all MS Teams channels where Botkube has access to.
-        executors:
-          - k8s-default-tools
-          - bins-management
-          - ai
-          - flux
-        # -- Source bindings apply to all channels which have notification turned on with `@Botkube enable notifications` command.
-        sources:
-          - k8s-err-events
-          - k8s-recommendation-events
-          - k8s-err-events-with-ai-support
-          - argocd
-      # -- The path in endpoint URL provided while registering Botkube to MS Teams.
-      messagePath: "/bots/teams"
-      # -- The Service port for bot endpoint on Botkube container.
-      port: 3978
 
     ## Settings for Discord.
     discord:
@@ -864,15 +604,10 @@ communications:
             # -- Executors configuration for a given channel.
             executors:
               - k8s-default-tools
-              - bins-management
-              - ai
-              - flux
             # -- Notification sources configuration for a given channel.
             sources:
               - k8s-err-events
               - k8s-recommendation-events
-              - k8s-err-events-with-ai-support
-              - argocd
 
     ## Settings for Elasticsearch.
     elasticsearch:
@@ -1010,17 +745,6 @@ service:
   name: metrics
   port: 2112
   targetPort: 2112
-
-# -- Configures Ingress settings that exposes MS Teams endpoint.
-# [Ref doc](https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource).
-ingress:
-  create: false
-  annotations:
-    kubernetes.io/ingress.class: nginx
-  host: 'HOST'
-  tls:
-    enabled: false
-    secretName: ''
 
 # -- Configures ServiceMonitor settings.
 # [Ref doc](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor).
