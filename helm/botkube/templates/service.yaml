@@ -1,4 +1,4 @@
-{{- if or .Values.serviceMonitor.enabled (.Values.settings.lifecycleServer.enabled ) (.Values.plugins.incomingWebhook.enabled) }}
+{{- if or .Values.serviceMonitor.enabled (.Values.plugins.incomingWebhook.enabled) }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -16,11 +16,6 @@ spec:
   - name: "incoming-webhook"
     port: {{ .Values.plugins.incomingWebhook.port }}
     targetPort: {{ .Values.plugins.incomingWebhook.targetPort }}
-  {{- end }}
-  {{- if .Values.settings.lifecycleServer.enabled }}
-  - name: "lifecycle"
-    port: {{ .Values.settings.lifecycleServer.port }}
-    targetPort: {{ .Values.settings.lifecycleServer.port }}
   {{- end }}
   {{- if .Values.serviceMonitor.enabled }}
   - name: {{ .Values.service.name }}

@@ -132,9 +132,6 @@ settings:
                 name: runtime-config
     metricsPort: "1313"
     healthPort: "1314"
-    lifecycleServer:
-        enabled: false
-        port: 0
     log:
         level: error
         disableColors: false
