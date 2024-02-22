@@ -292,12 +292,11 @@ func (s *SlackTester) getMessages(channelID string, limitMessages int) ([]slack.
 		ChannelID: channelID, Limit: limitMessages,
 	})
 
-	var msgs []slack.Message
 	if history != nil {
-		msgs = history.Messages
+		return history.Messages, err
 	}
 
-	return msgs, err
+	return nil, err
 }
 
 func (s *SlackTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {

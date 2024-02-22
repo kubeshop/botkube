@@ -349,7 +349,7 @@ func (b *Discord) formatMessage(msg interactive.CoreMessage) (*discordgo.Message
 		}, nil
 	}
 
-	// FIXME: For now, we just render only with a few fields that are always present in the event message.
+	// TODO: For now, we just render only with a few fields that are always present in the event message.
 	// This should be removed once we will add support for rendering AdaptiveCard with all message primitives.
 	messageEmbed, err := b.renderer.NonInteractiveSectionToCard(msg)
 	if err != nil {
