@@ -692,10 +692,7 @@ settings:
   # -- Cluster name to differentiate incoming messages.
   clusterName: not-configured
 
-  # -- Server configuration which exposes functionality related to the app lifecycle.
-  lifecycleServer:
-    enabled: true
-    port: 2113
+  # -- Health check port.
   healthPort: 2114
   # -- If true, notifies about new Botkube releases.
   upgradeNotifier: true

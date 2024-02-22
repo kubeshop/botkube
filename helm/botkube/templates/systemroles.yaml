@@ -20,7 +20,8 @@ rules:
     resources: ["nodes"]
     verbs: ["get"]
 {{ end }}
-{{- if .Values.settings.lifecycleServer.enabled }}
+{{- if .Values.configWatcher.enabled }}
+  # Ensure Botkube can restart itself via Kubernetes API to avoid CrashLoopBackOff errors
   - apiGroups: ["apps"]
     resources: ["deployments"]
     verbs: ["patch"]

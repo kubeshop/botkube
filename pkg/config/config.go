@@ -607,7 +607,6 @@ type Settings struct {
 	PersistentConfig        PersistentConfig `yaml:"persistentConfig"`
 	MetricsPort             string           `yaml:"metricsPort"`
 	HealthPort              string           `yaml:"healthPort"`
-	LifecycleServer         LifecycleServer  `yaml:"lifecycleServer"`
 	Log                     Logger           `yaml:"log"`
 	InformersResyncPeriod   time.Duration    `yaml:"informersResyncPeriod"`
 	Kubeconfig              string           `yaml:"kubeconfig"`
@@ -630,12 +629,6 @@ type Logger struct {
 	Level         string    `yaml:"level"`
 	DisableColors bool      `yaml:"disableColors"`
 	Formatter     Formatter `yaml:"formatter"`
-}
-
-// LifecycleServer contains configuration for the server with app lifecycle methods.
-type LifecycleServer struct {
-	Enabled bool `yaml:"enabled"`
-	Port    int  `yaml:"port"` // String for consistency
 }
 
 // PersistentConfig contains configuration for persistent storage.

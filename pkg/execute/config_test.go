@@ -58,9 +58,6 @@ func TestConfigExecutorShowConfig(t *testing.T) {
 						            configMap: {}
 						    metricsPort: ""
 						    healthPort: ""
-						    lifecycleServer:
-						        enabled: false
-						        port: 0
 						    log:
 						        level: ""
 						        disableColors: false
