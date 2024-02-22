@@ -112,7 +112,7 @@ func TestBotkubeMigration(t *testing.T) {
 	cmd := fmt.Sprintf(helmCmdFmt, channel.ID(), appCfg.Discord.BotID, appCfg.DiscordBotToken, channel.Name())
 	params := helmx.InstallChartParams{
 		RepoName:  "botkube",
-		RepoURL:   "https://charts.botkube.io",
+		RepoURL:   "https://storage.googleapis.com/botkube-latest-main-charts",
 		Name:      "botkube",
 		Namespace: "botkube",
 		Command:   cmd,
