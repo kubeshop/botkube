@@ -215,6 +215,18 @@ func TestSegmentReporter_ReportPluginsEnabled(t *testing.T) {
 				},
 			},
 		},
+		"botkube/kubectl_2": {
+			DisplayName: "kubectl",
+			Plugins: map[string]config.Plugin{
+				"botkube/kubectl": {
+					Enabled: true,
+					Config:  "{}",
+					Context: config.PluginContext{
+						RBAC: nil,
+					},
+				},
+			},
+		},
 	}, map[string]config.Sources{
 		"botkube/kubernetes_22yy2": {
 			DisplayName: "k8s",
@@ -266,6 +278,18 @@ func TestSegmentReporter_ReportPluginsEnabled(t *testing.T) {
 								},
 							},
 						},
+					},
+				},
+			},
+		},
+		"botkube/kubernetes_2": {
+			DisplayName: "kubernetes",
+			Plugins: map[string]config.Plugin{
+				"botkube/kubernetes": {
+					Enabled: true,
+					Config:  "{}",
+					Context: config.PluginContext{
+						RBAC: nil,
 					},
 				},
 			},

@@ -14,6 +14,7 @@ import (
 
 	"github.com/kubeshop/botkube/internal/analytics/batched"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/maputil"
 	"github.com/kubeshop/botkube/pkg/plugin"
 	"github.com/kubeshop/botkube/pkg/ptr"
 	"github.com/kubeshop/botkube/pkg/version"
@@ -116,11 +117,15 @@ func (r *SegmentReporter) ReportBotEnabled(platform config.CommPlatformIntegrati
 // ReportPluginsEnabled reports plugins enabled.
 func (r *SegmentReporter) ReportPluginsEnabled(executors map[string]config.Executors, sources map[string]config.Sources) error {
 	pluginsConfig := make(map[string]interface{})
-	for _, values := range executors {
-		r.generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeExecutor)
+
+	executorKeys := maputil.SortKeys(executors)
+	for i, key := range executorKeys {
+		r.generatePluginsReport(i, pluginsConfig, executors[key].Plugins, plugin.TypeExecutor)
 	}
-	for _, values := range sources {
-		r.generatePluginsReport(pluginsConfig, values.Plugins, plugin.TypeSource)
+
+	sourceKeys := maputil.SortKeys(sources)
+	for i, key := range sourceKeys {
+		r.generatePluginsReport(i, pluginsConfig, sources[key].Plugins, plugin.TypeSource)
 	}
 	return r.reportEvent("Plugin enabled", pluginsConfig)
 }
@@ -353,12 +358,18 @@ func (r *SegmentReporter) getNodeCount(ctx context.Context, k8sCli kubernetes.In
 	return workerNodesCount, controlPlaneNodesCount, nil
 }
 
-func (r *SegmentReporter) generatePluginsReport(pluginsConfig map[string]interface{}, plugins config.Plugins, pluginType plugin.Type) {
+func (r *SegmentReporter) generatePluginsReport(cfgGroupIdx int, pluginsConfig map[string]interface{}, plugins config.Plugins, pluginType plugin.Type) {
 	for name, pluginValue := range plugins {
 		if !pluginValue.Enabled {
 			continue
 		}
-		pluginsConfig[name] = pluginReport{
+
+		key := name
+		if _, exists := pluginsConfig[name]; exists {
+			key = fmt.Sprintf("%s-%d", name, cfgGroupIdx)
+		}
+
+		pluginsConfig[key] = pluginReport{
 			Name: name,
 			Type: pluginType,
 			RBAC: r.getAnonymizedRBAC(pluginValue.Context.RBAC),
@@ -367,6 +378,10 @@ func (r *SegmentReporter) generatePluginsReport(pluginsConfig map[string]interfa
 }
 
 func (r *SegmentReporter) getAnonymizedRBAC(rbac *config.PolicyRule) *config.PolicyRule {
+	if rbac == nil {
+		return nil
+	}
+
 	rbac.Group.Prefix = r.anonymizedValue(rbac.Group.Prefix)
 	for key, name := range rbac.Group.Static.Values {
 		rbac.Group.Static.Values[key] = r.anonymizedValue(name)
