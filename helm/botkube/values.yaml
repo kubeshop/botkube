@@ -17,7 +17,7 @@ image:
   # -- Botkube container image pull policy.
   pullPolicy: IfNotPresent
   # -- Botkube container image tag. Default tag is `appVersion` from Chart.yaml.
-  tag: v1.9.0-rc.1
+  tag: v1.9.0-rc.2
 
 # -- Configures Pod Security Policy to allow Botkube to run in restricted clusters.
 # [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/).
@@ -929,7 +929,7 @@ plugins:
   repositories:
     # -- This repository serves officially supported Botkube plugins.
     botkube:
-      url: https://github.com/kubeshop/botkube/releases/download/v1.9.0-rc.1/plugins-index.yaml
+      url: https://github.com/kubeshop/botkube/releases/download/v1.9.0-rc.2/plugins-index.yaml
       # headers: {} # optional headers for plugins repository.
 
   # -- Configure Incoming webhook for source plugins.
