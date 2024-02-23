@@ -1256,10 +1256,10 @@ func runBotTest(t *testing.T,
 		command := "list executors"
 
 		expectedBody := codeBlock(heredoc.Doc(`
-			EXECUTOR                   ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
-			botkube/echo@v0.0.0-latest true    e       0/1      Running 
-			botkube/kubectl            true    k, kc   0/1      Running 
-			botkubeCloud/helm          true            0/1      Running`))
+			EXECUTOR          ENABLED ALIASES RESTARTS STATUS  LAST_RESTART
+			botkube/echo      true    e       0/1      Running 
+			botkube/kubectl   true    k, kc   0/1      Running 
+			botkubeCloud/helm true            0/1      Running`))
 
 		if botDriver.Type() == commplatform.DiscordBot {
 			// Cloud plugins are not tested on Discord
