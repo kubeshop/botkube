@@ -381,7 +381,12 @@ func run(ctx context.Context) (err error) {
 		)
 		errGroup.Go(func() error {
 			defer analytics.ReportPanicIfOccurs(logger, analyticsReporter)
-			return upgradeChecker.Run(ctx)
+			err := upgradeChecker.Run(ctx)
+			if err != nil {
+				// we ignore error to make sure that upgrade checker does not stop the agent
+				logger.WithError(err).Errorf("Failed to notify about upgrade")
+			}
+			return nil
 		})
 	}
 
