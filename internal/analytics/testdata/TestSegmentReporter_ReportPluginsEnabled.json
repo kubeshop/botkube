@@ -48,7 +48,7 @@
 					"Group": {
 						"Type": "ChannelName",
 						"Static": {
-							"Values": []
+							"Values": null
 						},
 						"Prefix": "***"
 					}

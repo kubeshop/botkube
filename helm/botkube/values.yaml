@@ -666,27 +666,6 @@ communications:
           - k8s-err-events
           - k8s-recommendation-events
 
-    # -- Settings for deprecated Slack integration.
-    # **DEPRECATED:** Legacy Slack integration has been deprecated and removed from the Slack App Directory.
-    # Use `socketSlack` instead. Read more here: https://docs.botkube.io/installation/slack/
-    #
-    # @default -- See the `values.yaml` file for full object.
-    ## This object will be removed as a part of https://github.com/kubeshop/botkube/issues/865.
-    slack:
-      enabled: false
-      channels:
-        'default':
-          name: 'SLACK_CHANNEL'
-          notification:
-            disabled: false
-          bindings:
-            executors:
-              - k8s-default-tools
-            sources:
-              - k8s-err-events
-              - k8s-recommendation-events
-      token: ''
-
 ## Global Botkube configuration.
 settings:
   # -- Cluster name to differentiate incoming messages.
