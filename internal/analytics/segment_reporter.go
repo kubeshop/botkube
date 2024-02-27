@@ -382,14 +382,26 @@ func (r *SegmentReporter) getAnonymizedRBAC(rbac *config.PolicyRule) *config.Pol
 		return nil
 	}
 
-	rbac.Group.Prefix = r.anonymizedValue(rbac.Group.Prefix)
-	for key, name := range rbac.Group.Static.Values {
-		rbac.Group.Static.Values[key] = r.anonymizedValue(name)
+	var anonymizedGroupValues []string
+	for _, name := range rbac.Group.Static.Values {
+		anonymizedGroupValues = append(anonymizedGroupValues, r.anonymizedValue(name))
 	}
-
-	rbac.User.Prefix = r.anonymizedValue(rbac.User.Prefix)
-	rbac.User.Static.Value = r.anonymizedValue(rbac.User.Static.Value)
-	return rbac
+	return &config.PolicyRule{
+		User: config.UserPolicySubject{
+			Type: rbac.User.Type,
+			Static: config.UserStaticSubject{
+				Value: r.anonymizedValue(rbac.User.Static.Value),
+			},
+			Prefix: r.anonymizedValue(rbac.User.Prefix),
+		},
+		Group: config.GroupPolicySubject{
+			Type: rbac.Group.Type,
+			Static: config.GroupStaticSubject{
+				Values: anonymizedGroupValues,
+			},
+			Prefix: r.anonymizedValue(rbac.Group.Prefix),
+		},
+	}
 }
 
 func (r *SegmentReporter) anonymizedValue(value string) string {

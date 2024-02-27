@@ -63,7 +63,7 @@ func NewExecutor(ver string, kcRunner kcRunner) *Executor {
 	}
 }
 
-// Metadata returns details about Helm plugin.
+// Metadata returns details about Kubectl plugin.
 func (e *Executor) Metadata(context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:          e.pluginVersion,
