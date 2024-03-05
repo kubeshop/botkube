@@ -1078,8 +1078,7 @@ func runBotTest(t *testing.T,
 
 		limitMessagesNo := 2
 		if botDriver.Type().IsCloud() {
-			// There are 2 config reload requested after second cm update
-			limitMessagesNo = 2 * limitLastMessageAfterCloudReload
+			limitMessagesNo = limitLastMessageAfterCloudReload
 		}
 		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessagesNo, secondCMUpdate)
 		require.NoError(t, err)
