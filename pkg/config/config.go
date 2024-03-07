@@ -113,6 +113,20 @@ func (c CommPlatformIntegration) String() string {
 	return string(c)
 }
 
+func (c CommPlatformIntegration) DisplayName() string {
+	switch c {
+	case SocketSlackCommPlatformIntegration, CloudSlackCommPlatformIntegration:
+		return "Slack"
+	case TeamsCommPlatformIntegration, CloudTeamsCommPlatformIntegration:
+		return "Teams"
+	case MattermostCommPlatformIntegration:
+		return "Mattermost"
+	case DiscordCommPlatformIntegration:
+		return "Discord"
+	}
+	return ""
+}
+
 // IntegrationType describes the type of integration with a communication platform.
 type IntegrationType string
 

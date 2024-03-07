@@ -1,0 +1,328 @@
+{
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*☁️ Botkube Cloud*"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "`@Botkube cloud list instances`"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "text": "List connected instances",
+          "emoji": true
+        },
+        "action_id": "cmd:@Botkube cloud list instances",
+        "value": "@Botkube cloud list instances"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "`@Botkube cloud set default-instance`"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "text": "Set channel default cluster",
+          "emoji": true
+        },
+        "action_id": "cmd:@Botkube cloud set default-instance",
+        "value": "@Botkube cloud set default-instance"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Open Botkube Cloud",
+            "emoji": true
+          },
+          "action_id": "url:https://app.botkube.io",
+          "url": "https://app.botkube.io",
+          "style": "primary"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*🤖 AI powered Kubernetes assistant*"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "`@Botkube ai` use natural language to ask any questions"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Ask a question",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube ai hi!",
+          "value": "@Botkube ai hi!",
+          "style": "primary"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*🛠️ Basic commands*"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "`@Botkube ping` - ping your cluster and check its status\n`@Botkube list [source|executor|action|alias]` - list available plugins and features"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Ping cluster",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube ping",
+          "value": "@Botkube ping"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "List source plugins",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube list sources",
+          "value": "@Botkube list sources"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "List executor plugins",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube list executors",
+          "value": "@Botkube list executors"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*📣 Notifications*"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "`@Botkube [enable|disable|status] notifications` - set or query your notification status\n`@Botkube edit sourcebindings` - select notification sources for this channel"
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Change notification on Cloud",
+            "emoji": true
+          },
+          "action_id": "url:https://app.botkube.io/instances/9028716b-752b-4e15-88c2-4f8dbf188af7",
+          "url": "https://app.botkube.io/instances/9028716b-752b-4e15-88c2-4f8dbf188af7",
+          "style": "primary"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*🔮Run kubectl commands*"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "`@Botkube kubectl` - open the kubectl composer\n`@Botkube kubectl [command] [TYPE] [NAME] [flags]` - run any of the supported kubectl commands directly from Slack"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Run Helm commands*"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "text": "Helm help",
+          "emoji": true
+        },
+        "action_id": "cmd:@Botkube helm help",
+        "value": "@Botkube helm help"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*🏁 Multi-Cluster flags*"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "`--cluster-name=\"Stage US\"` flag to run a command on this cluster\n`--all-clusters` flag to run commands on all clusters"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Advanced features*"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Automate your workflows by executing custom commands based on specific events"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "text": "Automation",
+          "emoji": true
+        },
+        "action_id": "url:https://docs.botkube.io/usage/automated-actions",
+        "url": "https://docs.botkube.io/usage/automated-actions",
+        "style": "primary"
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Run commands like helm, flux, etc. directly from Slack"
+      },
+      "accessory": {
+        "type": "button",
+        "text": {
+          "type": "plain_text",
+          "text": "Aliases",
+          "emoji": true
+        },
+        "action_id": "url:https://docs.botkube.io/usage/executor",
+        "url": "https://docs.botkube.io/usage/executor",
+        "style": "primary"
+      }
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Give feedback",
+            "emoji": true
+          },
+          "action_id": "url:https://feedback.botkube.io",
+          "url": "https://feedback.botkube.io",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Read our docs",
+            "emoji": true
+          },
+          "action_id": "url:https://docs.botkube.io",
+          "url": "https://docs.botkube.io"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Join our Slack",
+            "emoji": true
+          },
+          "action_id": "url:https://join.botkube.io",
+          "url": "https://join.botkube.io"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Follow us on Twitter",
+            "emoji": true
+          },
+          "action_id": "url:https://twitter.com/botkube_io",
+          "url": "https://twitter.com/botkube_io"
+        }
+      ]
+    }
+  ]
+}

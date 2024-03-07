@@ -305,7 +305,7 @@ func runBotTest(t *testing.T,
 	// Discord bot needs a bit more time to connect to Discord API.
 	time.Sleep(appCfg.Discord.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
-	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build()
+	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build(true)
 	botDriver.ReplaceBotNamePlaceholder(&expMessage, appCfg.ClusterName)
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.FirstChannel().ID(),
@@ -332,7 +332,7 @@ func runBotTest(t *testing.T,
 	t.Run("Help", func(t *testing.T) {
 		command := "help"
 
-		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build()
+		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build(false)
 		botDriver.ReplaceBotNamePlaceholder(&expectedMessage, appCfg.ClusterName)
 		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),

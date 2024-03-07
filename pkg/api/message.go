@@ -264,13 +264,48 @@ func (s *Buttons) AtLeastOneButtonHasDescription() bool {
 	return false
 }
 
+// GetButtonWithDescription returns all buttons with description.
+func (s *Buttons) GetButtonWithDescription() Buttons {
+	if s == nil {
+		return nil
+	}
+	var out Buttons
+	for _, item := range *s {
+		if item.Description == "" {
+			continue
+		}
+		out = append(out, item)
+	}
+
+	return out
+}
+
+// GetButtonsWithoutDescription returns all buttons without description.
+func (s *Buttons) GetButtonsWithoutDescription() Buttons {
+	if s == nil {
+		return nil
+	}
+	var out Buttons
+	for _, item := range *s {
+		if item.Description != "" {
+			continue
+		}
+		out = append(out, item)
+	}
+
+	return out
+}
+
+
+
 // ButtonDescriptionStyle defines the style of the button description.
 type ButtonDescriptionStyle string
 
 const (
 	// ButtonDescriptionStyleBold defines the bold style for the button description.
 	ButtonDescriptionStyleBold ButtonDescriptionStyle = "bold"
-
+	// ButtonDescriptionStyleText defines the plaintext style for the button description.
+	ButtonDescriptionStyleText ButtonDescriptionStyle = "text"
 	// ButtonDescriptionStyleCode defines the code style for the button description.
 	ButtonDescriptionStyleCode ButtonDescriptionStyle = "code"
 )
@@ -358,6 +393,14 @@ func (b *ButtonBuilder) ForURLWithBoldDesc(name, desc, url string, style ...Butt
 	urlBtn := b.ForURL(name, url, style...)
 	urlBtn.Description = desc
 	urlBtn.DescriptionStyle = ButtonDescriptionStyleBold
+
+	return urlBtn
+}
+// ForURLWithBoldDesc returns link button with description.
+func (b *ButtonBuilder) ForURLWithTextDesc(name, desc, url string, style ...ButtonStyle) Button {
+	urlBtn := b.ForURL(name, url, style...)
+	urlBtn.Description = desc
+	urlBtn.DescriptionStyle = ButtonDescriptionStyleText
 
 	return urlBtn
 }
