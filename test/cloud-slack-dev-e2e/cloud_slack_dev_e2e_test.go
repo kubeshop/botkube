@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -90,7 +91,8 @@ func TestCloudSlackE2E(t *testing.T) {
 	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
 
 	authHeaderValue := ""
-	helmChartUninstalled := false
+	var botkubeDeploymentUninstalled atomic.Bool
+	botkubeDeploymentUninstalled.Store(true) // not yet installed
 	gqlEndpoint := fmt.Sprintf("%s/%s", cfg.BotkubeCloud.APIBaseURL, cfg.BotkubeCloud.APIGraphQLEndpoint)
 
 	if cfg.ScreenshotsDir != "" {
@@ -319,18 +321,8 @@ func TestCloudSlackE2E(t *testing.T) {
 		t.Log("Creating deployment...")
 		deployment := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, channel.Name(), slackWorkspace.TeamID, channel.Name())
 		t.Cleanup(func() {
-			// We have a glitch on backend side and the logic below is a workaround for that.
-			// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deplyment deletion reports "DELETED" status.
-			// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
-			// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
-
-			for !helmChartUninstalled {
-				t.Log("Waiting for Helm chart uninstallation, in order to proceed with deleting the first deployment...")
-				time.Sleep(1 * time.Second)
-			}
-
-			t.Log("Helm chart uninstalled. Waiting a bit...")
-			time.Sleep(3 * time.Second) // ugly, but at least we will be pretty sure we won't run into the resource version mismatch
+			err := helmx.WaitForUninstallation(context.Background(), t, &botkubeDeploymentUninstalled)
+			assert.NoError(t, err)
 
 			t.Log("Deleting first deployment...")
 			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
@@ -343,6 +335,7 @@ func TestCloudSlackE2E(t *testing.T) {
 			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment2.ID))
 		})
 
+		botkubeDeploymentUninstalled.Store(false) // about to be installed
 		params := helmx.InstallChartParams{
 			RepoURL:       "https://storage.googleapis.com/botkube-latest-main-charts",
 			RepoName:      "botkube",
@@ -355,7 +348,7 @@ func TestCloudSlackE2E(t *testing.T) {
 		t.Cleanup(func() {
 			t.Log("Uninstalling Helm chart...")
 			helmInstallCallback(t)
-			helmChartUninstalled = true
+			botkubeDeploymentUninstalled.Store(true)
 		})
 
 		t.Log("Waiting for help message...")

@@ -7,7 +7,6 @@ import (
 )
 
 func TestRedactAPIKey(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    []string

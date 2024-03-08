@@ -10,9 +10,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 	"unicode"
+
+	"botkube.io/botube/test/helmx"
 
 	"botkube.io/botube/test/botkubex"
 	"botkube.io/botube/test/commplatform"
@@ -201,7 +204,9 @@ func runBotTest(t *testing.T,
 	deployEnvSecondaryChannelIDName,
 	deployEnvRbacChannelIDName string,
 ) {
-	botkubeDeploymentUninstalled := false
+	var botkubeDeploymentUninstalled atomic.Bool
+	botkubeDeploymentUninstalled.Store(true) // not yet installed
+
 	t.Logf("Creating API client with provided token for %s...", driverType)
 	botDriver, err := newBotDriver(appCfg, driverType)
 	require.NoError(t, err)
@@ -259,22 +264,14 @@ func runBotTest(t *testing.T,
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
 		t.Cleanup(func() {
-			// We have a glitch on backend side and the logic below is a workaround for that.
-			// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deployment deletion reports "DELETED" status.
-			// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
-			// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
-			for !botkubeDeploymentUninstalled {
-				t.Log("Waiting for Helm chart uninstallation, in order to proceed with deleting Botkube Cloud instance...")
-				time.Sleep(1 * time.Second)
-			}
-
-			t.Log("Helm chart uninstalled. Waiting a bit...")
-			time.Sleep(3 * time.Second) // ugly, but at least we will be pretty sure we won't run into the resource version mismatch
+			err := helmx.WaitForUninstallation(context.Background(), t, &botkubeDeploymentUninstalled)
+			assert.NoError(t, err)
 
 			t.Log("Deleting Botkube Cloud instance...")
 			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
 		})
 
+		botkubeDeploymentUninstalled.Store(false) // about to be installed
 		err = botkubex.Install(t, botkubex.InstallParams{
 			BinaryPath:                              appCfg.ConfigProvider.BotkubeCliBinaryPath,
 			HelmRepoDirectory:                       appCfg.ConfigProvider.HelmRepoDirectory,
@@ -291,7 +288,7 @@ func runBotTest(t *testing.T,
 		t.Cleanup(func() {
 			t.Log("Uninstalling Helm chart...")
 			botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
-			botkubeDeploymentUninstalled = true
+			botkubeDeploymentUninstalled.Store(true)
 		})
 	}
 
