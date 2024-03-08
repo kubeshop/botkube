@@ -250,22 +250,8 @@ func (m *MultiSelect) AreOptionsDefined() bool {
 // Buttons holds definition of interactive buttons.
 type Buttons []Button
 
-// AtLeastOneButtonHasDescription returns true if there is at least one button with description associated with it.
-func (s *Buttons) AtLeastOneButtonHasDescription() bool {
-	if s == nil {
-		return false
-	}
-	for _, item := range *s {
-		if item.Description != "" {
-			return true
-		}
-	}
-
-	return false
-}
-
-// GetButtonWithDescription returns all buttons with description.
-func (s *Buttons) GetButtonWithDescription() Buttons {
+// GetButtonsWithDescription returns all buttons with description.
+func (s *Buttons) GetButtonsWithDescription() Buttons {
 	if s == nil {
 		return nil
 	}
@@ -295,8 +281,6 @@ func (s *Buttons) GetButtonsWithoutDescription() Buttons {
 
 	return out
 }
-
-
 
 // ButtonDescriptionStyle defines the style of the button description.
 type ButtonDescriptionStyle string
@@ -396,6 +380,7 @@ func (b *ButtonBuilder) ForURLWithBoldDesc(name, desc, url string, style ...Butt
 
 	return urlBtn
 }
+
 // ForURLWithBoldDesc returns link button with description.
 func (b *ButtonBuilder) ForURLWithTextDesc(name, desc, url string, style ...ButtonStyle) Button {
 	urlBtn := b.ForURL(name, url, style...)

@@ -166,11 +166,41 @@
           "type": "button",
           "text": {
             "type": "plain_text",
+            "text": "Enable",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube enable notifications",
+          "value": "@Botkube enable notifications"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Disable",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube disable notifications",
+          "value": "@Botkube disable notifications"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Get status",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube status notifications",
+          "value": "@Botkube status notifications"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
             "text": "Change notification on Cloud",
             "emoji": true
           },
-          "action_id": "url:https://app.botkube.io/instances/9028716b-752b-4e15-88c2-4f8dbf188af7",
-          "url": "https://app.botkube.io/instances/9028716b-752b-4e15-88c2-4f8dbf188af7",
+          "action_id": "url:https://app.botkube.io/instances/42",
+          "url": "https://app.botkube.io/instances/42",
           "style": "primary"
         }
       ]
@@ -189,8 +219,34 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "`@Botkube kubectl` - open the kubectl composer\n`@Botkube kubectl [command] [TYPE] [NAME] [flags]` - run any of the supported kubectl commands directly from Slack"
+        "text": "`@Botkube kubectl [command] [TYPE] [NAME] [flags]` - run any of the supported kubectl commands directly from Slack"
       }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Open the kubectl composer",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube kubectl",
+          "value": "@Botkube kubectl",
+          "style": "primary"
+        },
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "kubectl help",
+            "emoji": true
+          },
+          "action_id": "cmd:@Botkube View help",
+          "value": "@Botkube View help"
+        }
+      ]
     },
     {
       "type": "divider"
@@ -208,8 +264,8 @@
           "text": "Helm help",
           "emoji": true
         },
-        "action_id": "cmd:@Botkube helm help",
-        "value": "@Botkube helm help"
+        "action_id": "cmd:@Botkube View help",
+        "value": "@Botkube View help"
       }
     },
     {
@@ -236,7 +292,7 @@
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Advanced features*"
+        "text": "*Other features*"
       }
     },
     {
@@ -254,24 +310,6 @@
         },
         "action_id": "url:https://docs.botkube.io/usage/automated-actions",
         "url": "https://docs.botkube.io/usage/automated-actions",
-        "style": "primary"
-      }
-    },
-    {
-      "type": "section",
-      "text": {
-        "type": "mrkdwn",
-        "text": "Run commands like helm, flux, etc. directly from Slack"
-      },
-      "accessory": {
-        "type": "button",
-        "text": {
-          "type": "plain_text",
-          "text": "Aliases",
-          "emoji": true
-        },
-        "action_id": "url:https://docs.botkube.io/usage/executor",
-        "url": "https://docs.botkube.io/usage/executor",
         "style": "primary"
       }
     },

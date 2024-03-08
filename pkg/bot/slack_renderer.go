@@ -264,12 +264,9 @@ func (b *SlackRenderer) renderButtons(in api.Buttons, selects *slack.ActionBlock
 	}
 
 	var out []slack.Block
-	btnsWithDesc := in.GetButtonWithDescription()
-	if len(btnsWithDesc) > 0 {
-		// We use section layout as we also want to add text description
-		// https://api.slack.com/reference/block-kit/blocks#section
-		out = append(out, b.renderButtonsWithDescription(btnsWithDesc)...)
-	}
+	// We use section layout as we also want to add text description
+	// https://api.slack.com/reference/block-kit/blocks#section
+	out = append(out, b.renderButtonsWithDescription(in.GetButtonsWithDescription())...)
 
 	btnsWithoutDesc := in.GetButtonsWithoutDescription()
 	if len(btnsWithoutDesc) == 0 {
@@ -311,7 +308,7 @@ func (b *SlackRenderer) renderButtonsWithDescription(in api.Buttons) []slack.Blo
 		case api.ButtonDescriptionStyleBold:
 			desc = fmt.Sprintf("*%s*", desc)
 		case api.ButtonDescriptionStyleText:
-			desc = fmt.Sprintf("%s", desc)
+			// no op, it should be just a simple string
 		case api.ButtonDescriptionStyleCode:
 			fallthrough
 		default:

@@ -240,4 +240,5 @@ require (
 replace (
 	github.com/DanielTitkov/go-adaptive-cards => github.com/kubeshop/go-adaptive-cards v0.0.0-20231114223529-d6d8b980f0c8
 	github.com/kubeshop/botkube => ./..
+	github.com/kubeshop/botkube-cloud/botkube-cloud-backend => github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240308130450-01df23ee5889
 )

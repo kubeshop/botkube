@@ -11,20 +11,17 @@ import (
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
-// RunCommandName defines the button name for the run commands.
-const RunCommandName = "Run command"
-
-// HelpMessage provides an option to build the Help message depending on a given platform.
-type HelpMessage struct {
+// HelpMessageV2 provides an option to build the Help message depending on a given platform.
+type HelpMessageV2 struct {
 	btnBuilder             *api.ButtonBuilder
 	platform               config.CommPlatformIntegration
 	clusterName            string
 	enabledPluginExecutors []string
 }
 
-// NewHelpMessage return a new instance of HelpMessage.
-func NewHelpMessage(platform config.CommPlatformIntegration, clusterName string, executors []string) *HelpMessage {
-	return &HelpMessage{
+// NewHelpMessageV2 return a new instance of HelpMessageV2.
+func NewHelpMessageV2(platform config.CommPlatformIntegration, clusterName string, executors []string) *HelpMessageV2 {
+	return &HelpMessageV2{
 		btnBuilder:             api.NewMessageButtonBuilder(),
 		platform:               platform,
 		clusterName:            clusterName,
@@ -33,9 +30,7 @@ func NewHelpMessage(platform config.CommPlatformIntegration, clusterName string,
 }
 
 // Build returns help message with interactive sections.
-//
-// You can see how the help message looks like without starting the Agent - navigate to `test/msg-layouts/help_test.go`.
-func (h *HelpMessage) Build(init bool) CoreMessage {
+func (h *HelpMessageV2) Build(init bool) CoreMessage {
 	msg := CoreMessage{}
 
 	if init {
@@ -49,7 +44,7 @@ func (h *HelpMessage) Build(init bool) CoreMessage {
 		h.basicCommands,
 		h.notificationSections,
 		h.pluginHelpSections,
-		h.cluster,
+		h.multiClusterFlags,
 		h.advancedFeatures,
 		h.footer,
 	}
@@ -60,7 +55,7 @@ func (h *HelpMessage) Build(init bool) CoreMessage {
 	return msg
 }
 
-func (h *HelpMessage) cluster() []api.Section {
+func (h *HelpMessageV2) multiClusterFlags() []api.Section {
 	switch h.platform {
 	case config.DiscordCommPlatformIntegration, config.MattermostCommPlatformIntegration:
 		return []api.Section{
@@ -89,7 +84,7 @@ func (h *HelpMessage) cluster() []api.Section {
 	}
 }
 
-func (h *HelpMessage) basicCommands() []api.Section {
+func (h *HelpMessageV2) basicCommands() []api.Section {
 	return []api.Section{
 		{
 			Base: api.Base{
@@ -106,7 +101,7 @@ func (h *HelpMessage) basicCommands() []api.Section {
 	}
 }
 
-func (h *HelpMessage) footer() []api.Section {
+func (h *HelpMessageV2) footer() []api.Section {
 	return []api.Section{
 		{
 			Buttons: []api.Button{
@@ -119,13 +114,9 @@ func (h *HelpMessage) footer() []api.Section {
 	}
 }
 
-func (h *HelpMessage) notificationSections() []api.Section {
-	btns := api.Buttons{
-		h.btnBuilder.ForCommandWithoutDesc("Enable", "enable notifications"),
-		h.btnBuilder.ForCommandWithoutDesc("Disable", "disable notifications"),
-		h.btnBuilder.ForCommandWithoutDesc("Get status", "status notifications"),
-	}
+func (h *HelpMessageV2) notificationSections() []api.Section {
 	instanceID := os.Getenv(remote.ProviderIdentifierEnvKey)
+	var btns api.Buttons
 	if instanceID != "" {
 		instanceViewURL := fmt.Sprintf("https://app.botkube.io/instances/%s", instanceID)
 		btns = append(btns, h.btnBuilder.ForURL("Change notification on Cloud", instanceViewURL, api.ButtonStylePrimary))
@@ -142,7 +133,7 @@ func (h *HelpMessage) notificationSections() []api.Section {
 	}
 }
 
-func (h *HelpMessage) pluginHelpSections() []api.Section {
+func (h *HelpMessageV2) pluginHelpSections() []api.Section {
 	var out []api.Section
 
 	slices.Sort(h.enabledPluginExecutors) // to make the order predictable for testing
@@ -159,7 +150,7 @@ func (h *HelpMessage) pluginHelpSections() []api.Section {
 	return out
 }
 
-func (h *HelpMessage) botkubeCloud() []api.Section {
+func (h *HelpMessageV2) botkubeCloud() []api.Section {
 	if !remote.IsEnabled() {
 		return nil
 	}
@@ -167,20 +158,17 @@ func (h *HelpMessage) botkubeCloud() []api.Section {
 		{
 			Base: api.Base{
 				Header: "☁️ Botkube Cloud",
+				Description: fmt.Sprintf("`%s cloud list instances` - list connected instances\n", api.MessageBotNamePlaceholder) +
+					fmt.Sprintf("`%s cloud set default-instance` - set default instance for this channel", api.MessageBotNamePlaceholder),
 			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithDescCmd("List connected instances", "cloud list instances"),
-				h.btnBuilder.ForCommandWithDescCmd("Set channel default cluster", "cloud set default-instance"),
 				h.btnBuilder.ForURL("Open Botkube Cloud", "https://app.botkube.io", api.ButtonStylePrimary),
 			},
 		},
 	}
 }
 
-func (h *HelpMessage) aiPlugin() []api.Section {
-	if !remote.IsEnabled() {
-		return nil
-	}
+func (h *HelpMessageV2) aiPlugin() []api.Section {
 	return []api.Section{
 		{
 			Base: api.Base{
@@ -194,14 +182,15 @@ func (h *HelpMessage) aiPlugin() []api.Section {
 	}
 }
 
-func (h *HelpMessage) advancedFeatures() []api.Section {
+func (h *HelpMessageV2) advancedFeatures() []api.Section {
 	return []api.Section{
 		{
 			Base: api.Base{
-				Header: "Other features",
+				Header: "Advanced features",
 			},
 			Buttons: []api.Button{
 				h.btnBuilder.ForURLWithTextDesc("Automation", "Automate your workflows by executing custom commands based on specific events", "https://docs.botkube.io/usage/automated-actions", api.ButtonStylePrimary),
+				h.btnBuilder.ForURLWithTextDesc("Aliases", "Run commands like helm, flux, etc. directly from Slack", "https://docs.botkube.io/usage/executor", api.ButtonStylePrimary),
 			},
 		},
 	}
