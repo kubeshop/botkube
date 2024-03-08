@@ -18,16 +18,6 @@ var pluginHelpProvider = map[string]pluginHelpProviderFn{
 		}
 	},
 	"botkube/kubectl": func(platform config.CommPlatformIntegration, btnBuilder *api.ButtonBuilder) api.Section {
-		//if platform.IsInteractive() && platform != config.CloudTeamsCommPlatformIntegration {
-		//	return api.Section{
-		//		Base: api.Base{
-		//			Header: "🔮Run kubectl commands",
-		//			Description: fmt.Sprintf("`%s kubectl` - open the kubectl composer\n", api.MessageBotNamePlaceholder) +
-		//				fmt.Sprintf("`%s kubectl [command] [TYPE] [NAME] [flags]` - run any of the supported kubectl commands directly from %s", api.MessageBotNamePlaceholder, platform.DisplayName()),
-		//		},
-		//	}
-		//}
-
 		if platform.IsInteractive() && platform != config.CloudTeamsCommPlatformIntegration {
 			return api.Section{
 				Base: api.Base{

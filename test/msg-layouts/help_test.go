@@ -48,11 +48,11 @@ func TestNewHelpMessage(t *testing.T) {
 
 	// discord - we have only markdown formatter
 	md := bot.NewDiscordRenderer().MessageToMarkdown(msg)
-	golden.Assert(t, md, filepath.Join(t.Name(), "discord-help.golden.json"))
+	golden.Assert(t, md, filepath.Join(t.Name(), "discord-help.golden.md"))
 
 	// mattermost - we have only markdown formatter
 	md = bot.NewMattermostRenderer().MessageToMarkdown(msg)
-	golden.Assert(t, md, filepath.Join(t.Name(), "mattermost-help.golden.json"))
+	golden.Assert(t, md, filepath.Join(t.Name(), "mattermost-help.golden.md"))
 }
 
 type SlackBuiltKit struct {
