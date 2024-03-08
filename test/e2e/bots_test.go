@@ -286,8 +286,13 @@ func runBotTest(t *testing.T,
 		})
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			t.Log("Uninstalling Helm chart...")
-			botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
+			if t.Failed() {
+				t.Log("Tests failed, keeping the Botkube instance installed for debugging purposes.")
+			} else {
+				t.Log("Uninstalling Helm chart...")
+				botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
+			}
+
 			botkubeDeploymentUninstalled.Store(true)
 		})
 	}
@@ -1696,14 +1701,8 @@ func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel
 		}
 	}
 
-	err := tester.OnChannel().WaitForMessagePosted(userID, channel, 2, assertFn)
-	if err != nil && tester.Type() == commplatform.TeamsBot {
-		// TODO(https://github.com/kubeshop/botkube-cloud/issues/854): for some reason, Teams restarts are not deterministic and sometimes it doesn't happen
-		// We should add fetching Agent logs to see why it happens.
-		t.Logf("⚠️ Teams communication platform didn't restart on time: %v", err)
-	} else {
-		assert.NoError(t, err)
-	}
+	err := tester.OnChannel().WaitForMessagePosted(userID, channel, 3, assertFn)
+	assert.NoError(t, err)
 
 	tester.SetTimeout(originalTimeout)
 }

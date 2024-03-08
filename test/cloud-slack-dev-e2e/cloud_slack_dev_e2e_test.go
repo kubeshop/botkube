@@ -347,8 +347,13 @@ func TestCloudSlackE2E(t *testing.T) {
 		}
 		helmInstallCallback := helmx.InstallChart(t, params)
 		t.Cleanup(func() {
-			t.Log("Uninstalling Helm chart...")
-			helmInstallCallback(t)
+			if t.Failed() {
+				t.Log("Tests failed, keeping the Botkube instance installed for debugging purposes.")
+			} else {
+				t.Log("Uninstalling Helm chart...")
+				helmInstallCallback(t)
+			}
+
 			botkubeDeploymentUninstalled.Store(true)
 		})
 
