@@ -89,6 +89,7 @@ func TestCloudSlackE2E(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
+	cfg.Slack.Tester.RecentMessagesLimit = 4       // this is used effectively only for the Botkube restarts. There are two of them in a short time window so it shouldn't be higher than 5.
 
 	authHeaderValue := ""
 	var botkubeDeploymentUninstalled atomic.Bool
@@ -471,9 +472,9 @@ func TestCloudSlackE2E(t *testing.T) {
 		t.Run("Botkube Deployment -> Cloud sync", func(t *testing.T) {
 			t.Log("Disabling notification...")
 			tester.PostMessageToBot(t, channel.Identifier(), "disable notifications")
+
 			t.Log("Waiting for config reload message...")
 			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", deployment.Name)
-
 			err = tester.OnChannel().WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
 			require.NoError(t, err)
 

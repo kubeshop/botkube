@@ -1686,7 +1686,7 @@ func crashConfigMapSourcePlugin(t *testing.T, cfgMapCli corev1.ConfigMapInterfac
 }
 
 func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel, clusterName string) {
-	t.Logf("Waiting for restart (timestamp: %s)...", time.Now().String())
+	t.Logf("Waiting for restart (timestamp: %s)...", time.Now().Format(time.DateTime))
 
 	originalTimeout := tester.Timeout()
 	tester.SetTimeout(120 * time.Second)
@@ -1703,7 +1703,12 @@ func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel
 	err := tester.OnChannel().WaitForMessagePosted(userID, channel, 2, assertFn)
 	assert.NoError(t, err)
 
-	t.Logf("Detected a successful restart (timestamp: %s).", time.Now().String())
+	t.Logf("Detected a successful restart (timestamp: %s).", time.Now().Format(time.DateTime))
+
+	t.Logf("Waiting a bit longer just to make sure Botkube connects to the Cloud Router...")
+	// Yes, it's ugly but "My watch begins..." doesn't really mean the Slack/Teams gRPC connection has been established.
+	// So we wait a bit longer to avoid a race condition.
+	time.Sleep(3 * time.Second)
 
 	tester.SetTimeout(originalTimeout)
 }

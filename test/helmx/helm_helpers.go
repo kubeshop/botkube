@@ -137,7 +137,7 @@ func WaitForUninstallation(ctx context.Context, t *testing.T, alreadyUninstalled
 	}
 
 	if waitInterrupted {
-		t.Log("Helm chart uninstallation timed out. Proceeding with deleting other resources...")
+		t.Log("Waiting for Helm chart uninstallation timed out. Proceeding with deleting other resources...")
 		return nil
 	}
 
