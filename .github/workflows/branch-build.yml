@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix-e2e-tests
   repository_dispatch:
     types: [ trigger-e2e-tests ]
 
@@ -193,7 +194,14 @@ jobs:
 #        run: |
 #          KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
 #            make test-integration-${{ matrix.integration }}
-#
+
+# TODO: Uncomment
+#      - name: Dump cluster state
+#        if: ${{ failure() }}
+#        uses: ./.github/actions/dump-cluster
+#        with:
+#          name: ${{ matrix.integration }}
+
 #      - name: Slack Notification
 #        uses: rtCamp/action-slack-notify@v2
 #        if: ${{ failure() }}

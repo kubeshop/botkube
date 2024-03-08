@@ -840,9 +840,12 @@ func runBotTest(t *testing.T,
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
-
 		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
+
+		if botDriver.Type().IsCloud() {
+			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
+		}
 
 		cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
 
@@ -949,12 +952,12 @@ func runBotTest(t *testing.T,
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
+		assert.NoError(t, err)
 
 		if botDriver.Type().IsCloud() {
 			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
-		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from second channel...")
 		command = "status notifications"
@@ -1683,16 +1686,11 @@ func crashConfigMapSourcePlugin(t *testing.T, cfgMapCli corev1.ConfigMapInterfac
 }
 
 func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel, clusterName string) {
-	t.Log("Waiting for restart...")
+	t.Logf("Waiting for restart (timestamp: %s)...", time.Now().String())
 
 	originalTimeout := tester.Timeout()
-	tester.SetTimeout(90 * time.Second)
-	if tester.Type() == commplatform.TeamsBot {
-		tester.SetTimeout(120 * time.Second)
-	}
-	// 2, since time to time latest message becomes upgrade message right after begin message
+	tester.SetTimeout(120 * time.Second)
 	expMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", clusterName)
-
 	assertFn := tester.AssertEquals(expMsg)
 	if tester.Type() == commplatform.TeamsBot { // Teams sends JSON (Adaptive Card), so we cannot do equal assertion
 		expMsg = fmt.Sprintf("My watch begins for cluster '%s'!", clusterName)
@@ -1701,8 +1699,11 @@ func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel
 		}
 	}
 
-	err := tester.OnChannel().WaitForMessagePosted(userID, channel, 3, assertFn)
+	// 2, since from time to time latest message becomes upgrade message right after begin message
+	err := tester.OnChannel().WaitForMessagePosted(userID, channel, 2, assertFn)
 	assert.NoError(t, err)
+
+	t.Logf("Detected a successful restart (timestamp: %s).", time.Now().String())
 
 	tester.SetTimeout(originalTimeout)
 }

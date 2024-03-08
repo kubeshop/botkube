@@ -304,3 +304,9 @@ jobs:
         run: |
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
+
+      - name: Dump cluster state
+        if: ${{ failure() }}
+        uses: ./.github/actions/dump-cluster
+        with:
+          name: ${{ matrix.integration }}
