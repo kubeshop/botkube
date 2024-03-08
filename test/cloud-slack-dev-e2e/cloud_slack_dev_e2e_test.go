@@ -301,6 +301,7 @@ func TestCloudSlackE2E(t *testing.T) {
 			if !cfg.Slack.DisconnectWorkspaceAfterTests {
 				return
 			}
+			t.Log("Disconnecting Slack workspace...")
 			gqlCli.MustDeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
 		})
 

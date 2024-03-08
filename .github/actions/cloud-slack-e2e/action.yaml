@@ -110,6 +110,8 @@ runs:
     - name: Dump cluster state
       if: ${{ failure() }}
       uses: ./.github/actions/dump-cluster
+      with:
+        name: cloud-slack-e2e
 
     - name: Detect failed jobs
       if: ${{ failure() }}

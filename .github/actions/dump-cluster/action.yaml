@@ -1,6 +1,11 @@
 name: Dump cluster state
 description: "Creates an artifacts with cluster dump"
 
+inputs:
+  name:
+    description: "Cluster name"
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -17,6 +22,6 @@ runs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: cluster_dump_${{github.sha}}
+        name: cluster_dump_${{github.sha}}_${{ inputs.name }}
         path: "output"
         retention-days: 5 # Default 90 days
