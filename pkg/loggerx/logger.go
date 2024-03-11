@@ -36,7 +36,7 @@ func newWithOutput(cfg config.Logger, output io.Writer) logrus.FieldLogger {
 		logLevel = logrus.InfoLevel
 	}
 	logger.SetLevel(logLevel)
-	if cfg.Formatter == config.FormatterJson {
+	if cfg.Formatter == config.FormatterJSON {
 		logger.Formatter = &logrus.JSONFormatter{}
 	} else {
 		logger.Formatter = &logrus.TextFormatter{FullTimestamp: true, DisableColors: cfg.DisableColors, ForceColors: true}

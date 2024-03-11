@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -38,9 +39,39 @@ type (
 		DisplayName string `yaml:"displayName"`
 	}
 	Trigger struct {
-		Type []string `yaml:"type"`
+		Type []EventType `yaml:"type"`
 	}
 )
+
+func (b *ExtraButtons) NormalizeAndValidate() error {
+	// the multierr pkg is not used as it breaks the final error indent making it hard to read
+	var issues []string
+	if b.Button.DisplayName == "" {
+		issues = append(issues, "displayName cannot be empty")
+	}
+
+	if b.Button.CommandTpl == "" {
+		issues = append(issues, "commandTpl cannot be empty")
+	}
+
+	if b.Trigger.Type == nil {
+		issues = append(issues, "trigger.type cannot be empty")
+	}
+	for idx, t := range b.Trigger.Type {
+		// we can't normalize it on custom 'UnmarshalYAML' because koanf uses map[string]any
+		// that causes it to drop Go struct as custom UnmarshalYAML.
+		t = EventType(strings.ToLower(string(t)))
+		if !t.IsValid() {
+			issues = append(issues, fmt.Sprintf("unknown trigger.type[%q]", t))
+		}
+		b.Trigger.Type[idx] = t
+	}
+
+	if len(issues) > 0 {
+		return errors.New(strings.Join(issues, ", "))
+	}
+	return nil
+}
 
 // Commands contains allowed verbs and resources
 type Commands struct {
@@ -179,8 +210,24 @@ const (
 	AllEvent EventType = "all"
 )
 
-func (eventType EventType) String() string {
-	return string(eventType)
+// IsValid checks if the event type is valid.
+func (eventType *EventType) IsValid() bool {
+	if eventType == nil {
+		return false
+	}
+	switch *eventType {
+	case CreateEvent, UpdateEvent, DeleteEvent, ErrorEvent, WarningEvent, NormalEvent, InfoEvent, AllEvent:
+		return true
+	}
+	return false
+}
+
+// String returns the string representation of the event type.
+func (eventType *EventType) String() string {
+	if eventType == nil {
+		return ""
+	}
+	return string(*eventType)
 }
 
 // Resource contains resources to watch

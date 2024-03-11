@@ -7,7 +7,7 @@ import (
 
 	sprig "github.com/go-task/slim-sprig"
 	"github.com/sirupsen/logrus"
-	"k8s.io/kubectl/pkg/util/slice"
+	"golang.org/x/exp/slices"
 
 	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
@@ -54,12 +54,12 @@ func (m *MessageBuilder) FromEvent(event event.Event, actions []config.ExtraButt
 
 	cmdSection, err := m.getCommandSelectIfShould(event)
 	if err != nil {
-		m.log.Errorf("Failed to get commands buttons assigned to %q event. Those buttons will be omitted. Errors: %v", event.Type.String(), err)
+		m.log.Errorf("Failed to get commands buttons assigned to %q event. Those buttons will be omitted. Issues:\n%s", event.Type.String(), err)
 	}
 
 	btns, err := m.getExtraButtonsAssignedToEvent(actions, event)
 	if err != nil {
-		m.log.Errorf("Failed to convert extra buttons assigned to %q event. Those buttons will be omitted. Errors: %v", event.Type.String(), err)
+		m.log.Errorf("Failed to convert extra buttons assigned to %q event. Those buttons will be omitted. Issues:\n%s", event.Type.String(), err)
 	}
 	if cmdSection != nil || len(btns) > 0 {
 		msg.Sections = append(msg.Sections, api.Section{
@@ -73,24 +73,31 @@ func (m *MessageBuilder) FromEvent(event event.Event, actions []config.ExtraButt
 
 func (m *MessageBuilder) getExtraButtonsAssignedToEvent(actions []config.ExtraButtons, e event.Event) (api.Buttons, error) {
 	var actBtns api.Buttons
-	issues := multierrx.New() 
-	for _, act := range actions {
+	issues := multierrx.New()
+	for idx, act := range actions {
 		if !act.Enabled {
 			continue
 		}
-		if !slice.ContainsString(act.Trigger.Type, e.Type.String(), nil) {
+
+		err := act.NormalizeAndValidate()
+		if err != nil {
+			issues = multierrx.Append(issues, fmt.Errorf("invalid extraButtons[%d]: %s", idx, err))
+			continue
+		}
+
+		if !slices.Contains(act.Trigger.Type, e.Type) {
 			continue
 		}
 
 		btn, err := m.renderActionButton(act, e)
 		if err != nil {
-			issues = multierrx.Append(issues, err)
+			issues = multierrx.Append(issues, fmt.Errorf("invalid extraButtons[%d].commandTpl: %s", idx, err))
 			continue
 		}
 		actBtns = append(actBtns, btn)
 	}
 
-	return actBtns, nil
+	return actBtns, issues.ErrorOrNil()
 }
 
 func ptrSection(s *api.Selects) api.Selects {
@@ -178,7 +185,7 @@ func (m *MessageBuilder) appendBulletListIfNotEmpty(bulletLists api.BulletLists,
 }
 
 func (m *MessageBuilder) renderActionButton(act config.ExtraButtons, e event.Event) (api.Button, error) {
-	tmpl, err := template.New("example").Funcs(sprig.FuncMap()).Parse(act.Button.CommandTpl)
+	tmpl, err := template.New(act.Button.DisplayName).Funcs(sprig.FuncMap()).Parse(act.Button.CommandTpl)
 	if err != nil {
 		return api.Button{}, err
 	}
