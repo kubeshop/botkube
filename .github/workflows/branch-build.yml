@@ -194,6 +194,12 @@ jobs:
           KUBECONFIG=$(k3d kubeconfig write ${{ matrix.integration }}-test-cluster) \
             make test-integration-${{ matrix.integration }}
 
+      - name: Dump cluster state
+        if: ${{ failure() }}
+        uses: ./.github/actions/dump-cluster
+        with:
+          name: ${{ matrix.integration }}
+
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         if: ${{ failure() }}
@@ -263,7 +269,7 @@ jobs:
           KUBECONFIG=$(k3d kubeconfig write cli-migration-e2e-cluster) make test-cli-migration-e2e
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
           name: screenshots_dump_${{github.sha}}
@@ -273,6 +279,8 @@ jobs:
       - name: Dump cluster state
         if: ${{ failure() }}
         uses: ./.github/actions/dump-cluster
+        with:
+          name: cli-migration-e2e
 
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2

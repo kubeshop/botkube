@@ -1,12 +1,17 @@
 package helmx
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/stretchr/testify/require"
 )
@@ -107,4 +112,36 @@ func redactAPIKey(in []string) []string {
 		dst[i] = apiKeyRegex.ReplaceAllString(dst[i], "$1=REDACTED")
 	}
 	return dst
+}
+
+const (
+	uninstallPollInterval = 1 * time.Second
+	uninstallTimeout      = 30 * time.Second
+)
+
+// WaitForUninstallation waits until a Helm chart is uninstalled, based on the atomic value.
+// It's a workaround for the Helm chart uninstallation issue.
+// We have a glitch on backend side and the logic below is a workaround for that.
+// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deployment deletion reports "DELETED" status.
+// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
+// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
+func WaitForUninstallation(ctx context.Context, t *testing.T, alreadyUninstalled *atomic.Bool) error {
+	t.Helper()
+	t.Log("Waiting for Helm chart uninstallation, in order to proceed with deleting Botkube Cloud instance...")
+	err := wait.PollUntilContextTimeout(ctx, uninstallPollInterval, uninstallTimeout, false, func(ctx context.Context) (done bool, err error) {
+		return alreadyUninstalled.Load(), nil
+	})
+	waitInterrupted := wait.Interrupted(err)
+	if err != nil && !waitInterrupted {
+		return err
+	}
+
+	if waitInterrupted {
+		t.Log("Waiting for Helm chart uninstallation timed out. Proceeding with deleting other resources...")
+		return nil
+	}
+
+	t.Log("Waiting a bit more...")
+	time.Sleep(3 * time.Second) // ugly, but at least we will be pretty sure we won't run into the resource version mismatch
+	return nil
 }

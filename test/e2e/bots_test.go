@@ -10,9 +10,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 	"unicode"
+
+	"botkube.io/botube/test/helmx"
 
 	"botkube.io/botube/test/botkubex"
 	"botkube.io/botube/test/commplatform"
@@ -201,7 +204,9 @@ func runBotTest(t *testing.T,
 	deployEnvSecondaryChannelIDName,
 	deployEnvRbacChannelIDName string,
 ) {
-	botkubeDeploymentUninstalled := false
+	var botkubeDeploymentUninstalled atomic.Bool
+	botkubeDeploymentUninstalled.Store(true) // not yet installed
+
 	t.Logf("Creating API client with provided token for %s...", driverType)
 	botDriver, err := newBotDriver(appCfg, driverType)
 	require.NoError(t, err)
@@ -259,22 +264,14 @@ func runBotTest(t *testing.T,
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
 		t.Cleanup(func() {
-			// We have a glitch on backend side and the logic below is a workaround for that.
-			// Tl;dr uninstalling Helm chart reports "DISCONNECTED" status, and deployment deletion reports "DELETED" status.
-			// If we do these two things too quickly, we'll run into resource version mismatch in repository logic.
-			// Read more here: https://github.com/kubeshop/botkube-cloud/pull/486#issuecomment-1604333794
-			for !botkubeDeploymentUninstalled {
-				t.Log("Waiting for Helm chart uninstallation, in order to proceed with deleting Botkube Cloud instance...")
-				time.Sleep(1 * time.Second)
-			}
-
-			t.Log("Helm chart uninstalled. Waiting a bit...")
-			time.Sleep(3 * time.Second) // ugly, but at least we will be pretty sure we won't run into the resource version mismatch
+			err := helmx.WaitForUninstallation(context.Background(), t, &botkubeDeploymentUninstalled)
+			assert.NoError(t, err)
 
 			t.Log("Deleting Botkube Cloud instance...")
 			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
 		})
 
+		botkubeDeploymentUninstalled.Store(false) // about to be installed
 		err = botkubex.Install(t, botkubex.InstallParams{
 			BinaryPath:                              appCfg.ConfigProvider.BotkubeCliBinaryPath,
 			HelmRepoDirectory:                       appCfg.ConfigProvider.HelmRepoDirectory,
@@ -289,9 +286,14 @@ func runBotTest(t *testing.T,
 		})
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			t.Log("Uninstalling Helm chart...")
-			botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
-			botkubeDeploymentUninstalled = true
+			if t.Failed() {
+				t.Log("Tests failed, keeping the Botkube instance installed for debugging purposes.")
+			} else {
+				t.Log("Uninstalling Helm chart...")
+				botkubex.Uninstall(t, appCfg.ConfigProvider.BotkubeCliBinaryPath)
+			}
+
+			botkubeDeploymentUninstalled.Store(true)
 		})
 	}
 
@@ -838,9 +840,12 @@ func runBotTest(t *testing.T,
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
-
 		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
 		require.NoError(t, err)
+
+		if botDriver.Type().IsCloud() {
+			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
+		}
 
 		cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
 
@@ -947,12 +952,12 @@ func runBotTest(t *testing.T,
 		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
 		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
+		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
+		assert.NoError(t, err)
 
 		if botDriver.Type().IsCloud() {
 			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
 		}
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.FirstChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
-		assert.NoError(t, err)
 
 		t.Log("Getting notifier status from second channel...")
 		command = "status notifications"
@@ -1078,8 +1083,7 @@ func runBotTest(t *testing.T,
 
 		limitMessagesNo := 2
 		if botDriver.Type().IsCloud() {
-			// There are 2 config reload requested after second cm update
-			limitMessagesNo = 2 * limitLastMessageAfterCloudReload
+			limitMessagesNo = limitLastMessageAfterCloudReload
 		}
 		err = botDriver.OnChannel().WaitForMessagePostedWithAttachment(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessagesNo, secondCMUpdate)
 		require.NoError(t, err)
@@ -1682,16 +1686,11 @@ func crashConfigMapSourcePlugin(t *testing.T, cfgMapCli corev1.ConfigMapInterfac
 }
 
 func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel, clusterName string) {
-	t.Log("Waiting for restart...")
+	t.Logf("Waiting for restart (timestamp: %s)...", time.Now().Format(time.DateTime))
 
 	originalTimeout := tester.Timeout()
-	tester.SetTimeout(90 * time.Second)
-	if tester.Type() == commplatform.TeamsBot {
-		tester.SetTimeout(120 * time.Second)
-	}
-	// 2, since time to time latest message becomes upgrade message right after begin message
+	tester.SetTimeout(120 * time.Second)
 	expMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", clusterName)
-
 	assertFn := tester.AssertEquals(expMsg)
 	if tester.Type() == commplatform.TeamsBot { // Teams sends JSON (Adaptive Card), so we cannot do equal assertion
 		expMsg = fmt.Sprintf("My watch begins for cluster '%s'!", clusterName)
@@ -1700,14 +1699,16 @@ func waitForRestart(t *testing.T, tester commplatform.BotDriver, userID, channel
 		}
 	}
 
+	// 2, since from time to time latest message becomes upgrade message right after begin message
 	err := tester.OnChannel().WaitForMessagePosted(userID, channel, 2, assertFn)
-	if err != nil && tester.Type() == commplatform.TeamsBot {
-		// TODO(https://github.com/kubeshop/botkube-cloud/issues/854): for some reason, Teams restarts are not deterministic and sometimes it doesn't happen
-		// We should add fetching Agent logs to see why it happens.
-		t.Logf("⚠️ Teams communication platform didn't restart on time: %v", err)
-	} else {
-		assert.NoError(t, err)
-	}
+	assert.NoError(t, err)
+
+	t.Logf("Detected a successful restart (timestamp: %s).", time.Now().Format(time.DateTime))
+
+	t.Logf("Waiting a bit longer just to make sure Botkube connects to the Cloud Router...")
+	// Yes, it's ugly but "My watch begins..." doesn't really mean the Slack/Teams gRPC connection has been established.
+	// So we wait a bit longer to avoid a race condition.
+	time.Sleep(3 * time.Second)
 
 	tester.SetTimeout(originalTimeout)
 }
