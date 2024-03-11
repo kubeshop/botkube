@@ -69,7 +69,7 @@ func (f *DefaultFilterEngine) Run(ctx context.Context, event event.Event) event.
 // Register filter(s) to engine.
 func (f *DefaultFilterEngine) Register(filters ...RegisteredFilter) {
 	for _, filter := range filters {
-		f.log.Infof("Registering filter %q (enabled: %t)...", filter.Name(), filter.Enabled)
+		f.log.Debugf("Registering filter %q (enabled: %t)...", filter.Name(), filter.Enabled)
 		f.filters[filter.Name()] = filter
 	}
 }

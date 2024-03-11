@@ -13,6 +13,7 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/pkg/api"
+	multierrx "github.com/kubeshop/botkube/pkg/multierror"
 )
 
 var emojiForLevel = map[config.Level]string{
@@ -53,12 +54,12 @@ func (m *MessageBuilder) FromEvent(event event.Event, actions []config.ExtraButt
 
 	cmdSection, err := m.getCommandSelectIfShould(event)
 	if err != nil {
-		return api.Message{}, err
+		m.log.Errorf("Failed to get commands buttons assigned to %q event. Those buttons will be omitted. Errors: %v", event.Type.String(), err)
 	}
 
-	btns, err := m.getExternalActions(actions, event)
+	btns, err := m.getExtraButtonsAssignedToEvent(actions, event)
 	if err != nil {
-		return api.Message{}, err
+		m.log.Errorf("Failed to convert extra buttons assigned to %q event. Those buttons will be omitted. Errors: %v", event.Type.String(), err)
 	}
 	if cmdSection != nil || len(btns) > 0 {
 		msg.Sections = append(msg.Sections, api.Section{
@@ -70,8 +71,9 @@ func (m *MessageBuilder) FromEvent(event event.Event, actions []config.ExtraButt
 	return msg, nil
 }
 
-func (m *MessageBuilder) getExternalActions(actions []config.ExtraButtons, e event.Event) (api.Buttons, error) {
+func (m *MessageBuilder) getExtraButtonsAssignedToEvent(actions []config.ExtraButtons, e event.Event) (api.Buttons, error) {
 	var actBtns api.Buttons
+	issues := multierrx.New() 
 	for _, act := range actions {
 		if !act.Enabled {
 			continue
@@ -82,7 +84,8 @@ func (m *MessageBuilder) getExternalActions(actions []config.ExtraButtons, e eve
 
 		btn, err := m.renderActionButton(act, e)
 		if err != nil {
-			return nil, err
+			issues = multierrx.Append(issues, err)
+			continue
 		}
 		actBtns = append(actBtns, btn)
 	}

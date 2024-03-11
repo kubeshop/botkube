@@ -84,13 +84,19 @@ func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.Str
 	if err != nil {
 		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
 	}
+
+	// In Kubernetes, we have an "info" level by default. We should aim to minimize info logging and consider using
+	// the debug level instead. This approach will prevent flooding the Agent logs with irrelevant information,
+	// as the Agent logs everything that plugin writes to stderr.
+	log := loggerx.NewStderr(pkgConfig.Logger{
+		Level: cfg.Log.Level,
+	})
+
 	s := Source{
-		startTime: time.Now(),
-		eventCh:   make(chan source.Event),
-		config:    cfg,
-		logger: loggerx.New(pkgConfig.Logger{
-			Level: cfg.Log.Level,
-		}),
+		startTime:                time.Now(),
+		eventCh:                  make(chan source.Event),
+		config:                   cfg,
+		logger:                   log,
 		clusterName:              input.Context.ClusterName,
 		kubeConfig:               input.Context.KubeConfig,
 		isInteractivitySupported: input.Context.IsInteractivitySupported,
@@ -135,7 +141,7 @@ func consumeEvents(ctx context.Context, s Source) {
 	}, func(resource string) (cache.SharedIndexInformer, error) {
 		gvr, err := parseResourceArg(resource, client.mapper)
 		if err != nil {
-			s.logger.Infof("Unable to parse resource: %s to register with informer\n", resource)
+			s.logger.Errorf("Unable to parse resource: %s to register with informer\n", resource)
 			return nil, err
 		}
 		return dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
