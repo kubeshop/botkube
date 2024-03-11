@@ -20,7 +20,7 @@ runs:
         echo "Dumping cluster info into ${LOGS_DIR}"
         kubectl cluster-info dump --all-namespaces --output-directory="${LOGS_DIR}"
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: cluster_dump_${{github.sha}}_${{ inputs.name }}
         path: "output"

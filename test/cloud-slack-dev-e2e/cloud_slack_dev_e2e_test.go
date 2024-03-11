@@ -89,7 +89,7 @@ func TestCloudSlackE2E(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
-	cfg.Slack.Tester.RecentMessagesLimit = 4       // this is used effectively only for the Botkube restarts. There are two of them in a short time window so it shouldn't be higher than 5.
+	cfg.Slack.Tester.RecentMessagesLimit = 4       // this is used effectively only for the Botkube restarts. There are two of them in a short time window, so it shouldn't be higher than 5.
 
 	authHeaderValue := ""
 	var botkubeDeploymentUninstalled atomic.Bool
@@ -239,7 +239,7 @@ func TestCloudSlackE2E(t *testing.T) {
 		go router.Run()
 		defer router.MustStop()
 
-		t.Log("Ensuring proper organizaton is selected")
+		t.Log("Ensuring proper organization is selected")
 		botkubePage.MustWaitOpen()
 		screenshotIfShould(t, cfg, botkubePage)
 		botkubePage.MustElement("a.logo-link")
