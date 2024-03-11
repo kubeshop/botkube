@@ -278,7 +278,7 @@ func TestCloudSlackE2E(t *testing.T) {
 		_, err := shortBkTimeoutPage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
 		if err != nil {
 			t.Logf("Failed to detect homepage with other instances created: %v", err)
-			// Case 2:
+			// Fallback to Case 2: No other instances created
 			t.Logf("Checking if the homepage is in the 'no instances' state...")
 			_, err := botkubePage.ElementR(".ant-layout-content h2", "Create your Botkube instance!")
 			assert.NoError(t, err)
@@ -363,6 +363,7 @@ func TestCloudSlackE2E(t *testing.T) {
 			return strings.Contains(msg, fmt.Sprintf("Botkube instance %q is now active.", deployment.Name)), 0, ""
 		}
 		err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), 3, assertionFn)
+		require.NoError(t, err)
 
 		cmdHeader := func(command string) string {
 			return fmt.Sprintf("`%s` on `%s`", command, deployment.Name)
@@ -489,6 +490,7 @@ func TestCloudSlackE2E(t *testing.T) {
 				}
 				return true, 0, ""
 			})
+			require.NoError(t, err)
 
 			t.Log("Verifying disabled notification on Cloud...")
 			deploy := gqlCli.MustGetDeployment(t, graphql.ID(deployment.ID))
