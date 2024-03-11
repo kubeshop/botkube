@@ -96,7 +96,7 @@ func NewTeamsTester(teamsCfg TeamsConfig, apiKey *string) (*TeamsTester, error) 
 		return nil, err
 	}
 
-	pubSubClient, err := pubsub.New(context.Background(), false)
+	pubSubClient, err := pubsub.New(context.Background(), loggerx.NewNoop(), false)
 	if err != nil {
 		return nil, err
 	}
