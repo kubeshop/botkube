@@ -417,9 +417,8 @@ func (b *CloudSlack) SendMessage(ctx context.Context, msg interactive.CoreMessag
 	errs := multierror.New()
 	for _, channelName := range b.getChannelsToNotify(sourceBindings) {
 		msgMetadata := slackMessage{
-			Channel:         channelName,
-			ThreadTimeStamp: "",
-			BlockID:         uuid.New().String(),
+			Channel: channelName,
+			BlockID: uuid.New().String(),
 		}
 		err := b.send(ctx, msgMetadata, msg)
 		if err != nil {
@@ -540,11 +539,15 @@ func (b *CloudSlack) handleMessage(ctx context.Context, event slackMessage) erro
 func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interactive.CoreMessage) error {
 	b.log.Debugf("Sending message to channel %q: %+v", event.Channel, resp)
 
+	if resp.IsEmpty() { // don't send empty messages
+		return nil
+	}
+
 	resp.ReplaceBotNamePlaceholder(b.BotName(), api.BotNameWithClusterName(b.clusterName))
 	markdown := b.renderer.MessageToMarkdown(resp)
 
 	if len(markdown) == 0 {
-		return errors.New("while reading Slack response: empty response")
+		return errors.New("got empty message while converting executor response to Markdown")
 	}
 
 	// Upload message as a file if too long
@@ -555,6 +558,11 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 		if err != nil {
 			return err
 		}
+		// the main message body was sent as a file, the only think that left is the filter input (if any)
+		if len(resp.PlaintextInputs) == 0 {
+			return nil
+		}
+
 		resp = interactive.CoreMessage{
 			Message: api.Message{
 				PlaintextInputs: resp.PlaintextInputs,
@@ -608,7 +616,7 @@ func (b *CloudSlack) uploadFileToSlack(ctx context.Context, event slackMessage, 
 		InitialComment:  resp.Description,
 		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
 		Channels:        []string{event.Channel},
-		ThreadTimestamp: event.GetTimestamp(),
+		ThreadTimestamp: b.resolveMessageTimestamp(resp, event),
 	}
 
 	file, err := b.client.UploadFileContext(ctx, params)
@@ -646,16 +654,21 @@ func (b *CloudSlack) getThreadOptionIfNeeded(resp interactive.CoreMessage, event
 			}
 		}
 	}
-
-	if resp.ParentActivityID != "" {
-		return slack.MsgOptionTS(resp.Message.ParentActivityID)
-	}
-
-	if ts := event.GetTimestamp(); ts != "" {
+	if ts := b.resolveMessageTimestamp(resp, event); ts != "" {
 		return slack.MsgOptionTS(ts)
 	}
 
 	return nil
+}
+
+func (b *CloudSlack) resolveMessageTimestamp(resp interactive.CoreMessage, event slackMessage) string {
+	// If the message is coming e.g. from source, it may already belong to a given thread
+	if resp.ParentActivityID != "" {
+		return resp.Message.ParentActivityID
+	}
+
+	// otherwise, we use the event timestamp to respond in the thread to the message that triggered our response
+	return event.GetTimestamp()
 }
 
 // NotificationsEnabled returns current notification status for a given channel name.
