@@ -3,7 +3,7 @@ name: Botkube Cloud Prod E2E test
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */3 * * *" # Every 3 hours
+    - cron: "0 */4 * * *" # Every 4 hours
 
 env:
   HELM_VERSION: v3.9.0
