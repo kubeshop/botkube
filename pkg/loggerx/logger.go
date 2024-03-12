@@ -1,6 +1,7 @@
 package loggerx
 
 import (
+	"io"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -9,10 +10,24 @@ import (
 )
 
 // New returns a new logger based on a given configuration.
+// It logs to stdout by default. It's a helper function to maintain backward compatibility.
 func New(cfg config.Logger) logrus.FieldLogger {
+	return NewStdout(cfg)
+}
+
+// NewStderr returns a new logger based on a given configuration. It logs to stderr.
+func NewStderr(cfg config.Logger) logrus.FieldLogger {
+	return newWithOutput(cfg, os.Stderr)
+}
+
+// NewStdout returns a new logger based on a given configuration. It logs to stdout.
+func NewStdout(cfg config.Logger) logrus.FieldLogger {
+	return newWithOutput(cfg, os.Stdout)
+}
+
+func newWithOutput(cfg config.Logger, output io.Writer) logrus.FieldLogger {
 	logger := logrus.New()
-	// Output to stdout instead of the default stderr
-	logger.SetOutput(os.Stdout)
+	logger.SetOutput(output)
 
 	// Only logger the warning severity or above.
 	logLevel, err := logrus.ParseLevel(cfg.Level)
@@ -21,7 +36,7 @@ func New(cfg config.Logger) logrus.FieldLogger {
 		logLevel = logrus.InfoLevel
 	}
 	logger.SetLevel(logLevel)
-	if cfg.Formatter == config.FormatterJson {
+	if cfg.Formatter == config.FormatterJSON {
 		logger.Formatter = &logrus.JSONFormatter{}
 	} else {
 		logger.Formatter = &logrus.TextFormatter{FullTimestamp: true, DisableColors: cfg.DisableColors, ForceColors: true}

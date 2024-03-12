@@ -620,8 +620,8 @@ const (
 	// FormatterText text formatter for logging
 	FormatterText Formatter = "text"
 
-	// FormatterJson json formatter for logging
-	FormatterJson Formatter = "json"
+	// FormatterJSON json formatter for logging
+	FormatterJSON Formatter = "json"
 )
 
 // Logger holds logger configuration parameters.

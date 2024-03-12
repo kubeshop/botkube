@@ -1,9 +1,12 @@
 .DEFAULT_GOAL := build
-.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources gen-plugins-index build-plugins build-plugins-single gen-docs-cli gen-plugins-goreleaser
+.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources gen-plugins-index build-plugins build-plugins-single gen-docs-cli gen-plugins-goreleaser serve-local-plugins
 
 # Show this help.
 help:
 	@awk '/^#/{c=substr($$0,3);next}c&&/^[[:alpha:]][[:alnum:]_-]+:/{print substr($$1,1,index($$1,":")),c}1{c=0}' $(MAKEFILE_LIST) | column -s: -t
+
+serve-local-plugins: ## Serve local plugins
+	go run hack/target/serve-plugins/main.go
 
 lint-fix: go-import-fmt
 	@go mod tidy
