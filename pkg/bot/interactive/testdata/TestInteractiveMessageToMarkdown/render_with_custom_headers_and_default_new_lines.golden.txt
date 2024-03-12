@@ -1,4 +1,4 @@
-*:rocket: Botkube instance "testing" is now active.*
+*🚀 Botkube instance "testing" is now active.*
 
 *🛠️ Basic commands*
 `@Botkube ping` - ping your cluster and check its status

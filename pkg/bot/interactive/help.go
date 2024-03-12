@@ -39,7 +39,7 @@ func (h *HelpMessage) Build(init bool) CoreMessage {
 	msg := CoreMessage{}
 
 	if init {
-		msg.Header = fmt.Sprintf(":rocket: Botkube instance %q is now active.", h.clusterName)
+		msg.Header = fmt.Sprintf("🚀 Botkube instance %q is now active.", h.clusterName)
 	}
 
 	type getter func() []api.Section
