@@ -69,7 +69,7 @@ func TestIndexBuilder_ValidateJSONSchemas(t *testing.T) {
 			{
 				Name: "ref-invalid",
 				JSONSchema: JSONSchema{
-					RefURL: "http://example.com/invalid-schema/",
+					RefURL: "https://raw.githubusercontent.com/kubeshop/botkube/main/assets/schema.json",
 				},
 			},
 			{
