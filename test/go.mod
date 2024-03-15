@@ -15,7 +15,7 @@ require (
 	github.com/hasura/go-graphql-client v0.10.2
 	github.com/infracloudio/msbotbuilder-go v0.2.6-0.20231130085215-84d2040b3577
 	github.com/kubeshop/botkube v0.13.1-0.20240220144850-148a9ed00054
-	github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240307141728-85de273a46e2
+	github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240314132733-e8a2a9257fb4
 	github.com/markbates/errx v1.1.0
 	github.com/microsoftgraph/msgraph-sdk-go v1.31.0
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
@@ -240,5 +240,4 @@ require (
 replace (
 	github.com/DanielTitkov/go-adaptive-cards => github.com/kubeshop/go-adaptive-cards v0.0.0-20231114223529-d6d8b980f0c8
 	github.com/kubeshop/botkube => ./..
-	github.com/kubeshop/botkube-cloud/botkube-cloud-backend => github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240308130450-01df23ee5889
 )

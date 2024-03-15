@@ -538,6 +538,7 @@ type HubspotIdentificationTokenInput struct {
 
 type InstallUpgradeInstructionsForPlatform struct {
 	PlatformName          string                        `json:"platformName"`
+	PlatformType          InstallationPlatformType      `json:"platformType"`
 	InstallationType      InstallationType              `json:"installationType"`
 	Prerequisites         []*InstallUpgradePrerequisite `json:"prerequisites"`
 	InstallUpgradeCommand string                        `json:"installUpgradeCommand"`
@@ -750,6 +751,7 @@ type Quota struct {
 	MemberCount          *int `json:"memberCount"`
 	NodeCount            *int `json:"nodeCount"`
 	CloudSlackUseCount   *int `json:"cloudSlackUseCount"`
+	AiMonthlyTokenCount  *int `json:"aiMonthlyTokenCount"`
 }
 
 type Rbac struct {
@@ -823,7 +825,6 @@ type SlackWorkspace struct {
 type SlackWorkspaceChannel struct {
 	Name      string  `json:"name"`
 	IsPrivate bool    `json:"isPrivate"`
-	IsMember  bool    `json:"isMember"`
 	Topic     *string `json:"topic"`
 	Purpose   *string `json:"purpose"`
 }
@@ -1153,6 +1154,57 @@ func (e *DeploymentStatusPhase) UnmarshalGQL(v interface{}) error {
 }
 
 func (e DeploymentStatusPhase) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type InstallationPlatformType string
+
+const (
+	InstallationPlatformTypeMacSilicon InstallationPlatformType = "MAC_SILICON"
+	InstallationPlatformTypeMacIntel   InstallationPlatformType = "MAC_INTEL"
+	InstallationPlatformTypeLinux      InstallationPlatformType = "LINUX"
+	InstallationPlatformTypeWindows    InstallationPlatformType = "WINDOWS"
+	InstallationPlatformTypeOther      InstallationPlatformType = "OTHER"
+	InstallationPlatformTypeFlux       InstallationPlatformType = "FLUX"
+	InstallationPlatformTypeArgo       InstallationPlatformType = "ARGO"
+)
+
+var AllInstallationPlatformType = []InstallationPlatformType{
+	InstallationPlatformTypeMacSilicon,
+	InstallationPlatformTypeMacIntel,
+	InstallationPlatformTypeLinux,
+	InstallationPlatformTypeWindows,
+	InstallationPlatformTypeOther,
+	InstallationPlatformTypeFlux,
+	InstallationPlatformTypeArgo,
+}
+
+func (e InstallationPlatformType) IsValid() bool {
+	switch e {
+	case InstallationPlatformTypeMacSilicon, InstallationPlatformTypeMacIntel, InstallationPlatformTypeLinux, InstallationPlatformTypeWindows, InstallationPlatformTypeOther, InstallationPlatformTypeFlux, InstallationPlatformTypeArgo:
+		return true
+	}
+	return false
+}
+
+func (e InstallationPlatformType) String() string {
+	return string(e)
+}
+
+func (e *InstallationPlatformType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InstallationPlatformType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InstallationPlatformType", str)
+	}
+	return nil
+}
+
+func (e InstallationPlatformType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
