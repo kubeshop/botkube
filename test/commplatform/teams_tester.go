@@ -442,7 +442,7 @@ func (s *TeamsTester) assertJSONEqual(exp []byte, got string) (bool, int, string
 	case jsondiff.FullMatch, jsondiff.SupersetMatch:
 		return true, 0, ""
 	default:
-		return false, 1, diffMsg
+		return false, len(got) - len(diffMsg), diffMsg
 	}
 }
 
