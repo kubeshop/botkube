@@ -552,7 +552,7 @@ func sendHelp(ctx context.Context, s *storage.Help, clusterName string, executor
 			continue
 		}
 
-		help := interactive.NewHelpMessage(notifier.IntegrationName(), clusterName, executors).Build()
+		help := interactive.NewHelpMessage(notifier.IntegrationName(), clusterName, executors).Build(true)
 		err := notifier.SendMessageToAll(ctx, help)
 		if err != nil {
 			return fmt.Errorf("while sending help message for %s: %w", notifier.IntegrationName(), err)

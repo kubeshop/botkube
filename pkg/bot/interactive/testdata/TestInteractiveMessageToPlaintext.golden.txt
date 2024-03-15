@@ -1,27 +1,24 @@
-:rocket: Botkube instance "testing" is now active.
+🚀 Botkube instance "testing" is now active.
 
-Ping your cluster to check its status
+🛠️ Basic commands
+`@Botkube ping` - ping your cluster and check its status
+`@Botkube list [source|executor|action|alias]` - list available plugins and features
   • @Botkube ping
+  • @Botkube list sources
+  • @Botkube list executors
 
-Manage incoming notifications
-@Botkube [enable|disable|status] notifications
+📣 Notifications
+`@Botkube [enable|disable|status] notifications` - set or query your notification status
+`@Botkube edit sourcebindings` - select notification sources for this channel
   • @Botkube enable notifications
   • @Botkube disable notifications
   • @Botkube status notifications
 
-Fine-tune your notifications for this channel
-  • @Botkube edit SourceBindings
-
-Automatically execute commands upon receiving events
-Automation help: https://docs.botkube.io/usage/automated-actions
-
-Manage executors and aliases
-  • @Botkube list executors
-  • @Botkube list aliases
-Executors and aliases help: https://docs.botkube.io/usage/executor
-
 Run kubectl commands (if enabled)
   • @Botkube kubectl help
+
+Other features
+Automation: https://docs.botkube.io/usage/automated-actions
 
 Give feedback: https://feedback.botkube.io
 Read our docs: https://docs.botkube.io

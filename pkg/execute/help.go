@@ -46,5 +46,5 @@ func (e *HelpExecutor) Commands() map[command.Verb]CommandFn {
 
 // Help returns new help message
 func (e *HelpExecutor) Help(_ context.Context, cmdCtx CommandContext) (interactive.CoreMessage, error) {
-	return interactive.NewHelpMessage(cmdCtx.Platform, cmdCtx.ClusterName, e.enabledPluginExecutors).Build(), nil
+	return interactive.NewHelpMessage(cmdCtx.Platform, cmdCtx.ClusterName, e.enabledPluginExecutors).Build(false), nil
 }

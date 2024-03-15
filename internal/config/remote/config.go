@@ -24,7 +24,7 @@ type Config struct {
 
 // GetConfig returns remote configuration if it is set.
 func GetConfig() (Config, bool) {
-	if os.Getenv(ProviderIdentifierEnvKey) == "" {
+	if !IsEnabled() {
 		return Config{}, false
 	}
 
@@ -33,4 +33,9 @@ func GetConfig() (Config, bool) {
 		Identifier: os.Getenv(ProviderIdentifierEnvKey),
 		APIKey:     os.Getenv(ProviderAPIKeyEnvKey),
 	}, true
+}
+
+// IsEnabled returns true if remote configuration is set.
+func IsEnabled() bool {
+	return os.Getenv(ProviderIdentifierEnvKey) != ""
 }

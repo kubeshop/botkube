@@ -1,0 +1,482 @@
+{
+  "msTeams": {
+    "width": "full",
+    "entities": [
+      {
+        "type": "mention",
+        "text": "\u003cat\u003ebotkube\u003c/at\u003e",
+        "mentioned": {
+          "id": "28:botkube",
+          "name": "botkube"
+        }
+      }
+    ]
+  },
+  "type": "AdaptiveCard",
+  "version": "1.6",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "☁️ Botkube Cloud",
+          "weight": "bolder"
+        }
+      ]
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "@Botkube cloud list instances",
+              "fontType": "monospace",
+              "wrap": true
+            }
+          ],
+          "verticalContentAlignment": "center",
+          "width": "stretch"
+        },
+        {
+          "type": "Column",
+          "items": [
+            {
+              "type": "ActionSet",
+              "actions": [
+                {
+                  "type": "Action.Execute",
+                  "verb": "@Botkube cloud list instances",
+                  "data": {
+                    "originName": "buttonClick"
+                  },
+                  "title": "List connected instances"
+                }
+              ]
+            }
+          ],
+          "verticalContentAlignment": "center",
+          "width": "stretch"
+        }
+      ]
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "@Botkube cloud set default-instance",
+              "fontType": "monospace",
+              "wrap": true
+            }
+          ],
+          "verticalContentAlignment": "center",
+          "width": "stretch"
+        },
+        {
+          "type": "Column",
+          "items": [
+            {
+              "type": "ActionSet",
+              "actions": [
+                {
+                  "type": "Action.Execute",
+                  "verb": "@Botkube cloud set default-instance",
+                  "data": {
+                    "originName": "buttonClick"
+                  },
+                  "title": "Set channel default cluster"
+                }
+              ]
+            }
+          ],
+          "verticalContentAlignment": "center",
+          "width": "stretch"
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.OpenUrl",
+          "url": "https://app.botkube.io",
+          "title": "Open Botkube Cloud",
+          "style": "positive"
+        }
+      ]
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "🤖 AI powered Kubernetes assistant",
+          "weight": "bolder"
+        }
+      ],
+      "separator": true
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "@@Botkube ai",
+          "fontType": "monospace"
+        },
+        {
+          "type": "TextRun",
+          "text": " use natural language to ask any questions"
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube ai hi!",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "Ask a question",
+          "style": "positive"
+        }
+      ]
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "🛠️ Basic commands",
+          "weight": "bolder"
+        }
+      ],
+      "separator": true
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "@@Botkube ping",
+          "fontType": "monospace"
+        },
+        {
+          "type": "TextRun",
+          "text": " - ping your cluster and check its status\n"
+        },
+        {
+          "type": "TextRun",
+          "text": "@@Botkube list [source|executor|action|alias]",
+          "fontType": "monospace"
+        },
+        {
+          "type": "TextRun",
+          "text": " - list available plugins and features"
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube ping",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "Ping cluster"
+        },
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube list sources",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "List source plugins"
+        },
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube list executors",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "List executor plugins"
+        }
+      ]
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "📣 Notifications",
+          "weight": "bolder"
+        }
+      ],
+      "separator": true
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "@@Botkube [enable|disable|status] notifications",
+          "fontType": "monospace"
+        },
+        {
+          "type": "TextRun",
+          "text": " - set or query your notification status\n"
+        },
+        {
+          "type": "TextRun",
+          "text": "@@Botkube edit sourcebindings",
+          "fontType": "monospace"
+        },
+        {
+          "type": "TextRun",
+          "text": " - select notification sources for this channel"
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube enable notifications",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "Enable"
+        },
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube disable notifications",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "Disable"
+        },
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube status notifications",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "Get status"
+        },
+        {
+          "type": "Action.OpenUrl",
+          "url": "https://app.botkube.io/instances/42",
+          "title": "Change notification on Cloud",
+          "style": "positive"
+        }
+      ]
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "🔮Run kubectl commands",
+          "weight": "bolder"
+        }
+      ],
+      "separator": true
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "@@Botkube kubectl [command] [TYPE] [NAME] [flags]",
+          "fontType": "monospace"
+        },
+        {
+          "type": "TextRun",
+          "text": " - run any of the supported kubectl commands directly from Slack"
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube kubectl",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "Open the kubectl composer",
+          "style": "positive"
+        },
+        {
+          "type": "Action.Execute",
+          "verb": "@Botkube View help",
+          "data": {
+            "originName": "buttonClick"
+          },
+          "title": "kubectl help"
+        }
+      ]
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "Run Helm commands",
+              "weight": "bolder",
+              "wrap": true
+            }
+          ],
+          "verticalContentAlignment": "center",
+          "width": "stretch"
+        },
+        {
+          "type": "Column",
+          "items": [
+            {
+              "type": "ActionSet",
+              "actions": [
+                {
+                  "type": "Action.Execute",
+                  "verb": "@Botkube View help",
+                  "data": {
+                    "originName": "buttonClick"
+                  },
+                  "title": "Helm help"
+                }
+              ]
+            }
+          ],
+          "verticalContentAlignment": "center",
+          "width": "stretch"
+        }
+      ],
+      "separator": true
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "🏁 Multi-Cluster flags",
+          "weight": "bolder"
+        }
+      ],
+      "separator": true
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "--cluster-name=\"Stage US\"",
+          "fontType": "monospace"
+        },
+        {
+          "type": "TextRun",
+          "text": " flag to run a command on this cluster\n"
+        },
+        {
+          "type": "TextRun",
+          "text": "--all-clusters",
+          "fontType": "monospace"
+        },
+        {
+          "type": "TextRun",
+          "text": " flag to run commands on all clusters"
+        }
+      ]
+    },
+    {
+      "type": "RichTextBlock",
+      "inlines": [
+        {
+          "type": "TextRun",
+          "text": "Other features",
+          "weight": "bolder"
+        }
+      ],
+      "separator": true
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "Automate your workflows by executing custom commands based on specific events",
+              "fontType": "monospace",
+              "wrap": true
+            }
+          ],
+          "verticalContentAlignment": "center",
+          "width": "stretch"
+        },
+        {
+          "type": "Column",
+          "items": [
+            {
+              "type": "ActionSet",
+              "actions": [
+                {
+                  "type": "Action.OpenUrl",
+                  "url": "https://docs.botkube.io/usage/automated-actions",
+                  "title": "Automation",
+                  "style": "positive"
+                }
+              ]
+            }
+          ],
+          "verticalContentAlignment": "center",
+          "width": "stretch"
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.OpenUrl",
+          "url": "https://feedback.botkube.io",
+          "title": "Give feedback",
+          "style": "positive"
+        },
+        {
+          "type": "Action.OpenUrl",
+          "url": "https://docs.botkube.io",
+          "title": "Read our docs"
+        },
+        {
+          "type": "Action.OpenUrl",
+          "url": "https://join.botkube.io",
+          "title": "Join our Slack"
+        },
+        {
+          "type": "Action.OpenUrl",
+          "url": "https://twitter.com/botkube_io",
+          "title": "Follow us on Twitter"
+        }
+      ],
+      "separator": true
+    }
+  ]
+}

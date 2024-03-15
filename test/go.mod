@@ -14,8 +14,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hasura/go-graphql-client v0.10.2
 	github.com/infracloudio/msbotbuilder-go v0.2.6-0.20231130085215-84d2040b3577
-	github.com/kubeshop/botkube v0.13.1-0.20231215105422-2955f95da8dc
-	github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-00010101000000-000000000000
+	github.com/kubeshop/botkube v0.13.1-0.20240220144850-148a9ed00054
+	github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240307141728-85de273a46e2
 	github.com/markbates/errx v1.1.0
 	github.com/microsoftgraph/msgraph-sdk-go v1.31.0
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
@@ -34,6 +34,8 @@ require (
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 )
 
+require gotest.tools/v3 v3.5.1
+
 require (
 	cloud.google.com/go v0.112.0 // indirect
 	cloud.google.com/go/compute v1.23.3 // indirect
@@ -47,6 +49,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.1 // indirect
 	github.com/DanielTitkov/go-adaptive-cards v0.2.2 // indirect
+	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/alexflint/go-arg v1.4.3 // indirect
@@ -237,5 +240,5 @@ require (
 replace (
 	github.com/DanielTitkov/go-adaptive-cards => github.com/kubeshop/go-adaptive-cards v0.0.0-20231114223529-d6d8b980f0c8
 	github.com/kubeshop/botkube => ./..
-	github.com/kubeshop/botkube-cloud/botkube-cloud-backend => github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240215073304-b29e24c6bbff
+	github.com/kubeshop/botkube-cloud/botkube-cloud-backend => github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240308130450-01df23ee5889
 )

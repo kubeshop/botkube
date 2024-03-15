@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -263,6 +264,8 @@ func runBotTest(t *testing.T,
 		for _, alias := range aliases {
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
+		// Setting env is needed to instrument help msg with cloud sections, and proper links
+		os.Setenv("CONFIG_PROVIDER_IDENTIFIER", deployment.ID) 
 		t.Cleanup(func() {
 			err := helmx.WaitForUninstallation(context.Background(), t, &botkubeDeploymentUninstalled)
 			assert.NoError(t, err)
@@ -305,7 +308,7 @@ func runBotTest(t *testing.T,
 	// Discord bot needs a bit more time to connect to Discord API.
 	time.Sleep(appCfg.Discord.MessageWaitTimeout)
 	t.Log("Waiting for interactive help")
-	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build()
+	expMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build(true)
 	botDriver.ReplaceBotNamePlaceholder(&expMessage, appCfg.ClusterName)
 	err = botDriver.WaitForInteractiveMessagePostedRecentlyEqual(botDriver.BotUserID(),
 		botDriver.FirstChannel().ID(),
@@ -332,7 +335,7 @@ func runBotTest(t *testing.T,
 	t.Run("Help", func(t *testing.T) {
 		command := "help"
 
-		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build()
+		expectedMessage := interactive.NewHelpMessage(config.CommPlatformIntegration(botDriver.Type()), appCfg.ClusterName, getHelpExecutors(botDriver.Type())).Build(false)
 		botDriver.ReplaceBotNamePlaceholder(&expectedMessage, appCfg.ClusterName)
 		botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 		err = botDriver.WaitForLastInteractiveMessagePostedEqual(botDriver.BotUserID(),

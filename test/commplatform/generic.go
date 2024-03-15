@@ -71,7 +71,7 @@ type DriverType string
 const (
 	SlackBot   DriverType = "cloudSlack"
 	DiscordBot DriverType = "discord"
-	TeamsBot   DriverType = "teams"
+	TeamsBot   DriverType = "cloudTeams"
 )
 
 func (d DriverType) IsCloud() bool {

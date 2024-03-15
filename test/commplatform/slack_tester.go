@@ -460,7 +460,7 @@ func sPrintBlocks(blocks []slack.Block) string {
 		}
 	}
 	builder.WriteString("::::")
-	return builder.String()
+	return replaceEmojiWithTags(builder.String())
 }
 
 func (s *SlackTester) WaitForLastInteractiveMessagePostedEqual(userID, channelID string, msg interactive.CoreMessage) error {
@@ -599,6 +599,13 @@ var emojiSlackMapping = map[string]string{
 	"🟢": ":large_green_circle:",
 	"💡": ":bulb:",
 	"❗": ":exclamation:",
+	"🚀": ":rocket:",
+	"🏁": ":checkered_flag:",
+	"🛠️": ":hammer_and_wrench:",
+	"📣": ":mega:",
+	"☁️": ":cloud:",
+	"🤖": ":robot_face:",
+	"🔮": ":crystal_ball:",
 }
 
 func replaceEmojiWithTags(content string) string {

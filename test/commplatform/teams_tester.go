@@ -96,7 +96,7 @@ func NewTeamsTester(teamsCfg TeamsConfig, apiKey *string) (*TeamsTester, error) 
 		return nil, err
 	}
 
-	pubSubClient, err := pubsub.New(context.Background(), false)
+	pubSubClient, err := pubsub.New(context.Background(), loggerx.NewNoop(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +442,7 @@ func (s *TeamsTester) assertJSONEqual(exp []byte, got string) (bool, int, string
 	case jsondiff.FullMatch, jsondiff.SupersetMatch:
 		return true, 0, ""
 	default:
-		return false, 1, diffMsg
+		return false, len(got) - len(diffMsg), diffMsg
 	}
 }
 
