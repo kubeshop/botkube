@@ -265,7 +265,7 @@ func runBotTest(t *testing.T,
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
 		// Setting env is needed to instrument help msg with cloud sections, and proper links
-		os.Setenv("CONFIG_PROVIDER_IDENTIFIER", deployment.ID) 
+		os.Setenv("CONFIG_PROVIDER_IDENTIFIER", deployment.ID)
 		t.Cleanup(func() {
 			err := helmx.WaitForUninstallation(context.Background(), t, &botkubeDeploymentUninstalled)
 			assert.NoError(t, err)
@@ -317,7 +317,11 @@ func runBotTest(t *testing.T,
 	require.NoError(t, err)
 
 	t.Log("Waiting for Bot message in channel...")
-	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName))
+	expectedWelcomeMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName)
+	if botDriver.Type() == commplatform.TeamsBot {
+		expectedWelcomeMsg = strings.Replace(expectedWelcomeMsg, ":crossed_swords:", "️⚔", 1)
+	}
+	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedWelcomeMsg)
 	require.NoError(t, err)
 
 	t.Log("Running actual test cases")
