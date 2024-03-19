@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/formatx"
 	"strings"
 	"testing"
 	"time"
@@ -416,8 +415,6 @@ func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limit
 		return err
 	}
 	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
-		formatx.StructDumper().Dump(">>> msg", msg)
-		formatx.StructDumper().Dump(">>> expMsg", expMsg)
 		return s.assertJSONEqual(expMsg, msg)
 	})
 }
@@ -426,6 +423,9 @@ func (s *TeamsTester) assertJSONEqual(exp []byte, got string) (bool, int, string
 	opts := jsondiff.DefaultConsoleOptions()
 	opts.SkipMatches = true
 	gotMsg := strings.NewReplacer(`<at id=\"0\">`, "", "<at>", "", "</at>", "").Replace(got)
+
+	structDumper.Dump(">>>> GOT:", gotMsg)
+	structDumper.Dump(">>>> EXP:", string(exp))
 
 	diffType, diffMsg := jsondiff.Compare(exp, []byte(gotMsg), ptr.FromType(opts))
 	switch diffType {
