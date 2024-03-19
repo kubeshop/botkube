@@ -533,9 +533,13 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interacti
 		var file *slack.File
 		var err error
 		if len(markdown) >= slackMaxMessageSize {
-			file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
+			file, err = uploadFileToSlack(ctx, resp, b.client, event)
 			if err != nil {
 				return err
+			}
+			// the main message body was sent as a file, the only think that left is the filter input (if any)
+			if len(resp.Message.PlaintextInputs) == 0 {
+				return nil
 			}
 			resp = interactive.CoreMessage{
 				Message: api.Message{
@@ -763,14 +767,14 @@ func (b *SocketSlack) GetStatus() health.PlatformStatus {
 	}
 }
 
-func uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {
+func uploadFileToSlack(ctx context.Context, resp interactive.CoreMessage, client *slack.Client, event slackMessage) (*slack.File, error) {
 	params := slack.FileUploadParameters{
 		Filename:        "Response.txt",
 		Title:           "Response.txt",
 		InitialComment:  resp.Description,
 		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
-		Channels:        []string{channel},
-		ThreadTimestamp: ts,
+		Channels:        []string{event.Channel},
+		ThreadTimestamp: resolveMessageTimestamp(resp, event),
 	}
 
 	file, err := client.UploadFileContext(ctx, params)
@@ -779,4 +783,14 @@ func uploadFileToSlack(ctx context.Context, channel string, resp interactive.Cor
 	}
 
 	return file, nil
+}
+
+func resolveMessageTimestamp(resp interactive.CoreMessage, event slackMessage) string {
+	// If the message is coming e.g. from source, it may already belong to a given thread
+	if resp.ParentActivityID != "" {
+		return resp.Message.ParentActivityID
+	}
+
+	// otherwise, we use the event timestamp to respond in the thread to the message that triggered our response
+	return event.GetTimestamp()
 }
