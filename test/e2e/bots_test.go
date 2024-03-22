@@ -319,7 +319,7 @@ func runBotTest(t *testing.T,
 	t.Log("Waiting for Bot message in channel...")
 	expectedWelcomeMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", appCfg.ClusterName)
 	if botDriver.Type() == commplatform.TeamsBot {
-		expectedWelcomeMsg = strings.Replace(expectedWelcomeMsg, ":crossed_swords:", "️⚔️", 1)
+		expectedWelcomeMsg = strings.Replace(expectedWelcomeMsg, ":crossed_swords:", "️⚔", 1)
 	}
 	err = botDriver.WaitForMessagePostedRecentlyEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedWelcomeMsg)
 	require.NoError(t, err)
