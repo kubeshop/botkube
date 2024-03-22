@@ -256,8 +256,7 @@ func (s *TeamsTester) WaitForMessagePosted(userID, channelID string, limitMessag
 }
 
 func (s *TeamsTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	msg := api.NewPlaintextMessage(expectedMsg, false)
-	return s.waitForAdaptiveCardMessage(userID, channelID, s.cfg.RecentMessagesLimit, interactive.CoreMessage{Message: msg})
+	return s.waitForPlaintextMessage(userID, channelID, s.cfg.RecentMessagesLimit, expectedMsg)
 }
 
 func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
@@ -416,6 +415,18 @@ func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limit
 	}
 	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
 		return s.assertJSONEqual(expMsg, msg)
+	})
+}
+
+func (s *TeamsTester) waitForPlaintextMessage(userID, channelID string, limitMessages int, expectedMsg string) error {
+	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
+		if !strings.EqualFold(expectedMsg, msg) {
+			count := diff.CountMatchBlock(expectedMsg, msg)
+			msgDiff := diff.Diff(expectedMsg, msg)
+			return false, count, msgDiff
+		}
+
+		return true, 0, ""
 	})
 }
 
