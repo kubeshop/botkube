@@ -420,6 +420,10 @@ func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limit
 
 func (s *TeamsTester) waitForPlaintextMessage(userID, channelID string, limitMessages int, expectedMsg string) error {
 	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
+
+		fmt.Println("> P GOT:", msg)
+		fmt.Println("> P EXP:", expectedMsg)
+
 		if !strings.EqualFold(expectedMsg, msg) {
 			count := diff.CountMatchBlock(expectedMsg, msg)
 			msgDiff := diff.Diff(expectedMsg, msg)
@@ -435,8 +439,8 @@ func (s *TeamsTester) assertJSONEqual(exp []byte, got string) (bool, int, string
 	opts.SkipMatches = true
 	gotMsg := strings.NewReplacer(`<at id=\"0\">`, "", "<at>", "", "</at>", "").Replace(got)
 
-	structDumper.Dump(">>>> GOT:", gotMsg)
-	structDumper.Dump(">>>> EXP:", string(exp))
+	fmt.Println("> J GOT:", string(gotMsg))
+	fmt.Println("> J EXP:", string(exp))
 
 	diffType, diffMsg := jsondiff.Compare(exp, []byte(gotMsg), ptr.FromType(opts))
 	switch diffType {
