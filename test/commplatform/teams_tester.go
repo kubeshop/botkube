@@ -421,8 +421,10 @@ func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limit
 func (s *TeamsTester) waitForPlaintextMessage(userID, channelID string, limitMessages int, expectedMsg string) error {
 	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
 
-		fmt.Println("> P GOT:", msg)
-		fmt.Println("> P EXP:", expectedMsg)
+		fmt.Println(">> Plaintext GOT:", msg)
+		fmt.Println(">> Plaintext EXP:", expectedMsg)
+		fmt.Println(">> Plaintext GOT Bytes:", []byte(msg))
+		fmt.Println(">> Plaintext EXP Bytes:", []byte(expectedMsg))
 
 		if !strings.EqualFold(expectedMsg, msg) {
 			count := diff.CountMatchBlock(expectedMsg, msg)
