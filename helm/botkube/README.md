@@ -16,6 +16,21 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 
 * <https://github.com/kubeshop/botkube>
 
+## Prerequisites
+To use this charts, [Helm](https://helm.sh/) must be installed.
+
+
+## Usage
+To install the latest version of this chart, add the Botkube helm repository and run helm install:
+
+```Shell
+$ helm repo add botkube https://charts.botkube.io
+"botkube" has been added to your repositories
+
+$ helm install botkube botkube/botkube
+```
+Please see the many parameters supported in the `values.yaml` file. These are also fully documented directly on the Vault website along with more detailed installation instructions.
+
 ## Parameters
 
 | Key | Type | Default | Description |
