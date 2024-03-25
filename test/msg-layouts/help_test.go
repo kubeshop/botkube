@@ -2,6 +2,10 @@ package msg_layouts
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/teamsx"
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
@@ -10,21 +14,19 @@ import (
 	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/golden"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 // TestNewHelpMessage generates help message directly in Teams and Slack format.
 // It's defined here as it requires the Cloud Teams renderer.
 // The output is stored in 'testdata/TestNewHelpMessage/' folder. You can just copy-paste it into dedicated editors to see the message layout:
-//  - Slack: https://app.slack.com/block-kit-builder/
-//  - Teams: https://adaptivecards.io/designer/
-//  - Discord: it's only markdown, just post as a normal message in discord channel 
-//  - Mattermost: it's only markdown, just post as a normal message in discord channel 
-//  
-// To update the golden files: 
-//   go test -v -run TestNewHelpMessage -update
+//   - Slack: https://app.slack.com/block-kit-builder/
+//   - Teams: https://adaptivecards.io/designer/
+//   - Discord: it's only markdown, just post as a normal message in discord channel
+//   - Mattermost: it's only markdown, just post as a normal message in discord channel
+//
+// To update the golden files:
+//
+//	go test -v -run TestNewHelpMessage -update
 func TestNewHelpMessage(t *testing.T) {
 	// Cloud options
 	platform := config.CloudSlackCommPlatformIntegration

@@ -256,8 +256,7 @@ func (s *TeamsTester) WaitForMessagePosted(userID, channelID string, limitMessag
 }
 
 func (s *TeamsTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	msg := api.NewPlaintextMessage(expectedMsg, false)
-	return s.waitForAdaptiveCardMessage(userID, channelID, s.cfg.RecentMessagesLimit, interactive.CoreMessage{Message: msg})
+	return s.waitForPlaintextMessage(userID, channelID, s.cfg.RecentMessagesLimit, expectedMsg)
 }
 
 func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
@@ -378,6 +377,12 @@ func (s *TeamsTester) AssertEquals(expectedMsg string) MessageAssertion {
 	return func(gotMsg string) (bool, int, string) {
 		gotMsg, expectedMsg = NormalizeTeamsWhitespacesInMessages(gotMsg, expectedMsg)
 		expectedMsg = teamsx.ReplaceEmojiTagsWithActualOne(expectedMsg)
+
+		fmt.Println(">> Plaintext GOT:", gotMsg)
+		fmt.Println(">> Plaintext GOT Bytes:", []byte(gotMsg))
+		fmt.Println(">> Plaintext EXP:", expectedMsg)
+		fmt.Println(">> Plaintext EXP Bytes:", []byte(expectedMsg))
+
 		if !strings.EqualFold(expectedMsg, gotMsg) {
 			count := diff.CountMatchBlock(expectedMsg, gotMsg)
 			msgDiff := diff.Diff(expectedMsg, gotMsg)
@@ -419,10 +424,17 @@ func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limit
 	})
 }
 
+func (s *TeamsTester) waitForPlaintextMessage(userID, channelID string, limitMessages int, expectedMsg string) error {
+	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, s.AssertEquals(expectedMsg))
+}
+
 func (s *TeamsTester) assertJSONEqual(exp []byte, got string) (bool, int, string) {
 	opts := jsondiff.DefaultConsoleOptions()
 	opts.SkipMatches = true
 	gotMsg := strings.NewReplacer(`<at id=\"0\">`, "", "<at>", "", "</at>", "").Replace(got)
+
+	fmt.Println("> J GOT:", string(gotMsg))
+	fmt.Println("> J EXP:", string(exp))
 
 	diffType, diffMsg := jsondiff.Compare(exp, []byte(gotMsg), ptr.FromType(opts))
 	switch diffType {
