@@ -1778,11 +1778,11 @@ func waitForLastMessageWithHeaderEqual(cfg Config, driver commplatform.BotDriver
 		}
 		if asCodeBlock {
 			msg.Message.BaseBody.CodeBlock = expectedBody
-		} else {
-			msg.Message.BaseBody.Plaintext = expectedBody
+			return driver.WaitForLastInteractiveMessagePostedEqual(driver.BotUserID(), driver.FirstChannel().ID(), msg)
 		}
 
-		return driver.WaitForLastInteractiveMessagePostedEqual(driver.BotUserID(), driver.FirstChannel().ID(), msg)
+		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(cmd), expectedBody)
+		return driver.WaitForInteractiveMessagePosted(driver.BotUserID(), driver.FirstChannel().ID(), 1, driver.AssertEquals(expectedMessage))
 	default:
 		if asCodeBlock {
 			expectedBody = codeBlock(expectedBody)

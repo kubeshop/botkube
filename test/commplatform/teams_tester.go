@@ -377,6 +377,12 @@ func (s *TeamsTester) AssertEquals(expectedMsg string) MessageAssertion {
 	return func(gotMsg string) (bool, int, string) {
 		gotMsg, expectedMsg = NormalizeTeamsWhitespacesInMessages(gotMsg, expectedMsg)
 		expectedMsg = teamsx.ReplaceEmojiTagsWithActualOne(expectedMsg)
+
+		fmt.Println(">> Plaintext GOT:", gotMsg)
+		fmt.Println(">> Plaintext GOT Bytes:", []byte(gotMsg))
+		fmt.Println(">> Plaintext EXP:", expectedMsg)
+		fmt.Println(">> Plaintext EXP Bytes:", []byte(expectedMsg))
+
 		if !strings.EqualFold(expectedMsg, gotMsg) {
 			count := diff.CountMatchBlock(expectedMsg, gotMsg)
 			msgDiff := diff.Diff(expectedMsg, gotMsg)
@@ -419,21 +425,7 @@ func (s *TeamsTester) waitForAdaptiveCardMessage(userID, channelID string, limit
 }
 
 func (s *TeamsTester) waitForPlaintextMessage(userID, channelID string, limitMessages int, expectedMsg string) error {
-	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, func(msg string) (bool, int, string) {
-
-		fmt.Println(">> Plaintext GOT:", msg)
-		fmt.Println(">> Plaintext EXP:", expectedMsg)
-		fmt.Println(">> Plaintext GOT Bytes:", []byte(msg))
-		fmt.Println(">> Plaintext EXP Bytes:", []byte(expectedMsg))
-
-		if !strings.EqualFold(expectedMsg, msg) {
-			count := diff.CountMatchBlock(expectedMsg, msg)
-			msgDiff := diff.Diff(expectedMsg, msg)
-			return false, count, msgDiff
-		}
-
-		return true, 0, ""
-	})
+	return s.WaitForInteractiveMessagePosted(userID, channelID, limitMessages, s.AssertEquals(expectedMsg))
 }
 
 func (s *TeamsTester) assertJSONEqual(exp []byte, got string) (bool, int, string) {
