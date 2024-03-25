@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"github.com/kubeshop/botkube/pkg/maputil"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -140,7 +141,14 @@ func (d *Scheduler) monitorHealth(ctx context.Context) {
 }
 
 func (d *Scheduler) schedule(pluginFilter string) error {
-	for configKey, sourceConfig := range d.dispatchConfig {
+	sortedKeys := maputil.SortKeys(d.dispatchConfig) // ensure config iteration order is alphabetical
+	for _, configKey := range sortedKeys {
+		sourceConfig, ok := d.dispatchConfig[configKey]
+		if !ok {
+			// shouldn't happen but still
+			continue
+		}
+
 		for pluginName, config := range sourceConfig {
 			if pluginFilter != emptyPluginFilter && pluginFilter != pluginName {
 				d.log.Debugf("Not starting %q as it doesn't pass plugin filter.", pluginName)

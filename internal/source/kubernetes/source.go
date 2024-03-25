@@ -4,27 +4,28 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/kubeshop/botkube/internal/command"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine"
+	pkgConfig "github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
+	"github.com/kubeshop/botkube/pkg/multierror"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/tools/cache"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
 	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/api/source"
-	pkgConfig "github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/loggerx"
 	"github.com/kubeshop/botkube/pkg/plugin"
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var _ source.Source = (*Source)(nil)
@@ -43,6 +44,8 @@ const (
 	description = "Consume Kubernetes events and get notifications with additional warnings and recommendations."
 
 	componentLogFieldKey = "component"
+
+	delayExecutionBy = 5 * time.Second
 )
 
 type RecommendationFactory interface {
@@ -51,64 +54,43 @@ type RecommendationFactory interface {
 
 // Source Kubernetes source plugin data structure
 type Source struct {
-	pluginVersion            string
-	config                   config.Config
-	logger                   logrus.FieldLogger
-	eventCh                  chan source.Event
-	startTime                time.Time
-	recommFactory            RecommendationFactory
-	commandGuard             *command.CommandGuard
-	filterEngine             filterengine.FilterEngine
-	clusterName              string
-	kubeConfig               []byte
-	messageBuilder           *MessageBuilder
-	isInteractivitySupported bool
+	bgProcessor   *backgroundProcessor
+	pluginVersion string
+	configStore   *ConfigurationStore
+
+	mu sync.Mutex
 
 	source.HandleExternalRequestUnimplemented
+}
+
+type SourceConfig struct {
+	name                     string
+	eventCh                  chan source.Event
+	cfg                      config.Config
+	isInteractivitySupported bool
+	clusterName              string
+	kubeConfig               []byte
+
+	*ActiveSourceConfig
+}
+
+type ActiveSourceConfig struct {
+	logger         logrus.FieldLogger
+	messageBuilder *MessageBuilder
+	filterEngine   *filterengine.DefaultFilterEngine
+	recommFactory  *recommendation.Factory
 }
 
 // NewSource returns a new instance of Source.
 func NewSource(version string) *Source {
 	return &Source{
 		pluginVersion: version,
+		configStore:   NewConfigurations(),
+		bgProcessor:   newBackgroundProcessor(),
 	}
 }
 
-// Stream streams Kubernetes events
-func (*Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
-	if err := plugin.ValidateKubeConfigProvided(PluginName, input.Context.KubeConfig); err != nil {
-		return source.StreamOutput{}, err
-	}
-
-	cfg, err := config.MergeConfigs(input.Configs)
-	if err != nil {
-		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
-	}
-
-	// In Kubernetes, we have an "info" level by default. We should aim to minimize info logging and consider using
-	// the debug level instead. This approach will prevent flooding the Agent logs with irrelevant information,
-	// as the Agent logs everything that plugin writes to stderr.
-	log := loggerx.NewStderr(pkgConfig.Logger{
-		Level: cfg.Log.Level,
-	})
-
-	s := Source{
-		startTime:                time.Now(),
-		eventCh:                  make(chan source.Event),
-		config:                   cfg,
-		logger:                   log,
-		clusterName:              input.Context.ClusterName,
-		kubeConfig:               input.Context.KubeConfig,
-		isInteractivitySupported: input.Context.IsInteractivitySupported,
-	}
-
-	go consumeEvents(ctx, s)
-	return source.StreamOutput{
-		Event: s.eventCh,
-	}, nil
-}
-
-// Metadata returns metadata of Kubernetes configuration
+// Metadata returns metadata of Kubernetes configuration.
 func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	return api.MetadataOutput{
 		Version:          s.pluginVersion,
@@ -121,18 +103,98 @@ func (s *Source) Metadata(_ context.Context) (api.MetadataOutput, error) {
 	}, nil
 }
 
-func consumeEvents(ctx context.Context, s Source) {
-	client, err := NewClient(s.kubeConfig)
-	exitOnError(err, s.logger)
+// Stream streams Kubernetes events.
+// WARNING: This method has to be thread-safe.
+func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.StreamOutput, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, s.config.InformerResyncPeriod)
-	router := NewRouter(client.mapper, client.dynamicCli, s.logger)
-	router.BuildTable(&s.config)
-	s.recommFactory = recommendation.NewFactory(s.logger.WithField("component", "Recommendations"), client.dynamicCli)
-	s.commandGuard = command.NewCommandGuard(s.logger.WithField(componentLogFieldKey, "Command Guard"), client.discoveryCli)
-	cmdr := commander.NewCommander(s.logger.WithField(componentLogFieldKey, "Commander"), s.commandGuard, s.config.Commands)
-	s.messageBuilder = NewMessageBuilder(s.isInteractivitySupported, s.logger.WithField(componentLogFieldKey, "Message Builder"), cmdr)
-	s.filterEngine = filterengine.WithAllFilters(s.logger, client.dynamicCli, client.mapper, s.config.Filters)
+	kubeConfig := input.Context.KubeConfig
+	if err := plugin.ValidateKubeConfigProvided(PluginName, kubeConfig); err != nil {
+		return source.StreamOutput{}, err
+	}
+
+	cfg, err := config.MergeConfigs(input.Configs)
+	if err != nil {
+		return source.StreamOutput{}, fmt.Errorf("while merging input configs: %w", err)
+	}
+
+	srcName := input.Context.SourceName
+	eventCh := make(chan source.Event)
+	s.configStore.Store(srcName, SourceConfig{
+		name:                     srcName,
+		eventCh:                  eventCh,
+		cfg:                      cfg,
+		isInteractivitySupported: input.Context.IsInteractivitySupported,
+		clusterName:              input.Context.ClusterName,
+		kubeConfig:               kubeConfig,
+	})
+
+	globalSrcCfg, err := s.getGlobalSrcCfg()
+	if err != nil {
+		exitOnError(err, loggerx.New(pkgConfig.Logger{}).WithField("error", err.Error()))
+	}
+
+	id := s.configStore.Len()
+	globalLogger := loggerx.NewStderr(pkgConfig.Logger{
+		Level: globalSrcCfg.cfg.Log.Level,
+	}).WithField("id", id)
+
+	err = s.bgProcessor.StopAndWait(globalLogger)
+	if err != nil {
+		globalLogger.WithField("error", err.Error()).Error("While stopping background processor")
+	}
+
+	cfgsByKubeConfig := s.configStore.CloneByKubeconfig()
+	globalLogger.Infof("Reconfiguring background process with %d different Kubeconfig(s)...", len(cfgsByKubeConfig))
+
+	var fns []func(context.Context)
+	for kubeConfig, srcCfgs := range cfgsByKubeConfig {
+		fn := s.genFnForKubeconfig(id, []byte(kubeConfig), globalLogger, globalSrcCfg.cfg.InformerResyncPeriod, srcCfgs)
+		fns = append(fns, fn)
+	}
+
+	s.bgProcessor.Run(ctx, fns)
+
+	return source.StreamOutput{
+		Event: eventCh,
+	}, nil
+}
+
+func (s *Source) configureProcessForSources(ctx context.Context, id int, kubeConfig []byte, globalLogger logrus.FieldLogger, informerResyncPeriod time.Duration, srcCfgs map[string]SourceConfig) error {
+	client, err := NewClient(kubeConfig)
+	if err != nil {
+		return fmt.Errorf("while creating Kubernetes client: %w", err)
+	}
+
+	for _, srcCfg := range srcCfgs {
+		cfg := srcCfg.cfg
+		logger := loggerx.NewStderr(pkgConfig.Logger{
+			Level: cfg.Log.Level,
+		}).WithField("id", id)
+
+		commandGuard := command.NewCommandGuard(logger.WithField(componentLogFieldKey, "Command Guard"), client.discoveryCli)
+		cmdr := commander.NewCommander(logger.WithField(componentLogFieldKey, "Commander"), commandGuard, cfg.Commands)
+
+		recommFactory := recommendation.NewFactory(logger.WithField("component", "Recommendations"), client.dynamicCli)
+		filterEngine := filterengine.WithAllFilters(logger, client.dynamicCli, client.mapper, cfg.Filters)
+		messageBuilder := NewMessageBuilder(srcCfg.isInteractivitySupported, logger.WithField(componentLogFieldKey, "Message Builder"), cmdr)
+
+		srcCfg.ActiveSourceConfig = &ActiveSourceConfig{
+			logger:         logger,
+			recommFactory:  recommFactory,
+			filterEngine:   filterEngine,
+			messageBuilder: messageBuilder,
+		}
+
+		s.configStore.Store(srcCfg.name, srcCfg)
+	}
+
+	router := NewRouter(client.mapper, client.dynamicCli, globalLogger)
+	router.BuildTable(srcCfgs)
+
+	globalLogger.Info("Registering informers...")
+	dynamicKubeInformerFactory := dynamicinformer.NewDynamicSharedInformerFactory(client.dynamicCli, informerResyncPeriod)
 
 	err = router.RegisterInformers([]config.EventType{
 		config.CreateEvent,
@@ -141,13 +203,13 @@ func consumeEvents(ctx context.Context, s Source) {
 	}, func(resource string) (cache.SharedIndexInformer, error) {
 		gvr, err := parseResourceArg(resource, client.mapper)
 		if err != nil {
-			s.logger.Errorf("Unable to parse resource: %s to register with informer\n", resource)
+			globalLogger.Errorf("Unable to parse resource: %s to register with informer\n", resource)
 			return nil, err
 		}
 		return dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
 	})
 	if err != nil {
-		exitOnError(err, s.logger.WithFields(logrus.Fields{
+		exitOnError(err, globalLogger.WithFields(logrus.Fields{
 			"events": []config.EventType{
 				config.CreateEvent,
 				config.UpdateEvent,
@@ -163,17 +225,13 @@ func consumeEvents(ctx context.Context, s Source) {
 		func(resource string) (cache.SharedIndexInformer, error) {
 			gvr, err := parseResourceArg(resource, client.mapper)
 			if err != nil {
-				s.logger.Infof("Unable to parse resource: %s to register with informer\n", resource)
+				globalLogger.Infof("Unable to parse resource: %s to register with informer\n", resource)
 				return nil, err
 			}
 			return dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
 		})
 	if err != nil {
-		exitOnError(err, s.logger.WithFields(logrus.Fields{
-			"srcEvent": config.ErrorEvent,
-			"dstEvent": config.WarningEvent,
-			"error":    err.Error(),
-		}))
+		return fmt.Errorf("while mapping with events informer: %w", err)
 	}
 
 	eventTypes := []config.EventType{
@@ -184,78 +242,119 @@ func consumeEvents(ctx context.Context, s Source) {
 	for _, eventType := range eventTypes {
 		router.RegisterEventHandler(
 			ctx,
-			s,
 			eventType,
-			handleEvent,
+			s.handleEventFn(globalLogger),
 		)
 	}
 
 	router.HandleMappedEvent(
 		ctx,
-		s,
 		config.ErrorEvent,
-		handleEvent,
+		s.handleEventFn(globalLogger),
 	)
 
+	globalLogger.Info("Starting background process...")
 	stopCh := ctx.Done()
 	dynamicKubeInformerFactory.Start(stopCh)
+	<-stopCh
+	dynamicKubeInformerFactory.Shutdown()
+	globalLogger.Info("Stopped background process...")
+	return nil
 }
 
-func handleEvent(ctx context.Context, s Source, e event.Event, updateDiffs []string) {
-	s.logger.Debugf("Processing %s to %s/%v in %s namespace", e.Type, e.Resource, e.Name, e.Namespace)
-	enrichEventWithAdditionalMetadata(s, &e)
+func (s *Source) handleEventFn(log logrus.FieldLogger) func(ctx context.Context, e event.Event, sources, updateDiffs []string) {
+	globalLogger := log
 
-	// Skip older events
-	if !e.TimeStamp.IsZero() && e.TimeStamp.Before(s.startTime) {
-		s.logger.Debug("Skipping older events")
-		return
-	}
+	return func(ctx context.Context, e event.Event, sources, updateDiffs []string) {
+		globalLogger.Debugf("Processing %s to %s/%v in %s namespace", e.Type, e.Resource, e.Name, e.Namespace)
 
-	// Check for significant Update Events in objects
-	if e.Type == config.UpdateEvent && len(updateDiffs) > 0 {
-		e.Messages = append(e.Messages, updateDiffs...)
-	}
+		// Skip older events
+		if !e.TimeStamp.IsZero() && e.TimeStamp.Before(s.bgProcessor.StartTime()) {
+			globalLogger.Debug("Skipping older event...")
+			return
+		}
 
-	// Filter events
-	e = s.filterEngine.Run(ctx, e)
-	if e.Skip {
-		s.logger.Debugf("Skipping event: %#v", e)
-		return
-	}
+		// Check for significant Update Events in objects
+		if e.Type == config.UpdateEvent && len(updateDiffs) > 0 {
+			e.Messages = append(e.Messages, updateDiffs...)
+		}
 
-	if len(e.Kind) <= 0 {
-		s.logger.Warn("sendEvent received e with Kind nil. Hence skipping.")
-		return
-	}
+		errs := multierror.New()
+		for _, sourceKey := range sources {
+			eventCopy := e
 
-	recRunner, recCfg := s.recommFactory.New(s.config)
-	err := recRunner.Do(ctx, &e)
-	if err != nil {
-		s.logger.Errorf("while running recommendations: %w", err)
-		return
-	}
+			srcCfg, ok := s.configStore.Get(sourceKey)
+			if !ok {
+				errs = multierror.Append(errs, fmt.Errorf("source with key %q not found", sourceKey))
+			}
 
-	if recommendation.ShouldIgnoreEvent(&recCfg, e) {
-		s.logger.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", e)
-		return
-	}
+			if srcCfg.ActiveSourceConfig == nil {
+				globalLogger.Errorf("ActiveSourceConfig not found for source %s", srcCfg.name)
+				continue
+			}
 
-	msg, err := s.messageBuilder.FromEvent(e, s.config.ExtraButtons)
-	if err != nil {
-		s.logger.Errorf("while rendering message from event: %w", err)
-		return
-	}
+			setClusterName(srcCfg.clusterName, &eventCopy)
 
-	message := source.Event{
-		Message:         msg,
-		RawObject:       e,
-		AnalyticsLabels: event.AnonymizedEventDetailsFrom(e),
+			// Filter events
+			e = srcCfg.filterEngine.Run(ctx, eventCopy)
+			if e.Skip {
+				srcCfg.logger.Debugf("Skipping event: %#v", eventCopy)
+				continue
+			}
+
+			if len(e.Kind) <= 0 {
+				srcCfg.logger.Warn("sendEvent received e with Kind nil. Hence skipping.")
+				continue
+			}
+
+			recRunner, recCfg := srcCfg.recommFactory.New(srcCfg.cfg)
+			err := recRunner.Do(ctx, &eventCopy)
+			if err != nil {
+				errs = multierror.Append(errs, fmt.Errorf("while running recommendation: %w", err))
+				continue
+			}
+
+			if recommendation.ShouldIgnoreEvent(&recCfg, eventCopy) {
+				srcCfg.logger.Debugf("Skipping event as it is related to recommendation informers and doesn't have any recommendations: %#v", e)
+				continue
+			}
+
+			msg, err := srcCfg.messageBuilder.FromEvent(eventCopy, srcCfg.cfg.ExtraButtons)
+			if err != nil {
+				srcCfg.logger.Errorf("while rendering message from event: %w", err)
+				continue
+			}
+
+			message := source.Event{
+				Message:         msg,
+				RawObject:       eventCopy,
+				AnalyticsLabels: event.AnonymizedEventDetailsFrom(eventCopy),
+			}
+
+			srcCfg.eventCh <- message
+		}
+
+		if errs.ErrorOrNil() != nil {
+			globalLogger.Errorf("while sending event: %w", errs)
+		}
 	}
-	s.eventCh <- message
 }
 
-func enrichEventWithAdditionalMetadata(s Source, event *event.Event) {
-	event.Cluster = s.clusterName
+func (s *Source) genFnForKubeconfig(id int, kubeConfig []byte, globalLogger logrus.FieldLogger, informerResyncPeriod time.Duration, srcCfgs map[string]SourceConfig) func(ctx context.Context) {
+	return func(ctx context.Context) {
+		err := s.configureProcessForSources(ctx, id, kubeConfig, globalLogger, informerResyncPeriod, srcCfgs)
+		if err != nil {
+			exitOnError(fmt.Errorf("while configuring process for sources: %w", err), globalLogger.WithFields(logrus.Fields{
+				"srcEvent": config.ErrorEvent,
+				"dstEvent": config.WarningEvent,
+				"error":    err.Error(),
+			}))
+		}
+	}
+}
+
+func setClusterName(clusterName string, event *event.Event) {
+	event.Cluster = clusterName
 }
 
 func parseResourceArg(arg string, mapper meta.RESTMapper) (schema.GroupVersionResource, error) {
@@ -291,4 +390,17 @@ func exitOnError(err error, log logrus.FieldLogger) {
 		time.Sleep(time.Second * 2)
 		os.Exit(1)
 	}
+}
+
+func (s *Source) getGlobalSrcCfg() (SourceConfig, error) {
+	if s.configStore.Len() == 0 {
+		return SourceConfig{}, fmt.Errorf("no source configurations found")
+	}
+
+	globalSrcCfg, ok := s.configStore.GetGlobal()
+	if !ok {
+		return SourceConfig{}, fmt.Errorf("global source configuration not found")
+	}
+
+	return globalSrcCfg, nil
 }

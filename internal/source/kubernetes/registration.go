@@ -31,7 +31,7 @@ type registration struct {
 	mappedEvent     config.EventType
 }
 
-func (r registration) handleEvent(ctx context.Context, s Source, resource string, eventType config.EventType, routes []route, fn eventHandler) {
+func (r registration) handleEvent(ctx context.Context, resource string, eventType config.EventType, routes []route, fn eventHandler) {
 	handleFunc := func(oldObj, newObj interface{}) {
 		logger := r.log.WithFields(logrus.Fields{
 			"eventHandler": eventType,
@@ -45,15 +45,15 @@ func (r registration) handleEvent(ctx context.Context, s Source, resource string
 			return
 		}
 
-		ok, diffs, err := r.qualifyEvent(event, newObj, oldObj, routes)
+		sources, diffs, err := r.qualifyEvent(event, newObj, oldObj, routes)
 		if err != nil {
 			logger.Errorf("while getting sources for event: %s", err.Error())
 			// continue anyway, there could be still some sources to handle
 		}
-		if !ok {
+		if len(sources) == 0 {
 			return
 		}
-		fn(ctx, s, event, diffs)
+		fn(ctx, event, sources, diffs)
 	}
 
 	var resourceEventHandlerFuncs cache.ResourceEventHandlerFuncs
@@ -69,7 +69,7 @@ func (r registration) handleEvent(ctx context.Context, s Source, resource string
 	_, _ = r.informer.AddEventHandler(resourceEventHandlerFuncs)
 }
 
-func (r registration) handleMapped(ctx context.Context, s Source, eventType config.EventType, routeTable map[string][]entry, fn eventHandler) {
+func (r registration) handleMapped(ctx context.Context, eventType config.EventType, routeTable map[string][]entry, fn eventHandler) {
 	_, _ = r.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			var eventObj coreV1.Event
@@ -107,15 +107,15 @@ func (r registration) handleMapped(ctx context.Context, s Source, eventType conf
 			}
 
 			routes := eventRoutes(routeTable, gvrString, eventType)
-			ok, err := r.matchEvent(routes, event)
+			sources, err := r.matchEvent(routes, event)
 			if err != nil {
 				r.log.Errorf("cannot calculate event for observed mapped resource event: %q in Add event handler: %s", eventType, err.Error())
 				// continue anyway, there could be still some sources to handle
 			}
-			if !ok {
+			if len(sources) == 0 {
 				return
 			}
-			fn(ctx, s, event, nil)
+			fn(ctx, event, sources, nil)
 		},
 	})
 }
@@ -138,18 +138,21 @@ func (r registration) includesSrcResource(resource string) bool {
 	return false
 }
 
-func (r registration) matchEvent(routes []route, event event.Event) (bool, error) {
+func (r registration) matchEvent(routes []route, event event.Event) ([]string, error) {
+	var out []string
+
 	errs := multierror.New()
 	for _, rt := range routes {
 		// event reason
 		if rt.Event != nil && rt.Event.Reason.AreConstraintsDefined() {
 			match, err := rt.Event.Reason.IsAllowed(event.Reason)
 			if err != nil {
-				return false, err
+				errs = multierror.Append(errs, err)
+				continue
 			}
 			if !match {
 				r.log.Debugf("Ignoring as reason %q doesn't match constraints %+v", event.Reason, rt.Event.Reason)
-				return false, nil
+				continue
 			}
 		}
 
@@ -166,7 +169,8 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 			for _, msg := range eventMsgs {
 				match, err := rt.Event.Message.IsAllowed(msg)
 				if err != nil {
-					return false, err
+					errs = multierror.Append(errs, err)
+					continue
 				}
 				if match {
 					anyMsgMatches = true
@@ -175,7 +179,7 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 			}
 			if !anyMsgMatches {
 				r.log.Debugf("Ignoring as any event message from %q doesn't match constraints %+v", strings.Join(event.Messages, ";"), rt.Event.Message)
-				return false, nil
+				continue
 			}
 		}
 
@@ -183,11 +187,12 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 		if rt.ResourceName.AreConstraintsDefined() {
 			allowed, err := rt.ResourceName.IsAllowed(event.Name)
 			if err != nil {
-				return false, err
+				errs = multierror.Append(errs, err)
+				continue
 			}
 			if !allowed {
 				r.log.Debugf("Ignoring as resource name %q doesn't match constraints %+v", event.Name, rt.ResourceName)
-				return false, nil
+				continue
 			}
 		}
 
@@ -195,11 +200,12 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 		if rt.Namespaces != nil && rt.Namespaces.AreConstraintsDefined() {
 			match, err := rt.Namespaces.IsAllowed(event.Namespace)
 			if err != nil {
-				return false, err
+				errs = multierror.Append(errs, err)
+				continue
 			}
 			if !match {
 				r.log.Debugf("Ignoring as namespace %q doesn't match constraints %+v", event.Namespace, rt.Namespaces)
-				return false, nil
+				continue
 			}
 		}
 
@@ -212,10 +218,11 @@ func (r registration) matchEvent(routes []route, event event.Event) (bool, error
 		if !kvsSatisfiedForMap(rt.Labels, event.ObjectMeta.Labels) {
 			continue
 		}
-		return true, nil
+
+		out = append(out, rt.Source)
 	}
 
-	return false, errs.ErrorOrNil()
+	return out, errs.ErrorOrNil()
 }
 
 func kvsSatisfiedForMap(expectedKV *map[string]string, obj map[string]string) bool {
@@ -259,26 +266,24 @@ func (r registration) qualifyEvent(
 	event event.Event,
 	newObj, oldObj interface{},
 	routes []route,
-) (bool, []string, error) {
-	ok, err := r.matchEvent(routes, event)
+) ([]string, []string, error) {
+	candidates, err := r.matchEvent(routes, event)
 	if err != nil {
-		return false, nil, fmt.Errorf("while matching event: %w", err)
-	}
-	if !ok {
-		return false, nil, nil
+		return nil, nil, fmt.Errorf("while matching event: %w", err)
 	}
 
 	if event.Type == config.UpdateEvent {
-		return r.qualifyEventForUpdate(newObj, oldObj, routes)
+		return r.qualifyEventForUpdate(newObj, oldObj, routes, candidates)
 	}
 
-	return true, nil, nil
+	return candidates, nil, nil
 }
 
 func (r registration) qualifyEventForUpdate(
 	newObj, oldObj interface{},
 	routes []route,
-) (bool, []string, error) {
+	candidates []string,
+) ([]string, []string, error) {
 	var diffs []string
 
 	var oldUnstruct, newUnstruct *unstructured.Unstructured
@@ -301,35 +306,37 @@ func (r registration) qualifyEventForUpdate(
 		newUnstruct = &unstructured.Unstructured{}
 	}
 
-	var result bool
+	var result []string
 
-	for _, route := range routes {
-		if !route.hasActionableUpdateSetting() {
-			r.log.Debugf("Qualified for update: route: %v, with no updateSettings set", route)
-			result = true
-			continue
-		}
+	for _, source := range candidates {
+		for _, route := range routes {
+			if !route.hasActionableUpdateSetting() {
+				r.log.Debugf("Qualified for update: route: %v, with no updateSettings set", route)
+				result = append(result, source)
+				continue
+			}
 
-		if route.UpdateSetting == nil {
-			// in theory this should never happen, as we check if it is not nil in `route.hasActionableUpdateSetting()`, but just in case
-			r.log.Debugf("Nil updateSetting but hasActionableUpdateSetting returned true for route: %v. This looks like a bug...", route)
-			continue
-		}
+			if route.UpdateSetting == nil {
+				// in theory this should never happen, as we check if it is not nil in `route.hasActionableUpdateSetting()`, but just in case
+				r.log.Debugf("Nil updateSetting but hasActionableUpdateSetting returned true for route: %v. This looks like a bug...", route)
+				continue
+			}
 
-		r.log.WithFields(logrus.Fields{"old": oldUnstruct.Object, "new": newUnstruct.Object}).Debug("Getting diff for objects...")
-		diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, *route.UpdateSetting)
-		if err != nil {
-			r.log.Errorf("while getting diff: %w", err)
-		}
-		r.log.Debugf("About to qualify event for route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.UpdateSetting)
+			r.log.WithFields(logrus.Fields{"old": oldUnstruct.Object, "new": newUnstruct.Object}).Debug("Getting diff for objects...")
+			diff, err := k8sutil.Diff(oldUnstruct.Object, newUnstruct.Object, *route.UpdateSetting)
+			if err != nil {
+				r.log.Errorf("while getting diff: %w", err)
+			}
+			r.log.Debugf("About to qualify event for route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.UpdateSetting)
 
-		if route.UpdateSetting.IncludeDiff {
-			diffs = append(diffs, diff)
-		}
+			if route.UpdateSetting.IncludeDiff {
+				diffs = append(diffs, diff)
+			}
 
-		if len(diff) > 0 {
-			result = true
-			r.log.Debugf("Qualified for update: route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.UpdateSetting)
+			if len(diff) > 0 {
+				result = append(result, source)
+				r.log.Debugf("Qualified for update: route: %v for update, diff: %s, updateSetting: %+v", route, diff, route.UpdateSetting)
+			}
 		}
 	}
 
