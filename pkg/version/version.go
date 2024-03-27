@@ -2,7 +2,7 @@ package version
 
 // Version The below variables are overridden using the build process
 // name of the release
-var Version = "v9.99.9-dev"
+var Version = "v1.9.1"
 
 // GitCommitID git commit id of the release
 var GitCommitID = "none"
@@ -12,7 +12,7 @@ var BuildDate = "unknown"
 
 // Short returns short version of the release
 func Short() string {
-	return Version
+	return "v1.9.1"
 }
 
 // Details struct contains data about a given version.
@@ -25,7 +25,7 @@ type Details struct {
 // Info returns Details struct with version info.
 func Info() Details {
 	return Details{
-		Version:     Version,
+		Version:     "v1.9.1",
 		GitCommitID: GitCommitID,
 		BuildDate:   BuildDate,
 	}
