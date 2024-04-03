@@ -11,15 +11,18 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 const eventsResource = "v1/events"
 
 type mergedEvents map[string]map[config.EventType]struct{}
 type registrationHandler func(resource string) (cache.SharedIndexInformer, error)
-type eventHandler func(ctx context.Context, source Source, event event.Event, updateDiffs []string)
+type eventHandler func(ctx context.Context, event event.Event, sources []string, updateDiffs []string)
 
 type route struct {
+	Source string
+
 	ResourceName  config.RegexConstraints
 	Labels        *map[string]string
 	Annotations   *map[string]string
@@ -60,16 +63,15 @@ func NewRouter(mapper meta.RESTMapper, dynamicCli dynamic.Interface, log logrus.
 
 // BuildTable builds the routers routing table marking it ready
 // to register, map and handle informer events.
-func (r *Router) BuildTable(cfg *config.Config) *Router {
-	mergedEvents := mergeResourceEvents(cfg)
-
+func (r *Router) BuildTable(cfgs map[string]SourceConfig) *Router {
+	mergedEvents := mergeResourceEvents(cfgs)
 	for resource, resourceEvents := range mergedEvents {
-		eventRoutes := r.mergeEventRoutes(resource, cfg)
+		eventRoutes := r.mergeEventRoutes(resource, cfgs)
 		for evt := range resourceEvents {
 			r.table[resource] = append(r.table[resource], entry{Event: evt, Routes: eventRoutes[evt]})
 		}
 	}
-	r.log.Debugf("routing table: %+v", r.table)
+	r.log.Debug("routing table:", formatx.StructDumper().Sdump(r.table))
 	return r
 }
 
@@ -123,21 +125,21 @@ func (r *Router) MapWithEventsInformer(srcEvent config.EventType, dstEvent confi
 
 // RegisterEventHandler allows router clients to create handlers that are
 // triggered for a target event.
-func (r *Router) RegisterEventHandler(ctx context.Context, s Source, eventType config.EventType, handlerFn func(ctx context.Context, s Source, e event.Event, updateDiffs []string)) {
+func (r *Router) RegisterEventHandler(ctx context.Context, eventType config.EventType, handlerFn eventHandler) {
 	for resource, reg := range r.registrations {
 		if !reg.canHandleEvent(eventType.String()) {
 			continue
 		}
 		sourceRoutes := r.getSourceRoutes(resource, eventType)
-		reg.handleEvent(ctx, s, resource, eventType, sourceRoutes, handlerFn)
+		reg.handleEvent(ctx, resource, eventType, sourceRoutes, handlerFn)
 	}
 }
 
 // HandleMappedEvent allows router clients to create handlers that are
 // triggered for a target mapped event.
-func (r *Router) HandleMappedEvent(ctx context.Context, s Source, targetEvent config.EventType, handlerFn eventHandler) {
+func (r *Router) HandleMappedEvent(ctx context.Context, targetEvent config.EventType, handlerFn eventHandler) {
 	if informer, ok := r.mappedInformer(targetEvent); ok {
-		informer.handleMapped(ctx, s, targetEvent, r.table, handlerFn)
+		informer.handleMapped(ctx, targetEvent, r.table, handlerFn)
 	}
 }
 
@@ -146,61 +148,67 @@ func (r *Router) getSourceRoutes(resource string, targetEvent config.EventType) 
 	return eventRoutes(r.table, resource, targetEvent)
 }
 
-func mergeResourceEvents(cfg *config.Config) mergedEvents {
+func mergeResourceEvents(cfgs map[string]SourceConfig) mergedEvents {
 	out := map[string]map[config.EventType]struct{}{}
-	for _, resource := range cfg.Resources {
-		if _, ok := out[resource.Type]; !ok {
-			out[resource.Type] = make(map[config.EventType]struct{})
+	for _, srcGroupCfg := range cfgs {
+		cfg := srcGroupCfg.cfg
+		for _, resource := range cfg.Resources {
+			if _, ok := out[resource.Type]; !ok {
+				out[resource.Type] = make(map[config.EventType]struct{})
+			}
+			for _, e := range flattenEventTypes(cfg.Event.Types, resource.Event.Types) {
+				out[resource.Type][e] = struct{}{}
+			}
 		}
-		for _, e := range flattenEventTypes(cfg.Event.Types, resource.Event.Types) {
-			out[resource.Type][e] = struct{}{}
-		}
-	}
 
-	resForRecomms := recommendation.ResourceEventsForConfig(cfg.Recommendations)
-	for resourceType, eventType := range resForRecomms {
-		if _, ok := out[resourceType]; !ok {
-			out[resourceType] = make(map[config.EventType]struct{})
+		resForRecomms := recommendation.ResourceEventsForConfig(cfg.Recommendations)
+		for resourceType, eventType := range resForRecomms {
+			if _, ok := out[resourceType]; !ok {
+				out[resourceType] = make(map[config.EventType]struct{})
+			}
+			out[resourceType][eventType] = struct{}{}
 		}
-		out[resourceType][eventType] = struct{}{}
 	}
 	return out
 }
 
-func (r *Router) mergeEventRoutes(resource string, cfg *config.Config) map[config.EventType][]route {
+func (r *Router) mergeEventRoutes(resource string, cfgs map[string]SourceConfig) map[config.EventType][]route {
 	out := make(map[config.EventType][]route)
-	for idx := range cfg.Resources {
-		r := cfg.Resources[idx] // make sure that we work on a copy
-		for _, e := range flattenEventTypes(cfg.Event.Types, r.Event.Types) {
-			if resource != r.Type {
-				continue
-			}
-			route := route{
-				Namespaces:   resourceNamespaces(cfg.Namespaces, &r.Namespaces),
-				Annotations:  resourceStringMap(cfg.Annotations, r.Annotations),
-				Labels:       resourceStringMap(cfg.Labels, r.Labels),
-				ResourceName: r.Name,
-				Event:        resourceEvent(*cfg.Event, r.Event),
-			}
-			if e == config.UpdateEvent {
-				route.UpdateSetting = &config.UpdateSetting{
-					Fields:      r.UpdateSetting.Fields,
-					IncludeDiff: r.UpdateSetting.IncludeDiff,
+	for srcGroupName, srcCfg := range cfgs {
+		cfg := srcCfg.cfg
+		for idx := range cfg.Resources {
+			r := cfg.Resources[idx] // make sure that we work on a copy
+			for _, e := range flattenEventTypes(cfg.Event.Types, r.Event.Types) {
+				if resource != r.Type {
+					continue
 				}
+				route := route{
+					Source:       srcGroupName,
+					Namespaces:   resourceNamespaces(cfg.Namespaces, &r.Namespaces),
+					Annotations:  resourceStringMap(cfg.Annotations, r.Annotations),
+					Labels:       resourceStringMap(cfg.Labels, r.Labels),
+					ResourceName: r.Name,
+					Event:        resourceEvent(*cfg.Event, r.Event),
+				}
+				if e == config.UpdateEvent {
+					route.UpdateSetting = &config.UpdateSetting{
+						Fields:      r.UpdateSetting.Fields,
+						IncludeDiff: r.UpdateSetting.IncludeDiff,
+					}
+				}
+
+				out[e] = append(out[e], route)
 			}
-
-			out[e] = append(out[e], route)
 		}
+		// add routes related to recommendations
+		resForRecomms := recommendation.ResourceEventsForConfig(cfg.Recommendations)
+		r.setEventRouteForRecommendationsIfShould(&out, resForRecomms, srcGroupName, resource, &cfg)
 	}
-
-	// add routes related to recommendations
-	resForRecomms := recommendation.ResourceEventsForConfig(cfg.Recommendations)
-	r.setEventRouteForRecommendationsIfShould(&out, resForRecomms, resource, cfg)
 
 	return out
 }
 
-func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, resourceType string, cfg *config.Config) {
+func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.EventType][]route, resForRecomms map[string]config.EventType, srcGroupName, resourceType string, cfg *config.Config) {
 	if routeMap == nil {
 		r.log.Debug("Skipping setting event route for recommendations as the routeMap is nil")
 		return
@@ -212,6 +220,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	}
 
 	recommRoute := route{
+		Source:     srcGroupName,
 		Namespaces: cfg.Namespaces,
 		Event: &config.KubernetesEvent{
 			Reason:  config.RegexConstraints{},
@@ -223,6 +232,10 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 	// Override route and get all these events for all namespaces.
 	// The events without recommendations will be filtered out when sending the event.
 	for i, r := range (*routeMap)[eventType] {
+		if r.Source != srcGroupName {
+			continue
+		}
+
 		recommRoute.Namespaces = resourceNamespaces(cfg.Namespaces, r.Namespaces)
 		(*routeMap)[eventType][i] = recommRoute
 		return

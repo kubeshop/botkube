@@ -88,8 +88,6 @@ func NewDispatcher(log logrus.FieldLogger, clusterName string, notifiers map[str
 }
 
 // Dispatch starts a given plugin, watches for incoming events and calling all notifiers to dispatch received event.
-// Once we will have the gRPC contract established with proper Cloud Event schema, we should move also this logic here:
-// https://github.com/kubeshop/botkube/blob/525c737956ff820a09321879284037da8bf5d647/pkg/controller/controller.go#L200-L253
 func (d *Dispatcher) Dispatch(dispatch PluginDispatch) error {
 	log := d.log.WithFields(logrus.Fields{
 		"pluginName": dispatch.pluginName,

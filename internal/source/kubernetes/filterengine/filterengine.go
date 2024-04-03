@@ -50,7 +50,6 @@ func New(log logrus.FieldLogger) *DefaultFilterEngine {
 func (f *DefaultFilterEngine) Run(ctx context.Context, event event.Event) event.Event {
 	f.log.Debug("Running registered filters")
 	filters := f.RegisteredFilters()
-	f.log.Debugf("registered filters: %+v", filters)
 
 	for _, filter := range filters {
 		if !filter.Enabled {
@@ -59,7 +58,7 @@ func (f *DefaultFilterEngine) Run(ctx context.Context, event event.Event) event.
 
 		err := filter.Run(ctx, &event)
 		if err != nil {
-			f.log.Errorf("while running filter %q: %w", filter.Name(), err)
+			f.log.Errorf("while running filter %q: %s", filter.Name(), err.Error())
 		}
 		f.log.Debugf("ran filter name: %q, event was skipped: %t", filter.Name(), event.Skip)
 	}

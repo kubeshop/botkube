@@ -21,35 +21,39 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		givenCfg config.Config
+		givenCfg map[string]SourceConfig
 	}{
 		{
 			name: "Events defined on top-level but override by resource once",
-			givenCfg: config.Config{
-
-				Event: &config.KubernetesEvent{
-					Types: []config.EventType{
-						config.CreateEvent,
-						config.ErrorEvent,
-					},
-				},
-				Resources: []config.Resource{
-					{
-						Type: hasRoutes,
-						Namespaces: config.RegexConstraints{
-							Include: []string{"default"},
-						},
-						Event: config.KubernetesEvent{
+			givenCfg: map[string]SourceConfig{
+				"k8s-events": {
+					name: "k8s-events",
+					cfg: config.Config{
+						Event: &config.KubernetesEvent{
 							Types: []config.EventType{
 								config.CreateEvent,
-								config.DeleteEvent,
-								config.UpdateEvent,
 								config.ErrorEvent,
 							},
 						},
-						UpdateSetting: config.UpdateSetting{
-							Fields:      []string{"status.availableReplicas"},
-							IncludeDiff: true,
+						Resources: []config.Resource{
+							{
+								Type: hasRoutes,
+								Namespaces: config.RegexConstraints{
+									Include: []string{"default"},
+								},
+								Event: config.KubernetesEvent{
+									Types: []config.EventType{
+										config.CreateEvent,
+										config.DeleteEvent,
+										config.UpdateEvent,
+										config.ErrorEvent,
+									},
+								},
+								UpdateSetting: config.UpdateSetting{
+									Fields:      []string{"status.availableReplicas"},
+									IncludeDiff: true,
+								},
+							},
 						},
 					},
 				},
@@ -61,7 +65,7 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			router := NewRouter(nil, nil, loggerx.NewNoop())
 
-			router = router.BuildTable(&tc.givenCfg)
+			router = router.BuildTable(tc.givenCfg)
 			assert.Len(t, router.getSourceRoutes(hasRoutes, config.CreateEvent), 1)
 			assert.Len(t, router.getSourceRoutes(hasRoutes, config.UpdateEvent), 1)
 			assert.Len(t, router.getSourceRoutes(hasRoutes, config.DeleteEvent), 1)
@@ -81,8 +85,15 @@ func TestRouterListMergingNestedFields(t *testing.T) {
 	err = yaml.Unmarshal(fixConfig, &cfg)
 	require.NoError(t, err)
 
+	srcCfgs := map[string]SourceConfig{
+		"test": {
+			name: "test",
+			cfg:  cfg,
+		},
+	}
+
 	// when
-	router = router.BuildTable(&cfg)
+	router = router.BuildTable(srcCfgs)
 
 	// then
 	for key := range router.table {

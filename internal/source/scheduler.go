@@ -10,6 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
 const (
@@ -140,8 +141,11 @@ func (d *Scheduler) monitorHealth(ctx context.Context) {
 }
 
 func (d *Scheduler) schedule(pluginFilter string) error {
-	for configKey, sourceConfig := range d.dispatchConfig {
-		for pluginName, config := range sourceConfig {
+	sortedKeys := maputil.SortKeys(d.dispatchConfig) // ensure config iteration order is alphabetical
+	for _, configKey := range sortedKeys {
+		sourceConfig := d.dispatchConfig[configKey]
+
+		for pluginName, srcCfg := range sourceConfig {
 			if pluginFilter != emptyPluginFilter && pluginFilter != pluginName {
 				d.log.Debugf("Not starting %q as it doesn't pass plugin filter.", pluginName)
 				continue
@@ -153,7 +157,7 @@ func (d *Scheduler) schedule(pluginFilter string) error {
 			}
 
 			d.log.Infof("Starting a new stream for plugin %q", pluginName)
-			if err := d.dispatcher.Dispatch(config); err != nil {
+			if err := d.dispatcher.Dispatch(srcCfg); err != nil {
 				return fmt.Errorf("while starting plugin source %s: %w", pluginName, err)
 			}
 
