@@ -2,12 +2,14 @@ package kubernetes
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
+// backgroundProcessor is responsible for running background processes.
 type backgroundProcessor struct {
 	mu          sync.RWMutex
 	cancelCtxFn func()
@@ -16,16 +18,19 @@ type backgroundProcessor struct {
 	errGroup *errgroup.Group
 }
 
+// newBackgroundProcessor creates new background processor.
 func newBackgroundProcessor() *backgroundProcessor {
 	return &backgroundProcessor{}
 }
 
+// StartTime returns the start time of the background processor.
 func (b *backgroundProcessor) StartTime() time.Time {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.startTime
 }
 
+// Run starts the background processes.
 func (b *backgroundProcessor) Run(parentCtx context.Context, fns []func(ctx context.Context)) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -46,6 +51,7 @@ func (b *backgroundProcessor) Run(parentCtx context.Context, fns []func(ctx cont
 	}
 }
 
+// StopAndWait stops the background processes and waits for them to finish.
 func (b *backgroundProcessor) StopAndWait(log logrus.FieldLogger) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()

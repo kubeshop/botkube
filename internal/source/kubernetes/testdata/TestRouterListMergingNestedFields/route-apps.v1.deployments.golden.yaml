@@ -1,6 +1,7 @@
 - event: delete
   routes:
-    - resourcename:
+    - source: test
+      resourcename:
         include: []
       labels:
         test: label-1-level

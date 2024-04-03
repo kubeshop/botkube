@@ -3,7 +3,6 @@ package source
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/maputil"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/kubeshop/botkube/pkg/api/source"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
 const (

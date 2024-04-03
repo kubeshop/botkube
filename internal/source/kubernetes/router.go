@@ -2,7 +2,7 @@ package kubernetes
 
 import (
 	"context"
-	"github.com/kubeshop/botkube/pkg/formatx"
+
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -11,6 +11,7 @@ import (
 	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
 	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
+	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
 const eventsResource = "v1/events"

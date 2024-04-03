@@ -2,29 +2,33 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/maputil"
 	"sync"
+
+	"github.com/kubeshop/botkube/pkg/maputil"
 )
 
-type ConfigurationStore struct {
+// configurationStore stores all source configurations in a thread-safe way.
+type configurationStore struct {
 	store             map[string]SourceConfig
 	storeByKubeconfig map[string]map[string]SourceConfig
 
 	lock sync.RWMutex
 }
 
-func NewConfigurations() *ConfigurationStore {
-	return &ConfigurationStore{
+// newConfigurations creates new empty configurationStore instance.
+func newConfigurations() *configurationStore {
+	return &configurationStore{
 		store:             make(map[string]SourceConfig),
 		storeByKubeconfig: make(map[string]map[string]SourceConfig),
 	}
 }
 
-func (c *ConfigurationStore) Store(sourceName string, cfg SourceConfig) {
+// Store stores SourceConfig in a thread-safe way.
+func (c *configurationStore) Store(sourceName string, cfg SourceConfig) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	key := keyForStore(sourceName, cfg.isInteractivitySupported)
+	key := c.keyForStore(sourceName, cfg.isInteractivitySupported)
 
 	c.store[key] = cfg
 
@@ -35,14 +39,16 @@ func (c *ConfigurationStore) Store(sourceName string, cfg SourceConfig) {
 	c.storeByKubeconfig[kubeConfigKey][key] = cfg
 }
 
-func (c *ConfigurationStore) Get(sourceKey string) (SourceConfig, bool) {
+// Get returns SourceConfig by a key.
+func (c *configurationStore) Get(sourceKey string) (SourceConfig, bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	val, ok := c.store[sourceKey]
 	return val, ok
 }
 
-func (c *ConfigurationStore) GetGlobal() (SourceConfig, bool) {
+// GetGlobal returns global SourceConfig.
+func (c *configurationStore) GetGlobal() (SourceConfig, bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -54,19 +60,15 @@ func (c *ConfigurationStore) GetGlobal() (SourceConfig, bool) {
 	return c.store[sortedKeys[0]], true
 }
 
-func (c *ConfigurationStore) Len() int {
+// Len returns number of stored SourceConfigs.
+func (c *configurationStore) Len() int {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return len(c.store)
 }
 
-func (c *ConfigurationStore) sortedKeys() []string {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return maputil.SortKeys(c.store)
-}
-
-func (c *ConfigurationStore) CloneByKubeconfig() map[string]map[string]SourceConfig {
+// CloneByKubeconfig returns a copy of the underlying map of source configurations grouped by kubeconfigs.
+func (c *configurationStore) CloneByKubeconfig() map[string]map[string]SourceConfig {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -78,6 +80,12 @@ func (c *ConfigurationStore) CloneByKubeconfig() map[string]map[string]SourceCon
 	return cloned
 }
 
-func keyForStore(sourceName string, isInteractivitySupported bool) string {
+func (c *configurationStore) sortedKeys() []string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return maputil.SortKeys(c.store)
+}
+
+func (c *configurationStore) keyForStore(sourceName string, isInteractivitySupported bool) string {
 	return fmt.Sprintf("%s/%t", sourceName, isInteractivitySupported)
 }

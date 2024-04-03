@@ -1,6 +1,7 @@
 - event: create
   routes:
-    - resourcename:
+    - source: test
+      resourcename:
         include: []
       labels:
         test: label-2-level

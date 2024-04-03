@@ -4,28 +4,29 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/kubeshop/botkube/internal/command"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine"
-	pkgConfig "github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/loggerx"
-	"github.com/kubeshop/botkube/pkg/multierror"
-	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/client-go/tools/cache"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
-	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
-	"github.com/kubeshop/botkube/pkg/api"
-	"github.com/kubeshop/botkube/pkg/api/source"
-	"github.com/kubeshop/botkube/pkg/plugin"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/kubeshop/botkube/internal/command"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/commander"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/config"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/event"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/filterengine"
+	"github.com/kubeshop/botkube/internal/source/kubernetes/recommendation"
+	"github.com/kubeshop/botkube/pkg/api"
+	"github.com/kubeshop/botkube/pkg/api/source"
+	pkgConfig "github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/loggerx"
+	"github.com/kubeshop/botkube/pkg/multierror"
+	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
 var _ source.Source = (*Source)(nil)
@@ -44,8 +45,6 @@ const (
 	description = "Consume Kubernetes events and get notifications with additional warnings and recommendations."
 
 	componentLogFieldKey = "component"
-
-	delayExecutionBy = 5 * time.Second
 )
 
 type RecommendationFactory interface {
@@ -56,7 +55,7 @@ type RecommendationFactory interface {
 type Source struct {
 	bgProcessor   *backgroundProcessor
 	pluginVersion string
-	configStore   *ConfigurationStore
+	configStore   *configurationStore
 
 	mu sync.Mutex
 
@@ -85,7 +84,7 @@ type ActiveSourceConfig struct {
 func NewSource(version string) *Source {
 	return &Source{
 		pluginVersion: version,
-		configStore:   NewConfigurations(),
+		configStore:   newConfigurations(),
 		bgProcessor:   newBackgroundProcessor(),
 	}
 }
