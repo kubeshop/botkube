@@ -396,7 +396,7 @@ func run(ctx context.Context) (err error) {
 	scheduler := source.NewScheduler(ctx, logger, conf, sourcePluginDispatcher, schedulerChan)
 	err = scheduler.Start(ctx)
 	if err != nil {
-		return reportFatalError("while starting source plugin event dispatcher: %w", err)
+		return reportFatalError("while starting source plugin event dispatcher", err)
 	}
 
 	if conf.Plugins.IncomingWebhook.Enabled {

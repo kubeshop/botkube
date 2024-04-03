@@ -10,7 +10,7 @@ import (
 // configurationStore stores all source configurations in a thread-safe way.
 type configurationStore struct {
 	store             map[string]SourceConfig
-	storeByKubeconfig map[string]map[string]SourceConfig
+	storeByKubeconfig map[string]map[string]struct{}
 
 	lock sync.RWMutex
 }
@@ -19,7 +19,7 @@ type configurationStore struct {
 func newConfigurations() *configurationStore {
 	return &configurationStore{
 		store:             make(map[string]SourceConfig),
-		storeByKubeconfig: make(map[string]map[string]SourceConfig),
+		storeByKubeconfig: make(map[string]map[string]struct{}),
 	}
 }
 
@@ -34,9 +34,9 @@ func (c *configurationStore) Store(sourceName string, cfg SourceConfig) {
 
 	kubeConfigKey := string(cfg.kubeConfig)
 	if _, ok := c.storeByKubeconfig[kubeConfigKey]; !ok {
-		c.storeByKubeconfig[kubeConfigKey] = make(map[string]SourceConfig)
+		c.storeByKubeconfig[kubeConfigKey] = make(map[string]struct{})
 	}
-	c.storeByKubeconfig[kubeConfigKey][key] = cfg
+	c.storeByKubeconfig[kubeConfigKey][key] = struct{}{}
 }
 
 // Get returns SourceConfig by a key.
@@ -47,12 +47,13 @@ func (c *configurationStore) Get(sourceKey string) (SourceConfig, bool) {
 	return val, ok
 }
 
-// GetGlobal returns global SourceConfig.
-func (c *configurationStore) GetGlobal() (SourceConfig, bool) {
+// GetSystemConfig returns system Source Config.
+// The system config is used for getting system (plugin-wide) logger and informer resync period.
+func (c *configurationStore) GetSystemConfig() (SourceConfig, bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	sortedKeys := c.sortedKeys()
+	sortedKeys := maputil.SortKeys(c.store)
 	if len(sortedKeys) == 0 {
 		return SourceConfig{}, false
 	}
@@ -72,20 +73,21 @@ func (c *configurationStore) CloneByKubeconfig() map[string]map[string]SourceCon
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	cloned := make(map[string]map[string]SourceConfig)
-	for k, v := range c.storeByKubeconfig {
-		cloned[k] = v
+	var out = make(map[string]map[string]SourceConfig)
+	for kubeConfig, srcIndex := range c.storeByKubeconfig {
+		if out[kubeConfig] == nil {
+			out[kubeConfig] = make(map[string]SourceConfig)
+		}
+
+		for srcKey := range srcIndex {
+			out[kubeConfig][srcKey] = c.store[srcKey]
+		}
 	}
 
-	return cloned
+	return out
 }
 
-func (c *configurationStore) sortedKeys() []string {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return maputil.SortKeys(c.store)
-}
-
+// keyForStore returns a key for storing configuration in the store.
 func (c *configurationStore) keyForStore(sourceName string, isInteractivitySupported bool) string {
 	return fmt.Sprintf("%s/%t", sourceName, isInteractivitySupported)
 }

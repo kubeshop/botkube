@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -129,27 +130,25 @@ func (s *Source) Stream(ctx context.Context, input source.StreamInput) (source.S
 		kubeConfig:               kubeConfig,
 	})
 
-	globalSrcCfg, err := s.getGlobalSrcCfg()
-	if err != nil {
-		exitOnError(err, loggerx.New(pkgConfig.Logger{}).WithField("error", err.Error()))
+	systemSrcCfg, ok := s.configStore.GetSystemConfig()
+	if !ok {
+		exitOnError(err, loggerx.New(pkgConfig.Logger{}).WithField("error", "global source configuration not found"))
 	}
 
 	id := s.configStore.Len()
 	globalLogger := loggerx.NewStderr(pkgConfig.Logger{
-		Level: globalSrcCfg.cfg.Log.Level,
+		Level: systemSrcCfg.cfg.Log.Level,
 	}).WithField("id", id)
 
 	err = s.bgProcessor.StopAndWait(globalLogger)
-	if err != nil {
-		globalLogger.WithField("error", err.Error()).Error("While stopping background processor")
-	}
+	loggerx.ExitOnError(err, "While stopping background processor") // this should never happen
 
 	cfgsByKubeConfig := s.configStore.CloneByKubeconfig()
 	globalLogger.Infof("Reconfiguring background process with %d different Kubeconfig(s)...", len(cfgsByKubeConfig))
 
 	var fns []func(context.Context)
 	for kubeConfig, srcCfgs := range cfgsByKubeConfig {
-		fn := s.genFnForKubeconfig(id, []byte(kubeConfig), globalLogger, globalSrcCfg.cfg.InformerResyncPeriod, srcCfgs)
+		fn := s.genFnForKubeconfig(id, []byte(kubeConfig), globalLogger, systemSrcCfg.cfg.InformerResyncPeriod, srcCfgs)
 		fns = append(fns, fn)
 	}
 
@@ -202,7 +201,7 @@ func (s *Source) configureProcessForSources(ctx context.Context, id int, kubeCon
 	}, func(resource string) (cache.SharedIndexInformer, error) {
 		gvr, err := parseResourceArg(resource, client.mapper)
 		if err != nil {
-			globalLogger.Errorf("Unable to parse resource: %s to register with informer\n", resource)
+			globalLogger.WithError(err).Errorf("Unable to parse resource: %s to register with informer\n", resource)
 			return nil, err
 		}
 		return dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
@@ -224,7 +223,7 @@ func (s *Source) configureProcessForSources(ctx context.Context, id int, kubeCon
 		func(resource string) (cache.SharedIndexInformer, error) {
 			gvr, err := parseResourceArg(resource, client.mapper)
 			if err != nil {
-				globalLogger.Infof("Unable to parse resource: %s to register with informer\n", resource)
+				globalLogger.WithError(err).Errorf("Unable to parse resource: %s to register with informer\n", resource)
 				return nil, err
 			}
 			return dynamicKubeInformerFactory.ForResource(gvr).Informer(), nil
@@ -273,6 +272,11 @@ func (s *Source) handleEventFn(log logrus.FieldLogger) func(ctx context.Context,
 			return
 		}
 
+		if e.Kind == "" {
+			globalLogger.Warn("Skipping event without Kind...")
+			return
+		}
+
 		// Check for significant Update Events in objects
 		if e.Type == config.UpdateEvent && len(updateDiffs) > 0 {
 			e.Messages = append(e.Messages, updateDiffs...)
@@ -285,24 +289,20 @@ func (s *Source) handleEventFn(log logrus.FieldLogger) func(ctx context.Context,
 			srcCfg, ok := s.configStore.Get(sourceKey)
 			if !ok {
 				errs = multierror.Append(errs, fmt.Errorf("source with key %q not found", sourceKey))
-			}
-
-			if srcCfg.ActiveSourceConfig == nil {
-				globalLogger.Errorf("ActiveSourceConfig not found for source %s", srcCfg.name)
 				continue
 			}
 
-			setClusterName(srcCfg.clusterName, &eventCopy)
+			if srcCfg.ActiveSourceConfig == nil {
+				errs = multierror.Append(errs, fmt.Errorf("ActiveSourceConfig not found for source %s. This seems to be a bug", srcCfg.name))
+				continue
+			}
+
+			eventCopy.Cluster = srcCfg.clusterName
 
 			// Filter events
 			e = srcCfg.filterEngine.Run(ctx, eventCopy)
 			if e.Skip {
-				srcCfg.logger.Debugf("Skipping event: %#v", eventCopy)
-				continue
-			}
-
-			if len(e.Kind) <= 0 {
-				srcCfg.logger.Warn("sendEvent received e with Kind nil. Hence skipping.")
+				srcCfg.logger.WithField("event", e).Debugf("Skipping event as skip flag is set to true")
 				continue
 			}
 
@@ -320,7 +320,7 @@ func (s *Source) handleEventFn(log logrus.FieldLogger) func(ctx context.Context,
 
 			msg, err := srcCfg.messageBuilder.FromEvent(eventCopy, srcCfg.cfg.ExtraButtons)
 			if err != nil {
-				srcCfg.logger.Errorf("while rendering message from event: %w", err)
+				errs = multierror.Append(errs, fmt.Errorf("while building message from event: %w", err))
 				continue
 			}
 
@@ -334,7 +334,7 @@ func (s *Source) handleEventFn(log logrus.FieldLogger) func(ctx context.Context,
 		}
 
 		if errs.ErrorOrNil() != nil {
-			globalLogger.Errorf("while sending event: %w", errs)
+			globalLogger.WithError(errs).Errorf("failed to send event for '%s/%s' resource", e.Namespace, e.Name)
 		}
 	}
 }
@@ -343,17 +343,9 @@ func (s *Source) genFnForKubeconfig(id int, kubeConfig []byte, globalLogger logr
 	return func(ctx context.Context) {
 		err := s.configureProcessForSources(ctx, id, kubeConfig, globalLogger, informerResyncPeriod, srcCfgs)
 		if err != nil {
-			exitOnError(fmt.Errorf("while configuring process for sources: %w", err), globalLogger.WithFields(logrus.Fields{
-				"srcEvent": config.ErrorEvent,
-				"dstEvent": config.WarningEvent,
-				"error":    err.Error(),
-			}))
+			exitOnError(fmt.Errorf("while configuring process for sources"), globalLogger.WithError(err).WithField("srcCfgs", maps.Keys(srcCfgs)))
 		}
 	}
-}
-
-func setClusterName(clusterName string, event *event.Event) {
-	event.Cluster = clusterName
 }
 
 func parseResourceArg(arg string, mapper meta.RESTMapper) (schema.GroupVersionResource, error) {
@@ -389,17 +381,4 @@ func exitOnError(err error, log logrus.FieldLogger) {
 		time.Sleep(time.Second * 2)
 		os.Exit(1)
 	}
-}
-
-func (s *Source) getGlobalSrcCfg() (SourceConfig, error) {
-	if s.configStore.Len() == 0 {
-		return SourceConfig{}, fmt.Errorf("no source configurations found")
-	}
-
-	globalSrcCfg, ok := s.configStore.GetGlobal()
-	if !ok {
-		return SourceConfig{}, fmt.Errorf("global source configuration not found")
-	}
-
-	return globalSrcCfg, nil
 }
