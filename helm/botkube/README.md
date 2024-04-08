@@ -1,6 +1,6 @@
 # Botkube
 
-![Version: v1.10.0-rc.1](https://img.shields.io/badge/Version-v1.10.0--rc.1-informational?style=flat-square) ![AppVersion: v1.10.0-rc.1](https://img.shields.io/badge/AppVersion-v1.10.0--rc.1-informational?style=flat-square)
+![Version: v1.10.0](https://img.shields.io/badge/Version-v1.10.0-informational?style=flat-square) ![AppVersion: v1.10.0](https://img.shields.io/badge/AppVersion-v1.10.0-informational?style=flat-square)
 
 Controller for the Botkube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
 
@@ -23,7 +23,7 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [image.registry](./values.yaml#L14) | string | `"ghcr.io"` | Botkube container image registry. |
 | [image.repository](./values.yaml#L16) | string | `"kubeshop/botkube"` | Botkube container image repository. |
 | [image.pullPolicy](./values.yaml#L18) | string | `"IfNotPresent"` | Botkube container image pull policy. |
-| [image.tag](./values.yaml#L20) | string | `"v1.10.0-rc.1"` | Botkube container image tag. Default tag is `appVersion` from Chart.yaml. |
+| [image.tag](./values.yaml#L20) | string | `"v1.10.0"` | Botkube container image tag. Default tag is `appVersion` from Chart.yaml. |
 | [podSecurityPolicy](./values.yaml#L24) | object | `{"enabled":false}` | Configures Pod Security Policy to allow Botkube to run in restricted clusters. [Ref doc](https://kubernetes.io/docs/concepts/policy/pod-security-policy/). |
 | [securityContext](./values.yaml#L30) | object | Runs as a Non-Privileged user. | Configures security context to manage user Privileges in Pod. [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod). |
 | [containerSecurityContext](./values.yaml#L36) | object | `{"allowPrivilegeEscalation":false,"privileged":false,"readOnlyRootFilesystem":true}` | Configures container security context. [Ref doc](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container). |
@@ -209,10 +209,10 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [configWatcher.enabled](./values.yaml#L897) | bool | `true` | If true, restarts the Botkube Pod on config changes. |
 | [configWatcher.inCluster](./values.yaml#L899) | object | `{"informerResyncPeriod":"10m"}` | In-cluster Config Watcher configuration. It is used when remote configuration is not provided. |
 | [configWatcher.inCluster.informerResyncPeriod](./values.yaml#L901) | string | `"10m"` | Resync period for the Config Watcher informers. |
-| [plugins](./values.yaml#L904) | object | `{"cacheDir":"/tmp","healthCheckInterval":"10s","incomingWebhook":{"enabled":true,"port":2115,"targetPort":2115},"repositories":{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v1.10.0-rc.1/plugins-index.yaml"}},"restartPolicy":{"threshold":10,"type":"DeactivatePlugin"}}` | Configuration for Botkube executors and sources plugins. |
+| [plugins](./values.yaml#L904) | object | `{"cacheDir":"/tmp","healthCheckInterval":"10s","incomingWebhook":{"enabled":true,"port":2115,"targetPort":2115},"repositories":{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v1.10.0/plugins-index.yaml"}},"restartPolicy":{"threshold":10,"type":"DeactivatePlugin"}}` | Configuration for Botkube executors and sources plugins. |
 | [plugins.cacheDir](./values.yaml#L906) | string | `"/tmp"` | Directory, where downloaded plugins are cached. |
-| [plugins.repositories](./values.yaml#L908) | object | `{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v1.10.0-rc.1/plugins-index.yaml"}}` | List of plugins repositories. Each repository defines the URL and optional `headers` |
-| [plugins.repositories.botkube](./values.yaml#L910) | object | `{"url":"https://github.com/kubeshop/botkube/releases/download/v1.10.0-rc.1/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
+| [plugins.repositories](./values.yaml#L908) | object | `{"botkube":{"url":"https://github.com/kubeshop/botkube/releases/download/v1.10.0/plugins-index.yaml"}}` | List of plugins repositories. Each repository defines the URL and optional `headers` |
+| [plugins.repositories.botkube](./values.yaml#L910) | object | `{"url":"https://github.com/kubeshop/botkube/releases/download/v1.10.0/plugins-index.yaml"}` | This repository serves officially supported Botkube plugins. |
 | [plugins.incomingWebhook](./values.yaml#L915) | object | `{"enabled":true,"port":2115,"targetPort":2115}` | Configure Incoming webhook for source plugins. |
 | [plugins.restartPolicy](./values.yaml#L920) | object | `{"threshold":10,"type":"DeactivatePlugin"}` | Botkube Restart Policy on plugin failure. |
 | [plugins.restartPolicy.type](./values.yaml#L922) | string | `"DeactivatePlugin"` | Restart policy type. Allowed values: "RestartAgent", "DeactivatePlugin". |
