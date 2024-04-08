@@ -265,7 +265,7 @@ func runBotTest(t *testing.T,
 			gqlCli.MustCreateAlias(t, alias[0], alias[1], alias[2], deployment.ID)
 		}
 		// Setting env is needed to instrument help msg with cloud sections, and proper links
-		os.Setenv("CONFIG_PROVIDER_IDENTIFIER", deployment.ID) 
+		os.Setenv("CONFIG_PROVIDER_IDENTIFIER", deployment.ID)
 		t.Cleanup(func() {
 			err := helmx.WaitForUninstallation(context.Background(), t, &botkubeDeploymentUninstalled)
 			assert.NoError(t, err)
@@ -382,8 +382,13 @@ func runBotTest(t *testing.T,
 			botDriver.PostMessageToBot(t, botDriver.FirstChannel().Identifier(), command)
 
 			expectedBody := ".... empty response _*<cricket sounds>*_ :cricket: :cricket: :cricket:"
-			if botDriver.Type() == commplatform.SlackBot {
+			switch botDriver.Type() {
+			case commplatform.SlackBot:
 				expectedBody = ".... empty response _*&lt;cricket sounds&gt;*_ :cricket: :cricket: :cricket:"
+			case commplatform.TeamsBot:
+				// the MS Teams treats the '_*<cricket sounds>*_' as the HTML tag and renders it into '<em><em></em></em>'
+				// which is later dropped by the markdown converter
+				expectedBody = ".... empty response  :cricket: :cricket: :cricket:"
 			}
 
 			err = waitForLastPlaintextMessageWithHeaderEqual(appCfg, botDriver, command, expectedBody)
@@ -506,7 +511,7 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `ADDED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
 
-			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.FirstChannel().ID(), expectedMsg)
+			err = botDriver.OnChannel().WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMsg)
 			assert.NoError(t, err)
 		})
 
@@ -538,7 +543,7 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message channel...")
 			expectedMsg := fmt.Sprintf("*Incoming webhook event:* %s", message)
 
-			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.FirstChannel().ID(), expectedMsg)
+			err = botDriver.OnChannel().WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.FirstChannel().ID(), expectedMsg)
 			assert.NoError(t, err)
 		})
 	})
@@ -1372,7 +1377,7 @@ func runBotTest(t *testing.T,
 			t.Log("Expecting bot message in third channel...")
 			expectedMsg := fmt.Sprintf("Plugin cm-watcher detected `DELETED` event on `%s/%s`", cfgMap.Namespace, cfgMap.Name)
 
-			err = waitForLastPlaintextMessageEqual(botDriver, botDriver.ThirdChannel().ID(), expectedMsg)
+			err = botDriver.OnChannel().WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.ThirdChannel().ID(), expectedMsg)
 			require.NoError(t, err)
 
 			t.Cleanup(func() { cleanupCreatedCfgMapIfShould(t, cfgMapCli, cfgMap.Name, &cfgMapAlreadyDeleted) })
@@ -1736,31 +1741,16 @@ func trimRightWhitespace(input string) string {
 	return strings.Join(lines, "\n")
 }
 
-func waitForLastPlaintextMessageEqual(driver commplatform.BotDriver, channelID, expectedMsg string) error {
-	switch driver.Type() {
-	case commplatform.TeamsBot:
-		// in this case of a plain text message, Teams renderer uses Adaptive Cards format
-		return driver.WaitForLastInteractiveMessagePostedEqual(driver.BotUserID(), channelID, interactive.CoreMessage{
-			Message: api.Message{
-				BaseBody: api.Body{
-					Plaintext: expectedMsg,
-				},
-			},
-		})
-	default:
-		return driver.OnChannel().WaitForLastMessageEqual(driver.BotUserID(), channelID, expectedMsg)
-	}
-}
-
 func waitForLastPlaintextMessageWithHeaderEqual(cfg Config, driver commplatform.BotDriver, cmd, expectedBody string) error {
-	return waitForLastMessageWithHeaderEqual(cfg, driver, cmd, expectedBody, false)
+	cmdHeader := func(command string) string {
+		return fmt.Sprintf("`%s` on `%s`", command, cfg.ClusterName)
+	}
+
+	expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(cmd), expectedBody)
+	return driver.WaitForLastMessageEqual(driver.BotUserID(), driver.FirstChannel().ID(), expectedMessage)
 }
 
 func waitForLastCodeBlockMessageWithHeaderEqual(cfg Config, driver commplatform.BotDriver, cmd, expectedBody string) error {
-	return waitForLastMessageWithHeaderEqual(cfg, driver, cmd, expectedBody, true)
-}
-
-func waitForLastMessageWithHeaderEqual(cfg Config, driver commplatform.BotDriver, cmd, expectedBody string, asCodeBlock bool) error {
 	cmdHeader := func(command string) string {
 		return fmt.Sprintf("`%s` on `%s`", command, cfg.ClusterName)
 	}
@@ -1772,17 +1762,11 @@ func waitForLastMessageWithHeaderEqual(cfg Config, driver commplatform.BotDriver
 			Description: cmdHeader(cmd),
 			Message:     api.Message{},
 		}
-		if asCodeBlock {
-			msg.Message.BaseBody.CodeBlock = expectedBody
-		} else {
-			msg.Message.BaseBody.Plaintext = expectedBody
-		}
+		msg.Message.BaseBody.CodeBlock = expectedBody
 
 		return driver.WaitForLastInteractiveMessagePostedEqual(driver.BotUserID(), driver.FirstChannel().ID(), msg)
 	default:
-		if asCodeBlock {
-			expectedBody = codeBlock(expectedBody)
-		}
+		expectedBody = codeBlock(expectedBody)
 		expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(cmd), expectedBody)
 		return driver.WaitForLastMessageEqual(driver.BotUserID(), driver.FirstChannel().ID(), expectedMessage)
 	}
