@@ -256,8 +256,7 @@ func (s *TeamsTester) WaitForMessagePosted(userID, channelID string, limitMessag
 }
 
 func (s *TeamsTester) WaitForMessagePostedRecentlyEqual(userID, channelID, expectedMsg string) error {
-	msg := api.NewPlaintextMessage(expectedMsg, false)
-	return s.waitForAdaptiveCardMessage(userID, channelID, s.cfg.RecentMessagesLimit, interactive.CoreMessage{Message: msg})
+	return s.WaitForInteractiveMessagePosted(userID, channelID, s.cfg.RecentMessagesLimit, s.AssertEquals(expectedMsg))
 }
 
 func (s *TeamsTester) WaitForInteractiveMessagePosted(userID, channelID string, limitMessages int, assertFn MessageAssertion) error {
@@ -378,6 +377,10 @@ func (s *TeamsTester) AssertEquals(expectedMsg string) MessageAssertion {
 	return func(gotMsg string) (bool, int, string) {
 		gotMsg, expectedMsg = NormalizeTeamsWhitespacesInMessages(gotMsg, expectedMsg)
 		expectedMsg = teamsx.ReplaceEmojiTagsWithActualOne(expectedMsg)
+		// For teams the '*' means the underscore, so we need to replace it with '_'
+		// That's the reason why the 'expectedMsg' should become the api.Message in the future
+		// as we can't use the Markdown formatting directly in our test assertions.
+		expectedMsg = strings.ReplaceAll(expectedMsg, "*", "_")
 		if !strings.EqualFold(expectedMsg, gotMsg) {
 			count := diff.CountMatchBlock(expectedMsg, gotMsg)
 			msgDiff := diff.Diff(expectedMsg, gotMsg)
