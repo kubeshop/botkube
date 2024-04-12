@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/avast/retry-go/v4"
 	"net/http"
 	"os"
 	"regexp"
@@ -271,7 +272,16 @@ func runBotTest(t *testing.T,
 			assert.NoError(t, err)
 
 			t.Log("Deleting Botkube Cloud instance...")
-			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
+			err = retry.Do(func() error {
+				return gqlCli.DeleteDeployment(t, graphql.ID(deployment.ID))
+			},
+				retry.Attempts(5),
+				retry.Delay(500*time.Millisecond),
+				retry.LastErrorOnly(false),
+			)
+			if err != nil {
+				t.Logf("Failed to delete deployment: %s", err.Error())
+			}
 		})
 
 		botkubeDeploymentUninstalled.Store(false) // about to be installed

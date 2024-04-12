@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/avast/retry-go/v4"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,8 +41,9 @@ import (
 
 const (
 	// Chromium is not supported by Slack web app for some reason
-	chromeUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-	authHeaderName  = "Authorization"
+	chromeUserAgent      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+	authHeaderName       = "Authorization"
+	cleanupRetryAttempts = 5
 )
 
 type E2ESlackConfig struct {
@@ -303,7 +305,12 @@ func TestCloudSlackE2E(t *testing.T) {
 				return
 			}
 			t.Log("Disconnecting Slack workspace...")
-			gqlCli.MustDeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
+			err = retryOperation(func() error {
+				return gqlCli.DeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
+			})
+			if err != nil {
+				t.Logf("Failed to disconnect Slack workspace: %s", err.Error())
+			}
 		})
 
 		t.Log("Initializing Slack...")
@@ -327,14 +334,24 @@ func TestCloudSlackE2E(t *testing.T) {
 			assert.NoError(t, err)
 
 			t.Log("Deleting first deployment...")
-			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment.ID))
+			err = retryOperation(func() error {
+				return gqlCli.DeleteDeployment(t, graphql.ID(deployment.ID))
+			})
+			if err != nil {
+				t.Logf("Failed to delete first deployment: %s", err.Error())
+			}
 		})
 
 		t.Log("Creating a second deployment...")
 		deployment2 := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, fmt.Sprintf("%s-2", channel.Name()), slackWorkspace.TeamID, channel.Name())
 		t.Cleanup(func() {
 			t.Log("Deleting second deployment...")
-			gqlCli.MustDeleteDeployment(t, graphql.ID(deployment2.ID))
+			err = retryOperation(func() error {
+				return gqlCli.DeleteDeployment(t, graphql.ID(deployment2.ID))
+			})
+			if err != nil {
+				t.Logf("Failed to delete second deployment: %s", err.Error())
+			}
 		})
 
 		botkubeDeploymentUninstalled.Store(false) // about to be installed
@@ -732,4 +749,12 @@ func closePage(t *testing.T, name string, page *rod.Page) {
 
 		t.Logf("Failed to close page %q: %v", name, err)
 	}
+}
+
+func retryOperation(fn func() error) error {
+	return retry.Do(fn,
+		retry.Attempts(cleanupRetryAttempts),
+		retry.Delay(500*time.Millisecond),
+		retry.LastErrorOnly(false),
+	)
 }
