@@ -34,7 +34,10 @@ require (
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 )
 
-require gotest.tools/v3 v3.5.1
+require (
+	github.com/avast/retry-go/v4 v4.3.3
+	gotest.tools/v3 v3.5.1
+)
 
 require (
 	cloud.google.com/go v0.112.0 // indirect
@@ -56,7 +59,6 @@ require (
 	github.com/alexflint/go-scalar v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/auth0/go-jwt-middleware/v2 v2.1.0 // indirect
-	github.com/avast/retry-go/v4 v4.3.3 // indirect
 	github.com/aws/aws-sdk-go v1.44.122 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect

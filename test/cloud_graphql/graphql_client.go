@@ -466,8 +466,15 @@ func (c *Client) MustReportDeploymentStartup(t *testing.T, deploymentId string) 
 	return mutation.ReportDeploymentStartup
 }
 
-// MustDeleteSlackWorkspace deletes a slack workspace.
+// MustDeleteSlackWorkspace deletes a slack workspace with panics on error.
 func (c *Client) MustDeleteSlackWorkspace(t *testing.T, orgID, slackWorkspaceID string) {
+	t.Helper()
+	err := c.DeleteSlackWorkspace(t, orgID, slackWorkspaceID)
+	require.NoError(t, err)
+}
+
+// DeleteSlackWorkspace deletes a slack workspace.
+func (c *Client) DeleteSlackWorkspace(t *testing.T, orgID, slackWorkspaceID string) error {
 	t.Helper()
 
 	type Identifiable struct {
@@ -478,7 +485,7 @@ func (c *Client) MustDeleteSlackWorkspace(t *testing.T, orgID, slackWorkspaceID 
 		RemovePlatformFromOrganization Identifiable `graphql:"removePlatformFromOrganization(input: $input)"`
 	}
 
-	err := c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
+	return c.Client.Mutate(context.Background(), &mutation, map[string]interface{}{
 		"input": gqlModel.RemovePlatformFromOrganizationInput{
 			OrganizationID: orgID,
 			Slack: &gqlModel.RemoveSlackFromOrganizationInput{
@@ -486,7 +493,6 @@ func (c *Client) MustDeleteSlackWorkspace(t *testing.T, orgID, slackWorkspaceID 
 			},
 		},
 	})
-	require.NoError(t, err)
 }
 
 // MustListSlackWorkspacesForOrg returns all slack workspaces scoped to a given organization.
