@@ -1,7 +1,6 @@
 package execute
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -31,6 +30,8 @@ type Flags struct {
 
 // ParseFlags parses raw cmd and removes optional params with flags.
 func ParseFlags(cmd string) (Flags, error) {
+	cmd = ensureEvenSingleQuotes(cmd)
+
 	cmd, clusterName, err := extractParam(cmd, "cluster-name")
 	if err != nil {
 		return Flags{}, err
@@ -54,7 +55,7 @@ func ParseFlags(cmd string) (Flags, error) {
 
 	tokenized, err := shellwords.Parse(cmd)
 	if err != nil {
-		return Flags{}, errors.New(cantParseCmd)
+		return Flags{}, err
 	}
 	return Flags{
 		CleanCmd:     cmd,
@@ -108,6 +109,21 @@ func extractParam(cmd, flagName string) (string, string, error) {
 		cmd = strings.Replace(cmd, fmt.Sprintf(" %s", matches[0]), "", -1)
 	}
 	return cmd, withParam, nil
+}
+
+// ensureEvenSingleQuotes ensures that single quotes are even. It is required, e.g., for AI plugins to work.
+// Otherwise, the command won't be parsed correctly (removing cluster name flags, etc.) and will result in an error.
+// This is only a workaround for now. Ultimately, we should find a better and more generic way for extracting
+// parameters. Additionally, we should delegate command tokenizing to the plugin.
+func ensureEvenSingleQuotes(cmd string) string {
+	for _, k := range []string{`‘`, `'`, `’`} {
+		no := strings.Count(cmd, k)
+		if no%2 == 0 {
+			continue
+		}
+		cmd = strings.Replace(cmd, k, k+k, 1)
+	}
+	return cmd
 }
 
 func extractBoolParam(cmd, flagName string) (string, bool, error) {

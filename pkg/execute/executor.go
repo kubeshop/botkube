@@ -88,12 +88,12 @@ func (e *DefaultExecutor) Execute(ctx context.Context) interactive.CoreMessage {
 
 	flags, err := ParseFlags(expandedRawCmd)
 	if err != nil {
-		e.log.Errorf("while parsing command flags %q: %s", expandedRawCmd, err.Error())
+		e.log.WithError(err).WithField("msg", expandedRawCmd).Error("Failed to parse user message")
 		return interactive.CoreMessage{
 			Description: header(cmdCtx),
 			Message: api.Message{
 				BaseBody: api.Body{
-					Plaintext: err.Error(),
+					Plaintext: cantParseCmd,
 				},
 			},
 		}
