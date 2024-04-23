@@ -372,9 +372,10 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 					{
 						Name:   "Cloud Slack",
 						TeamID: slackTeamID,
-						Channels: []*gqlModel.ChannelBindingsByNameCreateInput{
+						Channels: []*gqlModel.ChannelBindingsByNameAndIDCreateInput{
 							{
-								Name: firstChannel,
+								ChannelID: "", // this is used for UI only so we don't need to provide it
+								Name:      firstChannel,
 								Bindings: &gqlModel.BotBindingsCreateInput{
 									Sources:   []*string{ptr.FromType("k8s-events"), ptr.FromType("k8s-annotated-cm-delete"), ptr.FromType("k8s-pod-create-events"), ptr.FromType("other-plugins")},
 									Executors: []*string{ptr.FromType("kubectl-first-channel-cmd"), ptr.FromType("other-plugins"), ptr.FromType("helm")},
@@ -382,7 +383,8 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 								NotificationsDisabled: ptr.FromType[bool](false),
 							},
 							{
-								Name: secondChannel,
+								ChannelID: "", // this is used for UI only so we don't need to provide it
+								Name:      secondChannel,
 								Bindings: &gqlModel.BotBindingsCreateInput{
 									Sources:   []*string{ptr.FromType("k8s-updates")},
 									Executors: []*string{ptr.FromType("k8s-default-tools")},
@@ -390,7 +392,8 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 								NotificationsDisabled: ptr.FromType[bool](true),
 							},
 							{
-								Name: thirdChannel,
+								ChannelID: "", // this is used for UI only so we don't need to provide it
+								Name:      thirdChannel,
 								Bindings: &gqlModel.BotBindingsCreateInput{
 									Sources:   []*string{ptr.FromType("rbac-with-static-mapping"), ptr.FromType("rbac-with-default-configuration")},
 									Executors: []*string{ptr.FromType("rbac-with-channel-mapping"), ptr.FromType("rbac-with-no-configuration")},

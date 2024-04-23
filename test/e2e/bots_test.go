@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/avast/retry-go/v4"
 	"net/http"
 	"os"
 	"regexp"
@@ -16,6 +15,8 @@ import (
 	"testing"
 	"time"
 	"unicode"
+
+	"github.com/avast/retry-go/v4"
 
 	"botkube.io/botube/test/helmx"
 
