@@ -596,16 +596,16 @@ func (s *SlackTester) restoreMsgTsIfNeeded() {
 }
 
 var emojiSlackMapping = map[string]string{
-	"🟢": ":large_green_circle:",
-	"💡": ":bulb:",
-	"❗": ":exclamation:",
-	"🚀": ":rocket:",
-	"🏁": ":checkered_flag:",
+	"🟢":  ":large_green_circle:",
+	"💡":  ":bulb:",
+	"❗":  ":exclamation:",
+	"🚀":  ":rocket:",
+	"🏁":  ":checkered_flag:",
 	"🛠️": ":hammer_and_wrench:",
-	"📣": ":mega:",
+	"📣":  ":mega:",
 	"☁️": ":cloud:",
-	"🤖": ":robot_face:",
-	"🔮": ":crystal_ball:",
+	"🤖":  ":robot_face:",
+	"🔮":  ":crystal_ball:",
 }
 
 func replaceEmojiWithTags(content string) string {

@@ -646,10 +646,11 @@ func removeSourcesAndAddActions(t *testing.T, gql *graphql.Client, existingDeplo
 	platforms := gqlModel.PlatformsUpdateInput{}
 
 	for _, slack := range existingDeployment.Platforms.CloudSlacks {
-		var channelUpdateInputs []*gqlModel.ChannelBindingsByNameUpdateInput
+		var channelUpdateInputs []*gqlModel.ChannelBindingsByNameAndIDUpdateInput
 		for _, channel := range slack.Channels {
-			channelUpdateInputs = append(channelUpdateInputs, &gqlModel.ChannelBindingsByNameUpdateInput{
-				Name: channel.Name,
+			channelUpdateInputs = append(channelUpdateInputs, &gqlModel.ChannelBindingsByNameAndIDUpdateInput{
+				ChannelID: "", // this is used for UI only so we don't need to provide it
+				Name:      channel.Name,
 				Bindings: &gqlModel.BotBindingsUpdateInput{
 					Sources:   nil,
 					Executors: []*string{&channel.Bindings.Executors[0]},

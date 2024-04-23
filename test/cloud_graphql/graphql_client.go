@@ -215,9 +215,10 @@ func (c *Client) CreateBasicDeploymentWithCloudSlack(t *testing.T, clusterName, 
 					{
 						Name:   "Cloud Slack",
 						TeamID: slackTeamID,
-						Channels: []*gqlModel.ChannelBindingsByNameCreateInput{
+						Channels: []*gqlModel.ChannelBindingsByNameAndIDCreateInput{
 							{
-								Name: channelName,
+								ChannelID: "", // this is used for UI only so we don't need to provide it
+								Name:      channelName,
 								Bindings: &gqlModel.BotBindingsCreateInput{
 									Sources:   []*string{ptr.FromType("kubernetes_config")},
 									Executors: []*string{ptr.FromType("kubectl_config")},
