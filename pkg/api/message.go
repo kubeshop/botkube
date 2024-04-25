@@ -30,6 +30,11 @@ type MessageType string
 const (
 	// DefaultMessage defines a message that should be displayed in default mode supported by communicator.
 	DefaultMessage MessageType = ""
+	// BasicCardWithButtonsInSeparateMessage defines a message that should be displayed in plaintext mode supported by the communicator,
+	// with the buttons sent in a separate interactive message.
+	//
+	// It's an ALPHA feature currently available only for the Teams platform. It might be renamed or removed in the future.
+	BasicCardWithButtonsInSeparateMsg = "basicCardWithButtonsInSeparateMessage"
 	// BaseBodyWithFilterMessage defines a message that should be displayed in plaintext mode supported by communicator.
 	// In this form the built-in filter is supported.
 	// NOTE: only BaseBody is preserved. All other properties are ignored even if set.
@@ -66,8 +71,7 @@ type Message struct {
 }
 
 func (msg *Message) IsEmpty() bool {
-	var emptyBase Body
-	if msg.BaseBody != emptyBase {
+	if msg.HasBaseBody() {
 		return false
 	}
 	if msg.HasInputs() {
@@ -81,6 +85,12 @@ func (msg *Message) IsEmpty() bool {
 	}
 
 	return true
+}
+
+// HasBaseBody returns true if message has base body defined.
+func (msg *Message) HasBaseBody() bool {
+	var emptyBase Body
+	return msg.BaseBody != emptyBase
 }
 
 // HasSections returns true if message has interactive sections.
