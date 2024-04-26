@@ -32,8 +32,7 @@ const (
 	DefaultMessage MessageType = ""
 	// BasicCardWithButtonsInSeparateMessage defines a message that should be displayed in plaintext mode supported by the communicator,
 	// with the buttons sent in a separate interactive message.
-	//
-	// It's an ALPHA feature currently available only for the Teams platform. It might be renamed or removed in the future.
+	// This feature is currently available only for the Teams platform.
 	BasicCardWithButtonsInSeparateMsg = "basicCardWithButtonsInSeparateMessage"
 	// BaseBodyWithFilterMessage defines a message that should be displayed in plaintext mode supported by communicator.
 	// In this form the built-in filter is supported.
