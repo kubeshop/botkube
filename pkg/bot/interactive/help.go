@@ -107,14 +107,32 @@ func (h *HelpMessage) basicCommands() []api.Section {
 }
 
 func (h *HelpMessage) footer() []api.Section {
+	btns := api.Buttons{
+		h.btnBuilder.ForURL("Give feedback", "https://feedback.botkube.io", api.ButtonStylePrimary),
+		h.btnBuilder.ForURL("Read our docs", "https://docs.botkube.io"),
+		h.btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
+		h.btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
+	}
+
+	if !remote.IsEnabled() {
+		return []api.Section{
+			{
+				Buttons: btns,
+			},
+		}
+	}
+
 	return []api.Section{
 		{
-			Buttons: []api.Button{
-				h.btnBuilder.ForURL("Give feedback", "https://feedback.botkube.io", api.ButtonStylePrimary),
-				h.btnBuilder.ForURL("Read our docs", "https://docs.botkube.io"),
-				h.btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
-				h.btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
+			Context: api.ContextItems{
+				{Text: fmt.Sprintf("👀 _All %s mentions and events are visible to your Botkube Cloud organisation’s administrators._", api.MessageBotNamePlaceholder)},
 			},
+		},
+		{
+			Style: api.SectionStyle{
+				Divider: api.DividerStyleTopNone,
+			},
+			Buttons: btns,
 		},
 	}
 }

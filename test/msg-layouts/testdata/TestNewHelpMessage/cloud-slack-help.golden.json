@@ -317,6 +317,15 @@
       "type": "divider"
     },
     {
+      "type": "context",
+      "elements": [
+        {
+          "type": "mrkdwn",
+          "text": "👀 _All @Botkube mentions and events are visible to your Botkube Cloud organisation’s administrators._"
+        }
+      ]
+    },
+    {
       "type": "actions",
       "elements": [
         {

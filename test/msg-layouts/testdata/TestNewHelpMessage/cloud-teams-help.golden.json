@@ -452,6 +452,14 @@
       ]
     },
     {
+      "type": "TextBlock",
+      "text": "_👀 _All @Botkube mentions and events are visible to your Botkube Cloud organisation’s administrators.__",
+      "isSubtle": true,
+      "weight": "lighter",
+      "wrap": true,
+      "separator": true
+    },
+    {
       "type": "ActionSet",
       "actions": [
         {
