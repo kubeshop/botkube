@@ -24,6 +24,18 @@ const (
 	ExternalSelect SelectType = "external"
 )
 
+// DividerStyle is a style of Divider element between section blocks.
+type DividerStyle string
+
+// Represents a divider styles.
+const (
+	// DividerStyleDefault put a block divider, like an <hr>, to split up different sections inside of a single message.
+	// It is the default style for backwards compatibility.
+	DividerStyleDefault DividerStyle = ""
+	// DividerStyleTopNone
+	DividerStyleTopNone DividerStyle = "none"
+)
+
 // MessageType defines the message type.
 type MessageType string
 
@@ -126,8 +138,15 @@ type Body struct {
 	Plaintext string `json:"plaintext,omitempty" yaml:"plaintext"`
 }
 
+// SectionStyle holds section style.
+type SectionStyle struct {
+	Divider DividerStyle `json:"divider,omitempty" yaml:"dividerStyle"`
+}
+
 // Section holds section related fields.
 type Section struct {
+	Style SectionStyle `json:"style,omitempty" yaml:"style"`
+
 	Base            `json:",inline" yaml:"base"`
 	Buttons         Buttons      `json:"buttons,omitempty" yaml:"buttons"`
 	MultiSelect     MultiSelect  `json:"multiSelect,omitempty" yaml:"multiSelect"`

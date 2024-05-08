@@ -22,7 +22,7 @@ import (
 //   - Slack: https://app.slack.com/block-kit-builder/
 //   - Teams: https://adaptivecards.io/designer/
 //   - Discord: it's only markdown, just post as a normal message in discord channel
-//   - Mattermost: it's only markdown, just post as a normal message in discord channel
+//   - Mattermost: it's only markdown, just post as a normal message in mattermost channel
 //
 // To update the golden files:
 //

@@ -81,13 +81,13 @@ func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.CoreMessage) []slack
 		blocks = append(blocks, b.mdTextSection(formatx.AdaptiveCodeBlock(msg.BaseBody.CodeBlock)))
 	}
 
-	all := len(msg.Sections)
 	for idx, s := range msg.Sections {
-		blocks = append(blocks, b.renderSection(s)...)
-		if !(idx == all-1) { // if not the last one, append divider
+		if idx > 0 && s.Style.Divider != api.DividerStyleTopNone {
 			blocks = append(blocks, slack.NewDividerBlock())
 		}
+		blocks = append(blocks, b.renderSection(s)...)
 	}
+
 	for _, i := range msg.PlaintextInputs {
 		blocks = append(blocks, b.renderInput(i))
 	}
