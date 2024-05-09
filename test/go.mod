@@ -14,8 +14,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hasura/go-graphql-client v0.10.2
 	github.com/infracloudio/msbotbuilder-go v0.2.6-0.20231130085215-84d2040b3577
-	github.com/kubeshop/botkube v0.13.1-0.20240422102108-216a2f38b7dd
-	github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240422155202-e9ac9407823a
+	github.com/kubeshop/botkube v0.13.1-0.20240508144003-3487564b83a1
+	github.com/kubeshop/botkube-cloud/botkube-cloud-backend v0.0.0-20240508145541-6aa7480265af
 	github.com/markbates/errx v1.1.0
 	github.com/microsoftgraph/msgraph-sdk-go v1.31.0
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
