@@ -353,17 +353,17 @@
           "type": "button",
           "text": {
             "type": "plain_text",
-            "text": "Join our Slack",
+            "text": "Get support",
             "emoji": true
           },
-          "action_id": "url:https://join.botkube.io",
-          "url": "https://join.botkube.io"
+          "action_id": "url:https://botkube.io/support",
+          "url": "https://botkube.io/support"
         },
         {
           "type": "button",
           "text": {
             "type": "plain_text",
-            "text": "Follow us on Twitter",
+            "text": "Follow us on Twitter/X",
             "emoji": true
           },
           "action_id": "url:https://twitter.com/botkube_io",
