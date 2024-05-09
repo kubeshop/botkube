@@ -23,4 +23,4 @@ Automation: https://docs.botkube.io/usage/automated-actions
 Give feedback: https://feedback.botkube.io
 Read our docs: https://docs.botkube.io
 Join our Slack: https://join.botkube.io
-Follow us on Twitter: https://twitter.com/botkube_io
+Follow us on Twitter/X: https://twitter.com/botkube_io

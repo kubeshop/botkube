@@ -475,13 +475,13 @@
         },
         {
           "type": "Action.OpenUrl",
-          "url": "https://join.botkube.io",
-          "title": "Join our Slack"
+          "url": "https://botkube.io/support",
+          "title": "Get support"
         },
         {
           "type": "Action.OpenUrl",
           "url": "https://twitter.com/botkube_io",
-          "title": "Follow us on Twitter"
+          "title": "Follow us on Twitter/X"
         }
       ],
       "separator": true

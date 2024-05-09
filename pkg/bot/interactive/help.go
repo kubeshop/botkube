@@ -110,9 +110,15 @@ func (h *HelpMessage) footer() []api.Section {
 	btns := api.Buttons{
 		h.btnBuilder.ForURL("Give feedback", "https://feedback.botkube.io", api.ButtonStylePrimary),
 		h.btnBuilder.ForURL("Read our docs", "https://docs.botkube.io"),
-		h.btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"),
-		h.btnBuilder.ForURL("Follow us on Twitter", "https://twitter.com/botkube_io"),
 	}
+
+	if h.platform == config.CloudSlackCommPlatformIntegration || h.platform == config.CloudTeamsCommPlatformIntegration {
+		btns = append(btns, h.btnBuilder.ForURL("Get support", "https://botkube.io/support"))
+	} else {
+		btns = append(btns, h.btnBuilder.ForURL("Join our Slack", "https://join.botkube.io"))
+	}
+
+	btns = append(btns, h.btnBuilder.ForURL("Follow us on Twitter/X", "https://twitter.com/botkube_io"))
 
 	if !remote.IsEnabled() {
 		return []api.Section{
