@@ -123,6 +123,7 @@ func PersistKubeConfig(_ context.Context, kc []byte) (string, func(context.Conte
 	if err != nil {
 		return "", nil, errors.Wrap(err, "while writing kube config to file")
 	}
+	defer file.Close()
 
 	abs, err := filepath.Abs(file.Name())
 	if err != nil {
