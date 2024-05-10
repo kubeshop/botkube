@@ -526,7 +526,7 @@ communications:
   'default-group':
     ## Settings for Slack with Socket Mode.
     socketSlack:
-      # -- If true, enables Slack bot.
+      # -- If true, enables bot for Slack.
       enabled: false
       # -- Map of configured channels. The property name under `channels` object is an alias for a given configuration.
       #
@@ -543,10 +543,10 @@ communications:
             sources:
               - k8s-err-events
               - k8s-recommendation-events
-      # -- Slack bot token for your own Slack app.
+      # -- Bot token for your own app for Slack.
       # [Ref doc](https://api.slack.com/authentication/token-types).
       botToken: ''
-      # -- Slack app-level token for your own Slack app.
+      # -- App-level token for your own app for Slack.
       # [Ref doc](https://api.slack.com/authentication/token-types).
       appToken: ''
     ## Settings for Mattermost.
