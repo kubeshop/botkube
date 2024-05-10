@@ -2,8 +2,35 @@ apiVersion: v1
 entries:
   botkube:
   - apiVersion: v1
+    appVersion: v1.11.0-rc.1
+    created: "2024-05-10T07:12:25.600301791Z"
+    description: Controller for the Botkube Slack app which helps you monitor your
+      Kubernetes cluster, debug deployments and run specific checks on resources in
+      the cluster.
+    digest: 47ca457cbde5e49ae380ca2ce24349bfc5f72f4cc66e2ead698c5c89883dd323
+    home: https://botkube.io
+    icon: https://docs.botkube.io/images/botkube-black.svg
+    keywords:
+    - botkube
+    - kubernetes
+    - kubernetes-monitoring
+    - kubernetes-controller
+    - kubernetes-bot
+    - chatops
+    - bot
+    - botops
+    maintainers:
+    - email: dev-team@botkube.io
+      name: Botkube Dev Team
+    name: botkube
+    sources:
+    - https://github.com/kubeshop/botkube
+    urls:
+    - https://charts.botkube.io/botkube-v1.11.0-rc.1.tgz
+    version: v1.11.0-rc.1
+  - apiVersion: v1
     appVersion: v1.10.0
-    created: "2024-04-08T10:41:47.403624819Z"
+    created: "2024-05-10T07:12:25.598302908Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -30,7 +57,7 @@ entries:
     version: v1.10.0
   - apiVersion: v1
     appVersion: v1.10.0-rc.1
-    created: "2024-04-08T10:41:47.400982535Z"
+    created: "2024-05-10T07:12:25.596314744Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -57,7 +84,7 @@ entries:
     version: v1.10.0-rc.1
   - apiVersion: v1
     appVersion: v1.9.1
-    created: "2024-04-08T10:41:47.479364211Z"
+    created: "2024-05-10T07:12:25.685835275Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -84,7 +111,7 @@ entries:
     version: v1.9.1
   - apiVersion: v1
     appVersion: v1.9.1-rc.1
-    created: "2024-04-08T10:41:47.47738294Z"
+    created: "2024-05-10T07:12:25.6837819Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -111,7 +138,7 @@ entries:
     version: v1.9.1-rc.1
   - apiVersion: v1
     appVersion: v1.9.0
-    created: "2024-04-08T10:41:47.475373897Z"
+    created: "2024-05-10T07:12:25.681792604Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -138,7 +165,7 @@ entries:
     version: v1.9.0
   - apiVersion: v1
     appVersion: v1.9.0-rc.2
-    created: "2024-04-08T10:41:47.472659911Z"
+    created: "2024-05-10T07:12:25.679011632Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -165,7 +192,7 @@ entries:
     version: v1.9.0-rc.2
   - apiVersion: v1
     appVersion: v1.9.0-rc.1
-    created: "2024-04-08T10:41:47.47064125Z"
+    created: "2024-05-10T07:12:25.676998802Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -192,7 +219,7 @@ entries:
     version: v1.9.0-rc.1
   - apiVersion: v1
     appVersion: v1.8.0
-    created: "2024-04-08T10:41:47.468631797Z"
+    created: "2024-05-10T07:12:25.674942982Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -219,7 +246,7 @@ entries:
     version: v1.8.0
   - apiVersion: v1
     appVersion: v1.8.0-rc.1
-    created: "2024-04-08T10:41:47.465035683Z"
+    created: "2024-05-10T07:12:25.671562264Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -246,7 +273,7 @@ entries:
     version: v1.8.0-rc.1
   - apiVersion: v1
     appVersion: v1.7.0
-    created: "2024-04-08T10:41:47.462410195Z"
+    created: "2024-05-10T07:12:25.668972531Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -273,7 +300,7 @@ entries:
     version: v1.7.0
   - apiVersion: v1
     appVersion: v1.7.0-rc.1
-    created: "2024-04-08T10:41:47.459816798Z"
+    created: "2024-05-10T07:12:25.666318117Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -300,7 +327,7 @@ entries:
     version: v1.7.0-rc.1
   - apiVersion: v1
     appVersion: v1.6.0
-    created: "2024-04-08T10:41:47.456315299Z"
+    created: "2024-05-10T07:12:25.662749607Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -327,7 +354,7 @@ entries:
     version: v1.6.0
   - apiVersion: v1
     appVersion: v1.6.0-rc.2
-    created: "2024-04-08T10:41:47.453691635Z"
+    created: "2024-05-10T07:12:25.660149544Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -354,7 +381,7 @@ entries:
     version: v1.6.0-rc.2
   - apiVersion: v1
     appVersion: v1.6.0-rc.1
-    created: "2024-04-08T10:41:47.450345602Z"
+    created: "2024-05-10T07:12:25.657499307Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -381,7 +408,7 @@ entries:
     version: v1.6.0-rc.1
   - apiVersion: v1
     appVersion: v1.5.0
-    created: "2024-04-08T10:41:47.447774526Z"
+    created: "2024-05-10T07:12:25.654204035Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -408,7 +435,7 @@ entries:
     version: v1.5.0
   - apiVersion: v1
     appVersion: v1.5.0-rc.2
-    created: "2024-04-08T10:41:47.445130353Z"
+    created: "2024-05-10T07:12:25.651353172Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -435,7 +462,7 @@ entries:
     version: v1.5.0-rc.2
   - apiVersion: v1
     appVersion: v1.5.0-rc.1
-    created: "2024-04-08T10:41:47.441759137Z"
+    created: "2024-05-10T07:12:25.648759722Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -462,7 +489,7 @@ entries:
     version: v1.5.0-rc.1
   - apiVersion: v1
     appVersion: v1.4.1
-    created: "2024-04-08T10:41:47.439135954Z"
+    created: "2024-05-10T07:12:25.646098755Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -489,7 +516,7 @@ entries:
     version: v1.4.1
   - apiVersion: v1
     appVersion: v1.4.1-rc.1
-    created: "2024-04-08T10:41:47.436009367Z"
+    created: "2024-05-10T07:12:25.642394162Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -516,7 +543,7 @@ entries:
     version: v1.4.1-rc.1
   - apiVersion: v1
     appVersion: v1.4.0
-    created: "2024-04-08T10:41:47.432527681Z"
+    created: "2024-05-10T07:12:25.639482475Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -543,7 +570,7 @@ entries:
     version: v1.4.0
   - apiVersion: v1
     appVersion: v1.4.0-rc.3
-    created: "2024-04-08T10:41:47.429945355Z"
+    created: "2024-05-10T07:12:25.636728193Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -570,7 +597,7 @@ entries:
     version: v1.4.0-rc.3
   - apiVersion: v1
     appVersion: v1.4.0-rc.2
-    created: "2024-04-08T10:41:47.427058978Z"
+    created: "2024-05-10T07:12:25.631078275Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -597,7 +624,7 @@ entries:
     version: v1.4.0-rc.2
   - apiVersion: v1
     appVersion: v1.4.0-rc.1
-    created: "2024-04-08T10:41:47.423927217Z"
+    created: "2024-05-10T07:12:25.626232365Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -624,7 +651,7 @@ entries:
     version: v1.4.0-rc.1
   - apiVersion: v1
     appVersion: v1.3.0
-    created: "2024-04-08T10:41:47.421372482Z"
+    created: "2024-05-10T07:12:25.621215384Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -651,7 +678,7 @@ entries:
     version: v1.3.0
   - apiVersion: v1
     appVersion: v1.3.0-rc.2
-    created: "2024-04-08T10:41:47.418982976Z"
+    created: "2024-05-10T07:12:25.616324639Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -678,7 +705,7 @@ entries:
     version: v1.3.0-rc.2
   - apiVersion: v1
     appVersion: v1.3.0-rc.1
-    created: "2024-04-08T10:41:47.415921002Z"
+    created: "2024-05-10T07:12:25.613919833Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -705,7 +732,7 @@ entries:
     version: v1.3.0-rc.1
   - apiVersion: v1
     appVersion: v1.2.0
-    created: "2024-04-08T10:41:47.413535163Z"
+    created: "2024-05-10T07:12:25.611502173Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -732,7 +759,7 @@ entries:
     version: v1.2.0
   - apiVersion: v1
     appVersion: v1.2.0-rc.3
-    created: "2024-04-08T10:41:47.411198387Z"
+    created: "2024-05-10T07:12:25.60816306Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -759,7 +786,7 @@ entries:
     version: v1.2.0-rc.3
   - apiVersion: v1
     appVersion: v1.2.0-rc.2
-    created: "2024-04-08T10:41:47.408282073Z"
+    created: "2024-05-10T07:12:25.605823066Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -786,7 +813,7 @@ entries:
     version: v1.2.0-rc.2
   - apiVersion: v1
     appVersion: v1.2.0-rc.1
-    created: "2024-04-08T10:41:47.405946418Z"
+    created: "2024-05-10T07:12:25.6034769Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -813,7 +840,7 @@ entries:
     version: v1.2.0-rc.1
   - apiVersion: v1
     appVersion: v1.1.1
-    created: "2024-04-08T10:41:47.398987689Z"
+    created: "2024-05-10T07:12:25.593423175Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -840,7 +867,7 @@ entries:
     version: v1.1.1
   - apiVersion: v1
     appVersion: v1.1.1-rc.1
-    created: "2024-04-08T10:41:47.39692182Z"
+    created: "2024-05-10T07:12:25.591331377Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -867,7 +894,7 @@ entries:
     version: v1.1.1-rc.1
   - apiVersion: v1
     appVersion: v1.1.0
-    created: "2024-04-08T10:41:47.394796028Z"
+    created: "2024-05-10T07:12:25.589248596Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -894,7 +921,7 @@ entries:
     version: v1.1.0
   - apiVersion: v1
     appVersion: v1.1.0-rc.4
-    created: "2024-04-08T10:41:47.392100201Z"
+    created: "2024-05-10T07:12:25.586277567Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -921,7 +948,7 @@ entries:
     version: v1.1.0-rc.4
   - apiVersion: v1
     appVersion: v1.1.0-rc.3
-    created: "2024-04-08T10:41:47.390037176Z"
+    created: "2024-05-10T07:12:25.584208962Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -948,7 +975,7 @@ entries:
     version: v1.1.0-rc.3
   - apiVersion: v1
     appVersion: v1.1.0-rc.2
-    created: "2024-04-08T10:41:47.387969494Z"
+    created: "2024-05-10T07:12:25.581987912Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -975,7 +1002,7 @@ entries:
     version: v1.1.0-rc.2
   - apiVersion: v1
     appVersion: v1.1.0-rc.1
-    created: "2024-04-08T10:41:47.385114757Z"
+    created: "2024-05-10T07:12:25.579157827Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1002,7 +1029,7 @@ entries:
     version: v1.1.0-rc.1
   - apiVersion: v1
     appVersion: v1.0.1
-    created: "2024-04-08T10:41:47.383030272Z"
+    created: "2024-05-10T07:12:25.577113719Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1029,7 +1056,7 @@ entries:
     version: v1.0.1
   - apiVersion: v1
     appVersion: v1.0.1-rc.2
-    created: "2024-04-08T10:41:47.380971386Z"
+    created: "2024-05-10T07:12:25.575030217Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1056,7 +1083,7 @@ entries:
     version: v1.0.1-rc.2
   - apiVersion: v1
     appVersion: v1.0.1-rc.1
-    created: "2024-04-08T10:41:47.378141713Z"
+    created: "2024-05-10T07:12:25.572672671Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1083,7 +1110,7 @@ entries:
     version: v1.0.1-rc.1
   - apiVersion: v1
     appVersion: v1.0.0
-    created: "2024-04-08T10:41:47.376064092Z"
+    created: "2024-05-10T07:12:25.57024337Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1110,7 +1137,7 @@ entries:
     version: v1.0.0
   - apiVersion: v1
     appVersion: v1.0.0-rc.2
-    created: "2024-04-08T10:41:47.373960882Z"
+    created: "2024-05-10T07:12:25.568212095Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1137,7 +1164,7 @@ entries:
     version: v1.0.0-rc.2
   - apiVersion: v1
     appVersion: v1.0.0-rc.1
-    created: "2024-04-08T10:41:47.371157456Z"
+    created: "2024-05-10T07:12:25.566111881Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1164,7 +1191,7 @@ entries:
     version: v1.0.0-rc.1
   - apiVersion: v1
     appVersion: v0.18.0
-    created: "2024-04-08T10:41:47.369132494Z"
+    created: "2024-05-10T07:12:25.563205833Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1191,7 +1218,7 @@ entries:
     version: v0.18.0
   - apiVersion: v1
     appVersion: v0.18.0-rc.3
-    created: "2024-04-08T10:41:47.367197529Z"
+    created: "2024-05-10T07:12:25.561344358Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1218,7 +1245,7 @@ entries:
     version: v0.18.0-rc.3
   - apiVersion: v1
     appVersion: v0.18.0-rc.2
-    created: "2024-04-08T10:41:47.364399881Z"
+    created: "2024-05-10T07:12:25.559429552Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1245,7 +1272,7 @@ entries:
     version: v0.18.0-rc.2
   - apiVersion: v1
     appVersion: v0.18.0-rc.1
-    created: "2024-04-08T10:41:47.362433998Z"
+    created: "2024-05-10T07:12:25.55686365Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1272,7 +1299,7 @@ entries:
     version: v0.18.0-rc.1
   - apiVersion: v1
     appVersion: v0.17.0
-    created: "2024-04-08T10:41:47.360514543Z"
+    created: "2024-05-10T07:12:25.554942753Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1299,7 +1326,7 @@ entries:
     version: v0.17.0
   - apiVersion: v1
     appVersion: v0.17.0-rc.3
-    created: "2024-04-08T10:41:47.357957286Z"
+    created: "2024-05-10T07:12:25.552588973Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1326,7 +1353,7 @@ entries:
     version: v0.17.0-rc.3
   - apiVersion: v1
     appVersion: v0.17.0-rc.2
-    created: "2024-04-08T10:41:47.355885005Z"
+    created: "2024-05-10T07:12:25.550614746Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1353,7 +1380,7 @@ entries:
     version: v0.17.0-rc.2
   - apiVersion: v1
     appVersion: v0.17.0-rc.1
-    created: "2024-04-08T10:41:47.354041412Z"
+    created: "2024-05-10T07:12:25.547853855Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1380,7 +1407,7 @@ entries:
     version: v0.17.0-rc.1
   - apiVersion: v1
     appVersion: v0.16.0
-    created: "2024-04-08T10:41:47.352009102Z"
+    created: "2024-05-10T07:12:25.546049587Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1407,7 +1434,7 @@ entries:
     version: v0.16.0
   - apiVersion: v1
     appVersion: v0.16.0-rc.1
-    created: "2024-04-08T10:41:47.349374591Z"
+    created: "2024-05-10T07:12:25.544289502Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1434,7 +1461,7 @@ entries:
     version: v0.16.0-rc.1
   - apiVersion: v1
     appVersion: v0.15.0
-    created: "2024-04-08T10:41:47.347578567Z"
+    created: "2024-05-10T07:12:25.541599893Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1461,7 +1488,7 @@ entries:
     version: v0.15.0
   - apiVersion: v1
     appVersion: v0.15.0-rc.2
-    created: "2024-04-08T10:41:47.34596792Z"
+    created: "2024-05-10T07:12:25.540088505Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1488,7 +1515,7 @@ entries:
     version: v0.15.0-rc.2
   - apiVersion: v1
     appVersion: v0.15.0-rc.1
-    created: "2024-04-08T10:41:47.343452821Z"
+    created: "2024-05-10T07:12:25.538545457Z"
     description: Controller for the Botkube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1515,7 +1542,7 @@ entries:
     version: v0.15.0-rc.1
   - apiVersion: v1
     appVersion: v0.14.0
-    created: "2024-04-08T10:41:47.34176469Z"
+    created: "2024-05-10T07:12:25.537022247Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1542,7 +1569,7 @@ entries:
     version: v0.14.0
   - apiVersion: v1
     appVersion: v0.14.0-rc.2
-    created: "2024-04-08T10:41:47.340152901Z"
+    created: "2024-05-10T07:12:25.535296336Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1569,7 +1596,7 @@ entries:
     version: v0.14.0-rc.2
   - apiVersion: v1
     appVersion: v0.14.0-rc.1
-    created: "2024-04-08T10:41:47.338469628Z"
+    created: "2024-05-10T07:12:25.533094631Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1596,7 +1623,7 @@ entries:
     version: v0.14.0-rc.1
   - apiVersion: v1
     appVersion: v0.13.0
-    created: "2024-04-08T10:41:47.336809178Z"
+    created: "2024-05-10T07:12:25.531440474Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1623,7 +1650,7 @@ entries:
     version: v0.13.0
   - apiVersion: v1
     appVersion: v0.13.0-rc.1
-    created: "2024-04-08T10:41:47.335399527Z"
+    created: "2024-05-10T07:12:25.530071795Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1650,7 +1677,7 @@ entries:
     version: v0.13.0-rc.1
   - apiVersion: v1
     appVersion: v0.12.4
-    created: "2024-04-08T10:41:47.333997421Z"
+    created: "2024-05-10T07:12:25.528696101Z"
     description: Controller for the BotKube Slack app which helps you monitor your
       Kubernetes cluster, debug deployments and run specific checks on resources in
       the cluster.
@@ -1675,4 +1702,4 @@ entries:
     urls:
     - https://charts.botkube.io/botkube-v0.12.4.tgz
     version: v0.12.4
-generated: "2024-04-08T10:41:47.332385301Z"
+generated: "2024-05-10T07:12:25.527314387Z"
