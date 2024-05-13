@@ -2,7 +2,7 @@
 
 ![Version: v1.11.0](https://img.shields.io/badge/Version-v1.11.0-informational?style=flat-square) ![AppVersion: v1.11.0](https://img.shields.io/badge/AppVersion-v1.11.0-informational?style=flat-square)
 
-Controller for the Botkube Slack app which helps you monitor your Kubernetes cluster, debug deployments and run specific checks on resources in the cluster.
+A virtual SRE, powered by AI.
 
 **Homepage:** <https://botkube.io>
 
@@ -122,13 +122,13 @@ Controller for the Botkube Slack app which helps you monitor your Kubernetes clu
 | [aliases](./values.yaml#L497) | object | See the `values.yaml` file for full object. | Custom aliases for given commands. The aliases are replaced with the underlying command before executing it. Aliases can replace a single word or multiple ones. For example, you can define a `k` alias for `kubectl`, or `kgp` for `kubectl get pods`.   |
 | [existingCommunicationsSecretName](./values.yaml#L518) | string | `""` | Configures existing Secret with communication settings. It MUST be in the `botkube` Namespace. To reload Botkube once it changes, add label `botkube.io/config-watch: "true"`.  |
 | [communications](./values.yaml#L525) | object | See the `values.yaml` file for full object. | Map of communication groups. Communication group contains settings for multiple communication platforms. The property name under `communications` object is an alias for a given configuration group. You can define multiple communication groups with different names.   |
-| [communications.default-group.socketSlack.enabled](./values.yaml#L530) | bool | `false` | If true, enables Slack bot. |
+| [communications.default-group.socketSlack.enabled](./values.yaml#L530) | bool | `false` | If true, enables bot for Slack. |
 | [communications.default-group.socketSlack.channels](./values.yaml#L534) | object | `{"default":{"bindings":{"executors":["k8s-default-tools"],"sources":["k8s-err-events","k8s-recommendation-events"]},"name":"SLACK_CHANNEL"}}` | Map of configured channels. The property name under `channels` object is an alias for a given configuration.   |
 | [communications.default-group.socketSlack.channels.default.name](./values.yaml#L537) | string | `"SLACK_CHANNEL"` | Slack channel name without '#' prefix where you have added Botkube and want to receive notifications in. |
 | [communications.default-group.socketSlack.channels.default.bindings.executors](./values.yaml#L540) | list | `["k8s-default-tools"]` | Executors configuration for a given channel. |
 | [communications.default-group.socketSlack.channels.default.bindings.sources](./values.yaml#L543) | list | `["k8s-err-events","k8s-recommendation-events"]` | Notification sources configuration for a given channel. |
-| [communications.default-group.socketSlack.botToken](./values.yaml#L548) | string | `""` | Slack bot token for your own Slack app. [Ref doc](https://api.slack.com/authentication/token-types). |
-| [communications.default-group.socketSlack.appToken](./values.yaml#L551) | string | `""` | Slack app-level token for your own Slack app. [Ref doc](https://api.slack.com/authentication/token-types). |
+| [communications.default-group.socketSlack.botToken](./values.yaml#L548) | string | `""` | Bot token for your own app for Slack. [Ref doc](https://api.slack.com/authentication/token-types). |
+| [communications.default-group.socketSlack.appToken](./values.yaml#L551) | string | `""` | App-level token for your own app for Slack. [Ref doc](https://api.slack.com/authentication/token-types). |
 | [communications.default-group.mattermost.enabled](./values.yaml#L555) | bool | `false` | If true, enables Mattermost bot. |
 | [communications.default-group.mattermost.botName](./values.yaml#L557) | string | `"Botkube"` | User in Mattermost which belongs the specified Personal Access token. |
 | [communications.default-group.mattermost.url](./values.yaml#L559) | string | `"MATTERMOST_SERVER_URL"` | The URL (including http/https schema) where Mattermost is running. e.g https://example.com:9243 |

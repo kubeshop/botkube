@@ -78,7 +78,7 @@ func NewSocketSlack(log logrus.FieldLogger, commGroupMetadata CommGroupMetadata,
 
 	authResp, err := client.AuthTest()
 	if err != nil {
-		return nil, fmt.Errorf("while testing the ability to do auth Slack request: %w", slackError(err, ""))
+		return nil, fmt.Errorf("while testing the ability to do authenticated Slack request: %w", slackError(err, ""))
 	}
 	botID := authResp.UserID
 

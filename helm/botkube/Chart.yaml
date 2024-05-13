@@ -4,8 +4,7 @@ home: https://botkube.io
 version: v1.11.0
 appVersion: v1.11.0
 icon: https://docs.botkube.io/images/botkube-black.svg
-description: Controller for the Botkube Slack app which helps you monitor your Kubernetes cluster,
- debug deployments and run specific checks on resources in the cluster.
+description: A virtual SRE, powered by AI.
 sources:
   - https://github.com/kubeshop/botkube
 keywords:
