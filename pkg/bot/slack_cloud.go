@@ -741,7 +741,7 @@ func quotaExceeded() interactive.CoreMessage {
 			Sections: []api.Section{
 				{
 					Base: api.Base{
-						Description: "You cannot use the Botkube Cloud Slack application within your plan. The command executions are blocked.",
+						Description: "You cannot use the Botkube app for Slack within your Botkube Cloud plan. The command executions are blocked.",
 					},
 				},
 			},
