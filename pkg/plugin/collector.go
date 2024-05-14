@@ -77,6 +77,12 @@ func (c *Collector) GetAllEnabledAndUsedPlugins(cfg *config.Config) ([]string, [
 				}
 			}
 		}
+
+		if commGroupCfg.PagerDuty.Enabled {
+			for _, name := range commGroupCfg.PagerDuty.Bindings.Sources {
+				boundSources[name] = struct{}{}
+			}
+		}
 	}
 
 	// Collect all used executors/sources by actions

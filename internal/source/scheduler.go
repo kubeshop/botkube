@@ -224,6 +224,12 @@ func (d *Scheduler) generateConfigs(ctx context.Context) error {
 				}
 			}
 		}
+
+		if commGroupCfg.PagerDuty.Enabled {
+			if err := d.generateSourceConfigs(ctx, false, commGroupCfg.PagerDuty.Bindings.Sources); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Schedule all sources used by actions

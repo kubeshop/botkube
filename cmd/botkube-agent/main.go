@@ -328,6 +328,14 @@ func run(ctx context.Context) (err error) {
 
 			sinkNotifiers = append(sinkNotifiers, wh)
 		}
+		if commGroupCfg.PagerDuty.Enabled {
+			pd, err := sink.NewPagerDuty(commGroupLogger.WithField(sinkLogFieldKey, "PagerDuty"), commGroupMeta.Index, commGroupCfg.PagerDuty, conf.Settings.ClusterName, analyticsReporter)
+			if err != nil {
+				return reportFatalError("while creating PagerDuty sink", err)
+			}
+
+			sinkNotifiers = append(sinkNotifiers, pd)
+		}
 	}
 	healthChecker.SetNotifiers(getHealthNotifiers(bots, sinkNotifiers))
 

@@ -102,6 +102,9 @@ const (
 
 	// WebhookCommPlatformIntegration defines an outgoing webhook integration.
 	WebhookCommPlatformIntegration CommPlatformIntegration = "webhook"
+
+	// PagerDutyCommPlatformIntegration defines an outgoing PagerDuty integration.
+	PagerDutyCommPlatformIntegration CommPlatformIntegration = "pagerDuty"
 )
 
 func (c CommPlatformIntegration) IsInteractive() bool {
@@ -482,6 +485,7 @@ type Communications struct {
 	CloudTeams    CloudTeams    `yaml:"cloudTeams,omitempty"`
 	Webhook       Webhook       `yaml:"webhook,omitempty"`
 	Elasticsearch Elasticsearch `yaml:"elasticsearch,omitempty"`
+	PagerDuty     PagerDuty     `yaml:"pagerDuty,omitempty"`
 }
 
 // SocketSlack configuration to authentication and send notifications
@@ -592,6 +596,13 @@ type Webhook struct {
 	Enabled  bool         `yaml:"enabled"`
 	URL      string       `yaml:"url"`
 	Bindings SinkBindings `yaml:"bindings" validate:"required_if=Enabled true"`
+}
+
+// PagerDuty describes the PagerDuty sink.
+type PagerDuty struct {
+	Enabled        bool         `yaml:"enabled"`
+	IntegrationKey string       `yaml:"integrationKey"`
+	Bindings       SinkBindings `yaml:"bindings" validate:"required_if=Enabled true"`
 }
 
 // CfgWatcher describes configuration for watching the configuration.
