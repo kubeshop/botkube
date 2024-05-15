@@ -10,7 +10,6 @@ import (
 	"github.com/prometheus/common/model"
 
 	k8sconfig "github.com/kubeshop/botkube/internal/source/kubernetes/config"
-	"github.com/kubeshop/botkube/pkg/api"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -33,7 +32,14 @@ type (
 	}
 
 	argoPayload struct {
-		Message                api.Message
+		// using the api.Message, causes decoding problems:
+		//   - 'Message.Timestamp' expected a map, got 'string'"
+		//   - nested fields like Header are not resolved.
+		Message struct {
+			Sections []struct {
+				Header string
+			}
+		}
 		IncomingRequestContext struct {
 			App           *config.K8sResourceRef
 			DetailsUIPath *string

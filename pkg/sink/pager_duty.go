@@ -138,7 +138,7 @@ func (w *PagerDuty) resolveEventMeta(in *incomingEvent) eventMetadata {
 		return enrichWithK8sEventMetadata(out, ev.k8sEventPayload)
 	}
 
-	if !ev.argoPayload.Message.IsEmpty() {
+	if len(ev.argoPayload.Message.Sections) > 0 {
 		return enrichWithArgoCDEventMetadata(out, ev.argoPayload)
 	}
 
