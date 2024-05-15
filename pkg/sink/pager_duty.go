@@ -32,13 +32,6 @@ type PagerDuty struct {
 	statusMux     sync.Mutex
 }
 
-// PagerDutyPayload contains JSON payload to be sent to PagerDuty API.
-type PagerDutyPayload struct {
-	Source    string    `json:"source,omitempty"`
-	Data      any       `json:"data,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
 // EventLink represents a link in a ChangeEvent and Alert event
 // https://developer.pagerduty.com/docs/events-api-v2/send-change-events/#the-links-property
 type EventLink struct {
@@ -46,8 +39,18 @@ type EventLink struct {
 	Text string `json:"text,omitempty"`
 }
 
+type incomingEvent struct {
+	Source    string
+	Data      any
+	Timestamp time.Time
+}
+
 // NewPagerDuty creates a new PagerDuty instance.
 func NewPagerDuty(log logrus.FieldLogger, commGroupIdx int, c config.PagerDuty, clusterName string, reporter AnalyticsReporter) (*PagerDuty, error) {
+	var opts []pagerduty.ClientOptions
+	if c.V2EventsAPIBasePath != "" {
+		opts = append(opts, pagerduty.WithV2EventsAPIEndpoint(c.V2EventsAPIBasePath))
+	}
 	notifier := &PagerDuty{
 		log:      log,
 		reporter: reporter,
@@ -59,7 +62,8 @@ func NewPagerDuty(log logrus.FieldLogger, commGroupIdx int, c config.PagerDuty, 
 		status:        health.StatusUnknown,
 		failureReason: "",
 
-		pagerDutyCli: pagerduty.NewClient(""),
+		// We only dispatch events using integration key, we don't need a token.
+		pagerDutyCli: pagerduty.NewClient("", opts...),
 	}
 
 	err := reporter.ReportSinkEnabled(notifier.IntegrationName(), commGroupIdx)
@@ -76,24 +80,20 @@ func (w *PagerDuty) SendEvent(ctx context.Context, rawData any, sources []string
 		return nil
 	}
 
-	jsonPayload := &PagerDutyPayload{
+	in := &incomingEvent{
 		Source:    strings.Join(sources, ","),
 		Data:      rawData,
 		Timestamp: time.Now(),
 	}
 
-	resp, err := w.postAlertEvent(ctx, jsonPayload)
+	resp, err := w.postEvent(ctx, in)
 	if err != nil {
 		w.setFailureReason(health.FailureReasonConnectionError)
 		return fmt.Errorf("while sending message to PagerDuty: %w", err)
 	}
 
 	w.markHealthy()
-	w.log.WithFields(logrus.Fields{
-		"payload":  jsonPayload,
-		"response": resp,
-	}).Debug("Message successfully sent")
-
+	w.log.WithField("response", resp).Debug("Message successfully sent")
 	return nil
 }
 
@@ -120,7 +120,7 @@ func (w *PagerDuty) shouldNotify(sourceBindings []string) bool {
 	return sliceutil.Intersect(sourceBindings, w.bindings.Sources)
 }
 
-func (w *PagerDuty) getEventMeta(in *PagerDutyPayload) eventMetadata {
+func (w *PagerDuty) resolveEventMeta(in *incomingEvent) eventMetadata {
 	out := eventMetadata{
 		Summary: fmt.Sprintf("Event from %s source", in.Source),
 		IsAlert: true,
@@ -148,21 +148,21 @@ func (w *PagerDuty) getEventMeta(in *PagerDutyPayload) eventMetadata {
 	return out
 }
 
-func (w *PagerDuty) postAlertEvent(ctx context.Context, in *PagerDutyPayload) (any, error) {
-	meta := w.getEventMeta(in)
+func (w *PagerDuty) postEvent(ctx context.Context, in *incomingEvent) (any, error) {
+	meta := w.resolveEventMeta(in)
 	if meta.IsAlert {
 		return w.triggerAlert(ctx, in, meta)
 	}
-
 	return w.triggerChange(ctx, in, meta)
 }
 
-func (w *PagerDuty) triggerAlert(ctx context.Context, in *PagerDutyPayload, meta eventMetadata) (*pagerduty.V2EventResponse, error) {
-	return pagerduty.ManageEventWithContext(ctx, pagerduty.V2Event{
+func (w *PagerDuty) triggerAlert(ctx context.Context, in *incomingEvent, meta eventMetadata) (*pagerduty.V2EventResponse, error) {
+	return w.pagerDutyCli.ManageEventWithContext(ctx, &pagerduty.V2Event{
 		// required
 		RoutingKey: w.integrationKey,
 		Action:     "trigger",
 
+		// optional
 		Client:    "Botkube",
 		ClientURL: "https://app.botkube.io",
 
@@ -184,7 +184,7 @@ func (w *PagerDuty) triggerAlert(ctx context.Context, in *PagerDutyPayload, meta
 	})
 }
 
-func (w *PagerDuty) triggerChange(ctx context.Context, in *PagerDutyPayload, meta eventMetadata) (*pagerduty.ChangeEventResponse, error) {
+func (w *PagerDuty) triggerChange(ctx context.Context, in *incomingEvent, meta eventMetadata) (*pagerduty.ChangeEventResponse, error) {
 	customDetails := map[string]any{
 		"group":   w.clusterName,
 		"details": in,

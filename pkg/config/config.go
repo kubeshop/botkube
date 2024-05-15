@@ -600,9 +600,14 @@ type Webhook struct {
 
 // PagerDuty describes the PagerDuty sink.
 type PagerDuty struct {
-	Enabled        bool         `yaml:"enabled"`
-	IntegrationKey string       `yaml:"integrationKey"`
-	Bindings       SinkBindings `yaml:"bindings" validate:"required_if=Enabled true"`
+	// Enabled indicates if the PagerDuty sink is enabled.
+	Enabled bool `yaml:"enabled"`
+	// Bindings are the bindings for the PagerDuty sink.
+	Bindings SinkBindings `yaml:"bindings" validate:"required_if=Enabled true"`
+	// IntegrationKey is the PagerDuty integration key generated for Events v2 API.
+	IntegrationKey string `yaml:"integrationKey" validate:"required_if=Enabled true"`
+	// V2EventsAPIBasePath is the Events v2 API URL base path. Defaults to https://events.pagerduty.com.
+	V2EventsAPIBasePath string
 }
 
 // CfgWatcher describes configuration for watching the configuration.
