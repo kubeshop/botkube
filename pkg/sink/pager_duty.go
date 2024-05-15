@@ -3,19 +3,17 @@ package sink
 import (
 	"context"
 	"fmt"
-	"github.com/kubeshop/botkube/pkg/api"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/prometheus/common/model"
-
 	"github.com/PagerDuty/go-pagerduty"
-	"github.com/kubeshop/botkube/internal/health"
-	k8sconfig "github.com/kubeshop/botkube/internal/source/kubernetes/config"
-	"github.com/kubeshop/botkube/pkg/config"
-	"github.com/kubeshop/botkube/pkg/sliceutil"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
+
+	"github.com/kubeshop/botkube/internal/health"
+	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
 
 // PagerDuty provides functionality to notify PagerDuty service about new events.
@@ -25,11 +23,13 @@ type PagerDuty struct {
 
 	bindings config.SinkBindings
 
-	status         health.PlatformStatusMsg
-	failureReason  health.FailureReasonMsg
 	integrationKey string
 	clusterName    string
 	pagerDutyCli   *pagerduty.Client
+
+	status        health.PlatformStatusMsg
+	failureReason health.FailureReasonMsg
+	statusMux     sync.Mutex
 }
 
 // PagerDutyPayload contains JSON payload to be sent to PagerDuty API.
@@ -39,7 +39,7 @@ type PagerDutyPayload struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// EventLink represents a single link in a ChangeEvent and Alert event
+// EventLink represents a link in a ChangeEvent and Alert event
 // https://developer.pagerduty.com/docs/events-api-v2/send-change-events/#the-links-property
 type EventLink struct {
 	Href string `json:"href"`
@@ -120,76 +120,31 @@ func (w *PagerDuty) shouldNotify(sourceBindings []string) bool {
 	return sliceutil.Intersect(sourceBindings, w.bindings.Sources)
 }
 
-type k8sEventData struct {
-	// Fields set by kubernetes source
-	Level     k8sconfig.Level
-	Type      string
-	Kind      string
-	Name      string
-	Namespace string
-	Messages  []string
-}
-
-type argoData struct {
-	Message api.Message           
-}
-type eventData struct {
-	k8sEventData `mapstructure:",squash"`
-
-	// Fields set by Prometheus
-	Annotations model.LabelSet
-
-	// Fields set by ArgoCD
-	argoData `mapstructure:",squash"`
-}
-
-type eventMeta struct {
-	Summary   string
-	Component string
-	IsAlert   bool
-}
-
-func (w *PagerDuty) getEventMeta(in *PagerDutyPayload) eventMeta {
-	out := eventMeta{
-		Summary: fmt.Sprintf("Event from %s", in.Source),
+func (w *PagerDuty) getEventMeta(in *PagerDutyPayload) eventMetadata {
+	out := eventMetadata{
+		Summary: fmt.Sprintf("Event from %s source", in.Source),
 		IsAlert: true,
 	}
 
-	var ev eventData
+	var ev eventPayload
 	err := mapstructure.Decode(in.Data, &ev)
 	if err != nil {
 		// we failed, so let's treat it as an error
-		w.log.WithError(err).Error("Failed to decode event. Forwarding it to PagerDuty as alert.")
+		w.log.WithError(err).Error("Failed to decode event. Forwarding it to PagerDuty as an alert.")
 		return out
 	}
 
-	
-	// handle argo
-	ev.argoData.Message.Sections[0].Header  // strip emoji
-	
-	
-	
-	switch ev.Level {
-	case k8sconfig.Info, k8sconfig.Success:
-		out.IsAlert = false
-	case k8sconfig.Error:
-		out.IsAlert = true
+	if ev.k8sEventPayload.Level != "" {
+		return enrichWithK8sEventMetadata(out, ev.k8sEventPayload)
 	}
 
-	if ev.Kind != "" && ev.Name != "" && ev.Namespace != "" {
-		// Logical grouping of components of a service.
-		// source: https://developer.pagerduty.com/api-reference/368ae3d938c9e-send-an-event-to-pager-duty
-		out.Component = fmt.Sprintf("%s/%s/%s", ev.Kind, ev.Namespace, ev.Name)
+	if !ev.argoPayload.Message.IsEmpty() {
+		return enrichWithArgoCDEventMetadata(out, ev.argoPayload)
 	}
 
-	if ev.Messages != nil {
-		out.Summary = strings.Join(ev.Messages, "\n")
+	if len(ev.prometheusEventPayload.Annotations) > 0 {
+		return enrichWithPrometheusEventMetadata(out, ev.prometheusEventPayload)
 	}
-
-	if ev.Type != "" {
-		out.Summary = fmt.Sprintf("[%s] %s", ev.Type, out.Summary)
-	}
-
 	return out
 }
 
@@ -202,7 +157,7 @@ func (w *PagerDuty) postAlertEvent(ctx context.Context, in *PagerDutyPayload) (a
 	return w.triggerChange(ctx, in, meta)
 }
 
-func (w *PagerDuty) triggerAlert(ctx context.Context, in *PagerDutyPayload, meta eventMeta) (*pagerduty.V2EventResponse, error) {
+func (w *PagerDuty) triggerAlert(ctx context.Context, in *PagerDutyPayload, meta eventMetadata) (*pagerduty.V2EventResponse, error) {
 	return pagerduty.ManageEventWithContext(ctx, pagerduty.V2Event{
 		// required
 		RoutingKey: w.integrationKey,
@@ -213,10 +168,6 @@ func (w *PagerDuty) triggerAlert(ctx context.Context, in *PagerDutyPayload, meta
 
 		Payload: &pagerduty.V2Payload{
 			// required
-
-			// A brief text summary of the event, used to generate the summaries/titles of any associated alerts.
-			// The maximum permitted length of this property is 1024 characters.
-			// TODO: improve the summary. Consider using AI to generate it.
 			Summary: meta.Summary,
 			// The unique location of the affected system, preferably a hostname or FQDN.
 			Source: fmt.Sprintf("%s/%s", w.clusterName, in.Source),
@@ -225,24 +176,21 @@ func (w *PagerDuty) triggerAlert(ctx context.Context, in *PagerDutyPayload, meta
 
 			// optional
 			Timestamp: in.Timestamp.Format(time.RFC3339),
-			// Component of the source machine that is responsible for the event.
-			Group: w.clusterName,
-			// Component of the source machine that is responsible for the event.
+			// Logical grouping of components of a service.
+			Group:     w.clusterName,
 			Component: meta.Component,
 			Details:   in,
 		},
 	})
 }
 
-func (w *PagerDuty) triggerChange(ctx context.Context, in *PagerDutyPayload, meta eventMeta) (*pagerduty.ChangeEventResponse, error) {
+func (w *PagerDuty) triggerChange(ctx context.Context, in *PagerDutyPayload, meta eventMetadata) (*pagerduty.ChangeEventResponse, error) {
 	customDetails := map[string]any{
-		// Component of the source machine that is responsible for the event.
 		"group":   w.clusterName,
 		"details": in,
 	}
 
 	if meta.Component != "" {
-		// Component of the source machine that is responsible for the event.
 		customDetails["component"] = meta.Component
 	}
 
@@ -251,10 +199,6 @@ func (w *PagerDuty) triggerChange(ctx context.Context, in *PagerDutyPayload, met
 		RoutingKey: w.integrationKey,
 		Payload: pagerduty.ChangeEventPayload{
 			// required
-
-			// A brief text summary of the event, used to generate the summaries/titles of any associated alerts.
-			// The maximum permitted length of this property is 1024 characters.
-			// TODO: improve the summary. Consider using AI to generate it.
 			Summary: meta.Summary,
 			// The unique location of the affected system, preferably a hostname or FQDN.
 			Source: fmt.Sprintf("%s/%s", w.clusterName, in.Source),
@@ -270,11 +214,22 @@ func (w *PagerDuty) setFailureReason(reason health.FailureReasonMsg) {
 	if reason == "" {
 		return
 	}
-	w.status = health.StatusHealthy
+
+	w.statusMux.Lock()
+	defer w.statusMux.Unlock()
+
+	w.status = health.StatusUnHealthy
 	w.failureReason = reason
 }
 
 func (w *PagerDuty) markHealthy() {
+	if w.status == health.StatusHealthy {
+		return
+	}
+
+	w.statusMux.Lock()
+	defer w.statusMux.Unlock()
+
 	w.status = health.StatusHealthy
 	w.failureReason = ""
 }
