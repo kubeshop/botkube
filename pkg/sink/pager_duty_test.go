@@ -11,12 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeshop/botkube/internal/analytics"
+	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
 )
 
 func TestPagerDuty_SendEvent(t *testing.T) {
 	const integrationKey = "integration-key"
+
+	t.Setenv(remote.ProviderIdentifierEnvKey, "test-key")
 
 	tests := []struct {
 		name       string

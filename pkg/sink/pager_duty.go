@@ -2,6 +2,7 @@ package sink
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -11,10 +12,13 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 
+	"github.com/kubeshop/botkube/internal/config/remote"
 	"github.com/kubeshop/botkube/internal/health"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/sliceutil"
 )
+
+const missingCloudAccountMessage = "PagerDuty integration requires an account on the Botkube Web App. You can try it for free. For detailed instructions, visit https://docs.botkube.io/next/installation/pagerduty/"
 
 // PagerDuty provides functionality to notify PagerDuty service about new events.
 type PagerDuty struct {
@@ -47,6 +51,10 @@ type incomingEvent struct {
 
 // NewPagerDuty creates a new PagerDuty instance.
 func NewPagerDuty(log logrus.FieldLogger, commGroupIdx int, c config.PagerDuty, clusterName string, reporter AnalyticsReporter) (*PagerDuty, error) {
+	if !remote.IsEnabled() {
+		return nil, errors.New(missingCloudAccountMessage)
+	}
+
 	var opts []pagerduty.ClientOptions
 	if c.V2EventsAPIBasePath != "" {
 		opts = append(opts, pagerduty.WithV2EventsAPIEndpoint(c.V2EventsAPIBasePath))

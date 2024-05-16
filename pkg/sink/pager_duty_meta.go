@@ -87,8 +87,11 @@ func enrichWithK8sEventMetadata(out eventMetadata, in k8sEventPayload) eventMeta
 }
 
 func enrichWithArgoCDEventMetadata(out eventMetadata, in argoPayload) eventMetadata {
-	header := in.Message.Sections[0].Header
-	header = mdEmojiTag.ReplaceAllString(header, "") // remove all emoji tags
+	var header string
+	if len(in.Message.Sections) > 0 {
+		header = in.Message.Sections[0].Header
+		header = mdEmojiTag.ReplaceAllString(header, "") // remove all emoji tags
+	}
 
 	if header != "" {
 		out.Summary = header
