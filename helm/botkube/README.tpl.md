@@ -4,19 +4,26 @@
 
 {{ template "chart.description" . }}
 
-{{ template "chart.homepageLine" . }}
+{{ if .Home }}**Homepage:** [{{ .Home }}]({{ .Home }}){{ end }}
 
 {{ define "chart.maintainersTable" }}
 | Name | Email  |
 | ---- | ------ |
 {{- range .Maintainers }}
-| {{ .Name }} | {{ if .Email }}<{{ .Email }}>{{ end }} |
+| {{ .Name }} | {{ if .Email }}[{{ .Email }}](mailto:{{ .Email }}){{ end }} |
 {{- end }}
 {{ end }}
 
 {{ template "chart.maintainersSection" . }}
 
-{{ template "chart.sourcesSection" . }}
+
+{{ if .Sources }}
+## Source Code
+
+{{- range .Sources }}
+[{{ . }}]({{ . }})
+{{- end }}
+{{ end }}
 
 {{ template "chart.requirementsSection" . }}
 
