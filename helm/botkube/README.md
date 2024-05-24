@@ -4,17 +4,16 @@
 
 A virtual SRE, powered by AI.
 
-**Homepage:** <https://botkube.io>
+**Homepage:** [https://botkube.io](https://botkube.io)
 
 ## Maintainers
 
 | Name | Email  |
 | ---- | ------ |
-| Botkube Dev Team | <dev-team@botkube.io> |
+| Botkube Dev Team | [dev-team@botkube.io](mailto:dev-team@botkube.io) |
 
 ## Source Code
-
-* <https://github.com/kubeshop/botkube>
+[https://github.com/kubeshop/botkube](https://github.com/kubeshop/botkube)
 
 ## Parameters
 
