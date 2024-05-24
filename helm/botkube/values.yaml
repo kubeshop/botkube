@@ -39,7 +39,7 @@ containerSecurityContext:
   readOnlyRootFilesystem: true
 
 # -- Role Based Access for Botkube Pod and plugins.
-# [Ref doc](https://kubernetes.io/docs/admin/authorization/rbac/).
+# [Ref doc](https://kubernetes.io/docs/reference/access-authn-authz/rbac/ ).
 rbac:
   # -- It is used to specify a custom path for mounting a service account to the Botkube deployment.
   # This is important because we run plugins within the same Pod, and we want to avoid potential bugs when plugins rely on
@@ -780,7 +780,7 @@ fullnameOverride: ""
 # -- The Botkube Pod resource request and limits. We usually recommend not to specify default resources and to leave this as a conscious
 # choice for the user. This also increases chances charts run on environments with little
 # resources, such as Minikube.
-# [Ref docs](https://kubernetes.io/docs/user-guide/compute-resources/)
+# [Ref docs](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
 resources: {}
   ## If you do want to specify resources, uncomment the following lines,
   ## adjust them as necessary, and remove the curly braces after 'resources:'.
@@ -839,7 +839,7 @@ extraVolumeMounts: []
 #   readOnly: true
 
 # -- Node labels for Botkube Pod assignment.
-# [Ref doc](https://kubernetes.io/docs/user-guide/node-selection/).
+# [Ref doc](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/).
 nodeSelector: {}
 
 # -- Tolerations for Botkube Pod assignment.
@@ -886,8 +886,7 @@ extraObjects: []
 
 ## Parameters for anonymous analytics collection.
 analytics:
-  # -- If true, sending anonymous analytics is disabled. To learn what date we collect,
-  # see [Privacy Policy](https://docs.botkube.io/privacy#privacy-policy).
+  # -- If true, sending anonymous analytics is disabled. To learn what date we collect, see the [Privacy Policy](https://botkube.io/privacy-policy).
   disable: false
 
 # -- Parameters for the Config Watcher component which reloads Botkube on ConfigMap changes.
