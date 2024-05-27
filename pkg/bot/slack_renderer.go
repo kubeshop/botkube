@@ -307,6 +307,8 @@ func (b *SlackRenderer) renderButtonsWithDescription(in api.Buttons) []slack.Blo
 		switch btn.DescriptionStyle {
 		case api.ButtonDescriptionStyleBold:
 			desc = fmt.Sprintf("*%s*", desc)
+		case api.ButtonDescriptionStyleItalic:
+			desc = fmt.Sprintf("_%s_", desc)
 		case api.ButtonDescriptionStyleText:
 			// no op, it should be just a simple string
 		case api.ButtonDescriptionStyleCode:

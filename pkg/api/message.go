@@ -316,6 +316,9 @@ type ButtonDescriptionStyle string
 const (
 	// ButtonDescriptionStyleBold defines the bold style for the button description.
 	ButtonDescriptionStyleBold ButtonDescriptionStyle = "bold"
+
+	// ButtonDescriptionStyleItalic defines the bold style for the button description.
+	ButtonDescriptionStyleItalic ButtonDescriptionStyle = "italic"
 	// ButtonDescriptionStyleText defines the plaintext style for the button description.
 	ButtonDescriptionStyleText ButtonDescriptionStyle = "text"
 	// ButtonDescriptionStyleCode defines the code style for the button description.
@@ -349,6 +352,15 @@ func (b *ButtonBuilder) ForCommandWithDescCmd(name, cmd string, style ...ButtonS
 		bt = style[0]
 	}
 	return b.commandWithCmdDesc(name, cmd, cmd, bt)
+}
+
+// ForCommandWithItalicDesc returns button command where description and command are different and the description is italic.
+func (b *ButtonBuilder) ForCommandWithItalicDesc(name, desc, cmd string, style ...ButtonStyle) Button {
+	bt := ButtonStyleDefault
+	if len(style) > 0 {
+		bt = style[0]
+	}
+	return b.commandWithDesc(name, cmd, desc, bt, ButtonDescriptionStyleItalic)
 }
 
 // ForCommandWithBoldDesc returns button command where description and command are different.
