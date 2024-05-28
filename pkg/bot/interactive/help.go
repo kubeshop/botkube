@@ -43,7 +43,7 @@ func (h *HelpMessage) Build(init bool) CoreMessage {
 	}
 
 	type getter func() []api.Section
-	var sections = []getter{
+	sections := []getter{
 		h.botkubeCloud,
 		h.aiPlugin,
 		h.basicCommands,
@@ -209,10 +209,10 @@ func (h *HelpMessage) aiPlugin() []api.Section {
 		{
 			Base: api.Base{
 				Header:      "🤖 AI powered Kubernetes assistant",
-				Description: fmt.Sprintf("`%s ai` use natural language to ask any questions", api.MessageBotNamePlaceholder),
+				Description: fmt.Sprintf("`%s ai` use natural language to ask any questions\n`%s ai scan` perform a cluster-wide scan for issues", api.MessageBotNamePlaceholder, api.MessageBotNamePlaceholder),
 			},
 			Buttons: []api.Button{
-				h.btnBuilder.ForCommandWithoutDesc("Ask a question", "ai hi!", api.ButtonStylePrimary),
+				h.btnBuilder.ForCommandWithoutDesc("Cluster Scan", "ai scan", api.ButtonStylePrimary),
 			},
 		},
 	}
