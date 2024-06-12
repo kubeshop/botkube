@@ -25,11 +25,11 @@ type Controller struct {
 	log            logrus.FieldLogger
 	conf           *config.Config
 	notifiers      map[string]bot.Bot
-	statusReporter status.StatusReporter
+	statusReporter status.Reporter
 }
 
 // New create a new Controller instance.
-func New(log logrus.FieldLogger, conf *config.Config, notifiers map[string]bot.Bot, reporter status.StatusReporter) *Controller {
+func New(log logrus.FieldLogger, conf *config.Config, notifiers map[string]bot.Bot, reporter status.Reporter) *Controller {
 	return &Controller{
 		log:            log,
 		conf:           conf,

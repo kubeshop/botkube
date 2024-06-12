@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var _ StatusReporter = (*NoopStatusReporter)(nil)
+var _ Reporter = (*NoopStatusReporter)(nil)
 
 type NoopStatusReporter struct{}
 
@@ -15,6 +15,10 @@ func (n NoopStatusReporter) ReportDeploymentConnectionInit(context.Context, stri
 }
 
 func (n NoopStatusReporter) ReportDeploymentStartup(context.Context) error {
+	return nil
+}
+
+func (n NoopStatusReporter) AckNewResourceVersion(context.Context) error {
 	return nil
 }
 

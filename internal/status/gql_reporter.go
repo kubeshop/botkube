@@ -14,7 +14,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/version"
 )
 
-var _ StatusReporter = (*GraphQLStatusReporter)(nil)
+var _ Reporter = (*GraphQLStatusReporter)(nil)
 
 // GraphQLClient defines GraphQL client.
 type GraphQLClient interface {
@@ -87,20 +87,29 @@ func (r *GraphQLStatusReporter) ReportDeploymentStartup(ctx context.Context) err
 	})
 	logger.Debug("Reporting...")
 
-	err := r.withRetry(ctx, logger, func() error {
-		var mutation struct {
-			Success bool `graphql:"reportDeploymentStartup(id: $id, resourceVersion: $resourceVersion, botkubeVersion: $botkubeVersion)"`
-		}
-		variables := map[string]interface{}{
-			"id":              graphql.ID(r.gql.DeploymentID()),
-			"resourceVersion": r.getResourceVersion(),
-			"botkubeVersion":  version.Info().Version,
-		}
-		err := r.gql.Client().Mutate(ctx, &mutation, variables)
-		return err
-	})
+	err := r.reportDeploymentStartup(ctx, logger)
 	if err != nil {
 		return errors.Wrap(err, "while reporting deployment startup")
+	}
+
+	logger.Debug("Reporting successful.")
+	return nil
+}
+
+// AckNewResourceVersion reports that Agent received new configuration resource version and acknowledges it.
+// It's used when the reload is not needed as there was no configuration change looking from the Agent point of view.
+func (r *GraphQLStatusReporter) AckNewResourceVersion(ctx context.Context) error {
+	logger := r.log.WithFields(logrus.Fields{
+		"deploymentID":    r.gql.DeploymentID(),
+		"resourceVersion": r.getResourceVersion(),
+		"type":            "config-reload",
+	})
+	logger.Debug("Reporting...")
+
+	// we reuse the same mutation as for startup, as we want to report that the new resource version is in use.
+	err := r.reportDeploymentStartup(ctx, logger)
+	if err != nil {
+		return errors.Wrap(err, "while reporting deployment config reload")
 	}
 
 	logger.Debug("Reporting successful.")
@@ -208,4 +217,19 @@ func (r *GraphQLStatusReporter) getResourceVersion() int {
 	r.resVerMutex.RLock()
 	defer r.resVerMutex.RUnlock()
 	return r.resourceVersion
+}
+
+func (r *GraphQLStatusReporter) reportDeploymentStartup(ctx context.Context, logger logrus.FieldLogger) error {
+	return r.withRetry(ctx, logger, func() error {
+		var mutation struct {
+			Success bool `graphql:"reportDeploymentStartup(id: $id, resourceVersion: $resourceVersion, botkubeVersion: $botkubeVersion)"`
+		}
+		variables := map[string]interface{}{
+			"id":              graphql.ID(r.gql.DeploymentID()),
+			"resourceVersion": r.getResourceVersion(),
+			"botkubeVersion":  version.Info().Version,
+		}
+		err := r.gql.Client().Mutate(ctx, &mutation, variables)
+		return err
+	})
 }

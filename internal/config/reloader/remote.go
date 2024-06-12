@@ -11,6 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubeshop/botkube/internal/config/remote"
+	"github.com/kubeshop/botkube/internal/status"
 	"github.com/kubeshop/botkube/pkg/config"
 )
 
@@ -23,15 +24,16 @@ type DeploymentClient interface {
 }
 
 // NewRemote returns new RemoteConfigReloader.
-func NewRemote(log logrus.FieldLogger, deployCli DeploymentClient, restarter *Restarter, cfg config.Config, cfgVer int, resVerHolders ...ResourceVersionHolder) *RemoteConfigReloader {
+func NewRemote(log logrus.FieldLogger, statusReporter status.Reporter, deployCli DeploymentClient, restarter *Restarter, cfg config.Config, cfgVer int, resVerHolders ...ResourceVersionHolder) *RemoteConfigReloader {
 	return &RemoteConfigReloader{
-		log:           log,
-		currentCfg:    cfg,
-		resVersion:    cfgVer,
-		interval:      cfg.ConfigWatcher.Remote.PollInterval,
-		deployCli:     deployCli,
-		resVerHolders: resVerHolders,
-		restarter:     restarter,
+		log:            log,
+		currentCfg:     cfg,
+		resVersion:     cfgVer,
+		interval:       cfg.ConfigWatcher.Remote.PollInterval,
+		deployCli:      deployCli,
+		resVerHolders:  resVerHolders,
+		restarter:      restarter,
+		statusReporter: statusReporter,
 	}
 }
 
@@ -44,8 +46,9 @@ type RemoteConfigReloader struct {
 	currentCfg config.Config
 	resVersion int
 
-	deployCli DeploymentClient
-	restarter *Restarter
+	deployCli      DeploymentClient
+	restarter      *Restarter
+	statusReporter status.Reporter
 }
 
 // Do starts the remote config reloader.
@@ -88,7 +91,7 @@ func (u *RemoteConfigReloader) Do(ctx context.Context) error {
 				continue
 			}
 
-			cfgDiff, err := u.processNewConfig(cfgBytes, resVer)
+			cfgDiff, err := u.processNewConfig(ctx, cfgBytes, resVer)
 			if err != nil {
 				wrappedErr := fmt.Errorf("while processing new config: %w", err)
 				u.log.Error(wrappedErr.Error())
@@ -148,7 +151,7 @@ type configDiff struct {
 	shouldRestart bool
 }
 
-func (u *RemoteConfigReloader) processNewConfig(newCfgBytes []byte, newResVer int) (configDiff, error) {
+func (u *RemoteConfigReloader) processNewConfig(ctx context.Context, newCfgBytes []byte, newResVer int) (configDiff, error) {
 	// another resource version check, because it can change between the first and second query
 	shouldUpdate, err := u.compareResVer(newResVer)
 	if err != nil {
@@ -176,6 +179,9 @@ func (u *RemoteConfigReloader) processNewConfig(newCfgBytes []byte, newResVer in
 
 	if len(changelog) == 0 {
 		u.log.Debugf("Config with higher version (%d) is the same as the latest one. No need to reload config", newResVer)
+		if err := u.statusReporter.AckNewResourceVersion(ctx); err != nil {
+			return configDiff{}, fmt.Errorf("while reporting config reload: %w", err)
+		}
 		return configDiff{}, nil
 	}
 
@@ -199,4 +205,8 @@ func (u *RemoteConfigReloader) setResourceVersionForAll(resVersion int) {
 	for _, h := range u.resVerHolders {
 		h.SetResourceVersion(u.resVersion)
 	}
+}
+
+func (u *RemoteConfigReloader) SetResourceVersion(resourceVersion int) {
+	u.setResourceVersionForAll(resourceVersion)
 }

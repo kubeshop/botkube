@@ -353,13 +353,14 @@ func run(ctx context.Context) (err error) {
 		cfgReloader, err := reloader.Get(
 			remoteCfgEnabled,
 			logger.WithField(componentLogFieldKey, "Config Reloader"),
+			statusReporter,
 			deployClient,
 			dynamicCli,
 			restarter,
 			analyticsReporter,
 			*conf,
 			cfgVersion,
-			cfgManager,
+			cfgManager, statusReporter,
 		)
 		if err != nil {
 			return reportFatalError("while creating config reloader", err)
@@ -519,7 +520,7 @@ func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInte
 	return dynamicK8sCli, discoCacheClient, nil
 }
 
-func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, status status.StatusReporter) func(ctx string, err error) error {
+func reportFatalErrFn(logger logrus.FieldLogger, reporter analytics.Reporter, status status.Reporter) func(ctx string, err error) error {
 	return func(ctx string, err error) error {
 		if err == nil {
 			return nil

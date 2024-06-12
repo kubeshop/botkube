@@ -1,6 +1,7 @@
 package reloader
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeshop/botkube/internal/status"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/loggerx"
 )
@@ -79,15 +81,16 @@ func TestRemote_ProcessConfig(t *testing.T) {
 		t.Run(testCase.Name, func(t *testing.T) {
 			resVerHldr := &sampleResVerHolder{testCase.InitialResVer}
 			remoteReloader := RemoteConfigReloader{
-				log:           loggerx.NewNoop(),
-				interval:      time.Minute,
-				deployCli:     nil,
-				resVerHolders: []ResourceVersionHolder{resVerHldr},
-				currentCfg:    testCase.InitialCfg,
-				resVersion:    testCase.InitialResVer,
+				log:            loggerx.NewNoop(),
+				interval:       time.Minute,
+				deployCli:      nil,
+				resVerHolders:  []ResourceVersionHolder{resVerHldr},
+				currentCfg:     testCase.InitialCfg,
+				resVersion:     testCase.InitialResVer,
+				statusReporter: status.NoopStatusReporter{},
 			}
 
-			cfgDiff, err := remoteReloader.processNewConfig([]byte(testCase.NewConfig), testCase.NewResVer)
+			cfgDiff, err := remoteReloader.processNewConfig(context.Background(), []byte(testCase.NewConfig), testCase.NewResVer)
 			if testCase.ExpectedErrMessage != "" {
 				require.Error(t, err)
 				assert.EqualError(t, err, testCase.ExpectedErrMessage)
