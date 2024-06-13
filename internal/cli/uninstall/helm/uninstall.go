@@ -6,10 +6,10 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"helm.sh/helm/v3/pkg/action"
-	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/cli/helmx"
 	"github.com/kubeshop/botkube/internal/cli/printer"
+	"github.com/kubeshop/botkube/internal/kubex"
 )
 
 // Helm provides option to or delete Helm release.
@@ -18,7 +18,7 @@ type Helm struct {
 }
 
 // NewHelm returns a new Helm instance.
-func NewHelm(k8sCfg *rest.Config, forNamespace string) (*Helm, error) {
+func NewHelm(k8sCfg *kubex.ConfigWithMeta, forNamespace string) (*Helm, error) {
 	configuration, err := helmx.GetActionConfiguration(k8sCfg, forNamespace)
 	if err != nil {
 		return nil, err

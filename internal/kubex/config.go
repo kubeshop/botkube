@@ -12,10 +12,12 @@ import (
 )
 
 var kubeconfig string
+var kubecontext string
 
 // RegisterKubeconfigFlag registers `--kubeconfig` flag.
 func RegisterKubeconfigFlag(flags *pflag.FlagSet) {
 	flags.StringVar(&kubeconfig, clientcmd.RecommendedConfigPathFlag, "", "Paths to a kubeconfig. Only required if out-of-cluster.")
+	flags.StringVar(&kubecontext, "kubecontext", "", "The name of the kubeconfig context to use.")
 }
 
 type ConfigWithMeta struct {
@@ -35,40 +37,47 @@ type ConfigWithMeta struct {
 //
 // code inspired by sigs.k8s.io/controller-runtime@v0.13.1/pkg/client/config/config.go
 func LoadRestConfigWithMetaInformation() (*ConfigWithMeta, error) {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	//  1. --kubeconfig flag
 	if kubeconfig != "" {
-		c := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig}, nil)
-		return transform(c)
-	}
-
-	// 2. KUBECONFIG environment variable pointing at a file
-	kubeconfigPath := os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-	if len(kubeconfigPath) == 0 {
-		if c, err := rest.InClusterConfig(); err == nil {
-			return &ConfigWithMeta{
-				K8s:            c,
-				CurrentContext: "In cluster",
-			}, nil
+		loadingRules.ExplicitPath = kubeconfig
+	} else {
+		// 2. KUBECONFIG environment variable pointing at a file
+		kubeconfigPath := os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+		if len(kubeconfigPath) == 0 {
+			// 3. In-cluster config if running in cluster
+			if c, err := rest.InClusterConfig(); err == nil {
+				return &ConfigWithMeta{
+					K8s:            c,
+					CurrentContext: "In cluster",
+				}, nil
+			}
+		} else {
+			loadingRules.ExplicitPath = kubeconfigPath
+			// 4. $HOME/.kube/config if exists
+			// 5. user.HomeDir/.kube/config if exists
+			//
+			// NOTE: For default config file locations, upstream only checks
+			// $HOME for the user's home directory, but we can also try
+			// os/user.HomeDir when $HOME is unset.
+			if _, ok := os.LookupEnv("HOME"); !ok {
+				u, err := user.Current()
+				if err != nil {
+					return nil, fmt.Errorf("could not get current user: %w", err)
+				}
+				loadingRules.Precedence = append(loadingRules.Precedence, filepath.Join(u.HomeDir, clientcmd.RecommendedHomeDir, clientcmd.RecommendedFileName))
+			}
 		}
 	}
 
-	// 3. In-cluster config if running in cluster
-	// 4. $HOME/.kube/config if exists
-	// 5. user.HomeDir/.kube/config if exists
-	//
-	// NOTE: For default config file locations, upstream only checks
-	// $HOME for the user's home directory, but we can also try
-	// os/user.HomeDir when $HOME is unset.
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	if _, ok := os.LookupEnv("HOME"); !ok {
-		u, err := user.Current()
-		if err != nil {
-			return nil, fmt.Errorf("could not get current user: %w", err)
-		}
-		loadingRules.Precedence = append(loadingRules.Precedence, filepath.Join(u.HomeDir, clientcmd.RecommendedHomeDir, clientcmd.RecommendedFileName))
+	//  1. --kubecontext flag
+	if kubecontext == "" {
+		// 2. KUBECONTEXT env
+		kubecontext = os.Getenv("KUBECONTEXT")
 	}
 
-	return transform(clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, nil))
+	configOverrides := &clientcmd.ConfigOverrides{CurrentContext: kubecontext}
+	return transform(clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides))
 }
 
 func transform(c clientcmd.ClientConfig) (*ConfigWithMeta, error) {
@@ -76,12 +85,19 @@ func transform(c clientcmd.ClientConfig) (*ConfigWithMeta, error) {
 	if err != nil {
 		return nil, fmt.Errorf("while getting raw config: %v", err)
 	}
+
 	clientConfig, err := c.ClientConfig()
 	if err != nil {
 		return nil, fmt.Errorf("while getting client config: %v", err)
 	}
+
+	// 3. load from rawConfig
+	if len(kubecontext) == 0 {
+		kubecontext = rawConfig.CurrentContext
+	}
+
 	return &ConfigWithMeta{
 		K8s:            clientConfig,
-		CurrentContext: rawConfig.CurrentContext,
+		CurrentContext: kubecontext,
 	}, nil
 }
