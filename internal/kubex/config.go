@@ -70,13 +70,7 @@ func LoadRestConfigWithMetaInformation() (*ConfigWithMeta, error) {
 		}
 	}
 
-	//  1. --kubecontext flag
-	if kubecontext == "" {
-		// 2. KUBECONTEXT env
-		kubecontext = os.Getenv("KUBECONTEXT")
-	}
-
-	configOverrides := &clientcmd.ConfigOverrides{CurrentContext: kubecontext}
+	configOverrides := &clientcmd.ConfigOverrides{CurrentContext: loadKubecontext("")}
 	return transform(clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides))
 }
 
@@ -91,13 +85,32 @@ func transform(c clientcmd.ClientConfig) (*ConfigWithMeta, error) {
 		return nil, fmt.Errorf("while getting client config: %v", err)
 	}
 
-	// 3. load from rawConfig
-	if len(kubecontext) == 0 {
-		kubecontext = rawConfig.CurrentContext
-	}
-
 	return &ConfigWithMeta{
 		K8s:            clientConfig,
-		CurrentContext: kubecontext,
+		CurrentContext: loadKubecontext(rawConfig.CurrentContext),
 	}, nil
+}
+
+// Loads kubecontext.
+//
+// Config precedence:
+//
+// * --kubecontext flag
+//
+// * KUBECONTEXT environment variable
+//
+// * fallback value
+func loadKubecontext(fallbackValue string) string {
+	//  1. --kubecontext flag
+	if kubecontext != "" {
+		return kubecontext
+	}
+
+	// 2. KUBECONTEXT env
+	kubeCtx := os.Getenv("KUBECONTEXT")
+	if kubeCtx != "" {
+		return kubeCtx
+	}
+
+	return fallbackValue
 }
