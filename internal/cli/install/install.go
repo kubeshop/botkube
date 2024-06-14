@@ -66,7 +66,7 @@ func Install(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, opt
 		return err
 	}
 
-	helmInstaller, err := helm.NewHelm(k8sCfg.K8s, opts.HelmParams.Namespace)
+	helmInstaller, err := helm.NewHelm(k8sCfg, opts.HelmParams.Namespace)
 	if err != nil {
 		return err
 	}

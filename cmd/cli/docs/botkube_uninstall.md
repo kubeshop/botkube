@@ -34,6 +34,7 @@ botkube uninstall --release-name botkube-dev
   -h, --help                  help for uninstall
       --keep-history          remove all associated resources and mark the release as deleted, but retain the release history
       --kubeconfig string     Paths to a kubeconfig. Only required if out-of-cluster.
+      --kubecontext string    The name of the kubeconfig context to use.
       --namespace string      Botkube namespace. (default "botkube")
       --no-hooks              prevent hooks from running during uninstallation
       --release-name string   Botkube Helm release name. (default "botkube")

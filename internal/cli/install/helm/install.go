@@ -16,12 +16,12 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"k8s.io/client-go/rest"
 
 	"github.com/kubeshop/botkube/internal/cli"
 	"github.com/kubeshop/botkube/internal/cli/helmx"
 	"github.com/kubeshop/botkube/internal/cli/install/iox"
 	"github.com/kubeshop/botkube/internal/cli/printer"
+	"github.com/kubeshop/botkube/internal/kubex"
 )
 
 const restartAnnotationFmt = "extraAnnotations.cli\\.botkube\\.io\\/restart\\-timestamp=\"%d\""
@@ -35,7 +35,7 @@ type Helm struct {
 }
 
 // NewHelm returns a new Helm instance.
-func NewHelm(k8sCfg *rest.Config, forNamespace string) (*Helm, error) {
+func NewHelm(k8sCfg *kubex.ConfigWithMeta, forNamespace string) (*Helm, error) {
 	configuration, err := helmx.GetActionConfiguration(k8sCfg, forNamespace)
 	if err != nil {
 		return nil, err

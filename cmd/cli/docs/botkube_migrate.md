@@ -49,6 +49,7 @@ botkube migrate [OPTIONS] [flags]
       --image-tag string                     Botkube image tag, e.g. "latest" or "v1.7.0"
       --instance-name string                 Botkube Cloud Instance name that will be created
       --kubeconfig string                    Paths to a kubeconfig. Only required if out-of-cluster.
+      --kubecontext string                   The name of the kubeconfig context to use.
   -l, --label string                         Label used for identifying the Botkube pod (default "app=botkube")
   -n, --namespace string                     Namespace of Botkube pod (default "botkube")
   -q, --skip-connect                         Skips connecting to Botkube Cloud after migration

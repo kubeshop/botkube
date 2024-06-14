@@ -40,6 +40,7 @@ botkube install --repo @local
       --force                        Force resource updates through a replacement strategy
   -h, --help                         help for install
       --kubeconfig string            Paths to a kubeconfig. Only required if out-of-cluster.
+      --kubecontext string           The name of the kubeconfig context to use.
       --namespace string             Botkube installation namespace. (default "botkube")
       --no-hooks                     Disable pre/post install/upgrade hooks
       --release-name string          Botkube Helm chart release name. (default "botkube")

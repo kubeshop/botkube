@@ -54,7 +54,7 @@ func Uninstall(ctx context.Context, w io.Writer, k8sCfg *kubex.ConfigWithMeta, o
 		}
 	}
 
-	uninstaller, err := helm.NewHelm(k8sCfg.K8s, opts.HelmParams.ReleaseNamespace)
+	uninstaller, err := helm.NewHelm(k8sCfg, opts.HelmParams.ReleaseNamespace)
 	if err != nil {
 		return err
 	}
