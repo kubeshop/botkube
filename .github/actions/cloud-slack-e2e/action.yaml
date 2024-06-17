@@ -55,11 +55,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Helm
-      uses: azure/setup-helm@v3
-      with:
-        version: ${{ env.HELM_VERSION }}
-
     - name: Download k3d
       shell: bash
       run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
@@ -68,6 +63,22 @@ runs:
       id: k3d
       shell: bash
       run: "k3d cluster create cloud-slack-e2e-cluster --wait --timeout=5m"
+
+    - name: CLI Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+          dist/botkube-cli_linux_amd64_v1/botkube
+        key: botkube-cli_linux_amd64_v1
+
+    - name: Build CLI
+      run: make build-single-arch-cli
+
+    - name: Add Botkube CLI to env
+      run: |
+        echo BOTKUBE_CLI_BINARY_PATH="$PWD/dist/botkube-cli_linux_amd64_v1/botkube" >> $GITHUB_ENV
 
     - name: Setup Go modules
       id: modules
