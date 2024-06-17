@@ -4,12 +4,8 @@ package cloud_slack_dev_e2e
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -22,12 +18,9 @@ import (
 	"botkube.io/botube/test/diff"
 	"github.com/avast/retry-go/v4"
 	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/input"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/launcher/flags"
-	"github.com/go-rod/rod/lib/proto"
 	"github.com/hasura/go-graphql-client"
-	"github.com/mattn/go-shellwords"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vrischmann/envconfig"
@@ -43,16 +36,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
-const (
-	// Chromium is not supported by Slack web app for some reason
-	// Currently, we get:
-	//   This browser won’t be supported starting September 1st, 2024. Update your browser to keep using Slack. Learn more:
-	//   https://slack.com/intl/en-gb/help/articles/1500001836081-Slack-support-life-cycle-for-operating-systems-app-versions-and-browsers
-	chromeUserAgent           = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-	authHeaderName            = "Authorization"
-	cleanupRetryAttempts      = 5
-	awaitInstanceStatusChange = 2 * time.Minute
-)
+const cleanupRetryAttempts = 5
 
 type E2ESlackConfig struct {
 	Slack        SlackConfig
@@ -96,7 +80,6 @@ func TestCloudSlackE2E(t *testing.T) {
 	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
 	cfg.Slack.Tester.RecentMessagesLimit = 4       // this is used effectively only for the Botkube restarts. There are two of them in a short time window, so it shouldn't be higher than 5.
 
-	authHeaderValue := ""
 	var botkubeDeploymentUninstalled atomic.Bool
 	botkubeDeploymentUninstalled.Store(true) // not yet installed
 	t.Cleanup(func() {
@@ -112,8 +95,6 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		botkubeDeploymentUninstalled.Store(true)
 	})
-
-	gqlEndpoint := fmt.Sprintf("%s/%s", cfg.BotkubeCloud.APIBaseURL, cfg.BotkubeCloud.APIGraphQLEndpoint)
 
 	if cfg.ScreenshotsDir != "" {
 		t.Logf("Screenshots enabled. They will be saved to %s", cfg.ScreenshotsDir)
@@ -137,14 +118,14 @@ func TestCloudSlackE2E(t *testing.T) {
 	t.Log("Inviting Bot to the channel...")
 	tester.InviteBotToChannel(t, channel.ID())
 
-	connectedDeploy := &gqlModel.Deployment{
-		Name: channel.Name(),
-	}
+	botkubeCloudPage := NewBotkubeCloudPage(t, cfg)
+	slackPage := NewSlackPage(t, cfg)
 
 	t.Run("Creating Botkube Instance with newly added Slack Workspace", func(t *testing.T) {
 		t.Log("Setting up browser...")
 
 		launcher := launcher.New().Headless(false)
+		isHeadless := launcher.Has(flags.Headless)
 		t.Cleanup(launcher.Cleanup)
 
 		browser := rod.New().Trace(cfg.DebugMode).ControlURL(launcher.MustLaunch()).MustConnect()
@@ -160,166 +141,38 @@ func TestCloudSlackE2E(t *testing.T) {
 			closePage(t, "page", page)
 		})
 
-		t.Log("Log into Botkube Cloud Dashboard")
-		page.MustNavigate(appendOrgIDQueryParam(t, cfg.BotkubeCloud.UIBaseURL, cfg.BotkubeCloud.TeamOrganizationID))
-		page.MustWaitNavigation()
-		page.MustElement(`input[name="username"]`).MustInput(cfg.BotkubeCloud.Email)
-		page.MustElement(`input[name="password"]`).MustInput(cfg.BotkubeCloud.Password)
-		screenshotIfShould(t, cfg, page)
-		page.MustElementR("button", "^Continue$").MustClick()
-		screenshotIfShould(t, cfg, page)
+		botkubeCloudPage.NavigateAndLogin(t, page)
+		botkubeCloudPage.HideCookieBanner(t)
 
-		t.Logf("Starting hijacking requests to %q to get the bearer token...", gqlEndpoint)
-		router := browser.HijackRequests()
-		router.MustAdd(gqlEndpoint, func(ctx *rod.Hijack) {
-			if authHeaderValue != "" {
-				ctx.ContinueRequest(&proto.FetchContinueRequest{})
-				return
-			}
+		stopRouter := botkubeCloudPage.CaptureBearerToken(t, browser)
+		defer stopRouter()
 
-			if ctx.Request != nil && ctx.Request.Method() != http.MethodPost {
-				ctx.ContinueRequest(&proto.FetchContinueRequest{})
-				return
-			}
+		botkubeCloudPage.CreateNewInstance(t, channel.Name())
+		botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
+		botkubeCloudPage.OpenSlackAppIntegrationPage(t)
 
-			require.NotNil(t, ctx.Request)
-			authHeaderValue = ctx.Request.Header(authHeaderName)
-			ctx.ContinueRequest(&proto.FetchContinueRequest{})
-		})
-		go router.Run()
-		defer router.MustStop()
+		slackPage.ConnectWorkspace(t, isHeadless, browser)
 
-		t.Log("Hide Botkube cookie banner")
-		page.MustElementR("button", "^Decline$").MustClick()
+		botkubeCloudPage.ReAddSlackPlatformIfShould(t, isHeadless)
+		botkubeCloudPage.SetupSlackWorkspace(t, channel.Name())
+		botkubeCloudPage.FinishWizard(t)
+		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
 
-		t.Log("Create new Botkube Instance")
-		page.MustElement("h6#create-instance").MustClick() // case-insensitive
-		page.MustElement(`input[name="name"]`).MustSelectAllText().MustInput(connectedDeploy.Name)
-		_, connectedDeploy.ID, _ = strings.Cut(page.MustInfo().URL, "add/")
-		screenshotIfShould(t, cfg, page)
-
-		installCmd := page.MustElement("div#install-upgrade-cmd > kbd").MustText()
-
-		t.Log("Installing Botkube using Botkube CLI")
-		installViaBotkubeCLI(t, cfg.BotkubeCliBinaryPath, installCmd)
-
-		t.Log("Cluster connected...")
-		page.MustElement("button#cluster-connected").MustClick()
-		page.MustElement(`button[aria-label="Add tab"]`).MustClick()
-		page.MustWaitStable()
-		page.MustElementR("button", "^Slack$").MustClick()
-		page.MustWaitStable()
-
-		page.MustElementR("a", "Add to Slack").MustClick()
-		slackPage := browser.MustPages().MustFindByURL("slack.com")
-
-		slackPage.MustElement("input#domain").MustInput(cfg.Slack.WorkspaceName)
-		screenshotIfShould(t, cfg, slackPage)
-		slackPage.MustElementR("button", "Continue").MustClick()
-		screenshotIfShould(t, cfg, slackPage)
-		if !launcher.Has(flags.Headless) { // here we get reloaded, so we need to type it again (looks like bug on Slack side)
-			slackPage.MustElement("input#domain").MustInput(cfg.Slack.WorkspaceName)
-			slackPage.MustElementR("button", "Continue").MustClick()
-		}
-
-		slackPage.MustWaitStable()
-		slackPage.MustElementR("a", "sign in with a password instead").MustClick()
-		screenshotIfShould(t, cfg, slackPage)
-		slackPage.MustElement("input#email").MustInput(cfg.Slack.Email)
-		slackPage.MustElement("input#password").MustInput(cfg.Slack.Password)
-		screenshotIfShould(t, cfg, slackPage)
-
-		t.Log("Hide Slack cookie banner that collides with 'Sign in' button")
-		slackPage.MustElement("button#onetrust-accept-btn-handler").MustClick()
-		slackPage.MustElementR("button", "/^Sign in$/i").MustClick()
-		screenshotIfShould(t, cfg, slackPage)
-
-		slackPage.MustElementR("button.c-button:not(.c-button--disabled)", "Allow").MustClick()
-
-		t.Log("Finalizing Slack workspace connection...")
-		if cfg.Slack.WorkspaceAlreadyConnected {
-			t.Log("Expecting already connected message...")
-			slackPage.MustElementR("div.ant-result-title", "Organization Already Connected!")
-			_ = slackPage.Close() // the page should be closed automatically anyway
-		} else {
-			t.Log("Finalizing connection...")
-			screenshotIfShould(t, cfg, slackPage)
-			slackPage.MustElement("button#slack-workspace-connect").MustClick()
-			screenshotIfShould(t, cfg, slackPage)
-			_ = slackPage.Close() // the page should be closed automatically anyway
-		}
-
-		if launcher.Has(flags.Headless) {
-			// a workaround as the page was often not refreshed with a newly connected Slack Workspace,
-			// it only occurs with headless mode
-			// TODO(@pkosiec): Do you have a better idea how to fix it?
-			t.Log("Re-adding Slack platform")
-			page.MustActivate()
-			page.MustElement(`button[aria-label="remove"]`).MustClick()
-			page.MustElement(`button[aria-label="Add tab"]`).MustClick()
-			page.MustElementR("button", "^Slack$").MustClick()
-			screenshotIfShould(t, cfg, page)
-		}
-
-		t.Logf("Selecting newly connected %q Slack Workspace", cfg.Slack.WorkspaceName)
-		page.MustElement(`input[type="search"]`).
-			MustInput(cfg.Slack.WorkspaceName).
-			MustType(input.Enter)
-		screenshotIfShould(t, cfg, page)
-
-		// filter by channel, to make sure that it's visible on the first table page, in order to select it in the next step
-		t.Log("Filtering by channel name")
-		page.Keyboard.MustType(input.End) // scroll bottom, as the footer collides with selecting filter
-		page.MustElement("table th:nth-child(3) span.ant-dropdown-trigger.ant-table-filter-trigger").MustFocus().MustClick()
-
-		t.Log("Selecting channel checkbox")
-		page.MustElement("input#name-channel").MustInput(channel.Name()).MustType(input.Enter)
-		page.MustElement(fmt.Sprintf(`input[type="checkbox"][name="%s"]`, channel.Name())).MustClick()
-
-		t.Log("Navigating to plugin selection")
-		page.MustElementR("button", "/^Next$/i").MustClick().MustWaitStable()
-
-		t.Log("Using pre-selected plugins. Navigating to wizard summary")
-		page.MustElementR("button", "/^Next$/i").MustClick().MustWaitStable()
-
-		t.Log("Submitting changes")
-		page.MustElementR("button", "/^Deploy changes$/i").MustClick().MustWaitStable()
-
-		t.Log("Waiting for status 'Connected'")
-		page.Timeout(awaitInstanceStatusChange).MustElementR("div#deployment-status", "Connected")
-
-		//
-		t.Log("Updating 'kubectl' namespace property")
-		page.MustElementR(`div[role="tab"]`, "Plugins").MustClick()
-		page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
-		page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
-		page.MustElementR("input#root_defaultNamespace", "default").MustSelectAllText().MustInput("kube-system")
-		page.MustElementR("button", "/^Update$/i").MustClick()
-
-		t.Log("Submitting changes")
-		page.MustElementR("button", "/^Deploy changes$/i").MustClick().MustWaitStable() // use the case-insensitive flag "i"
-
-		t.Log("Waiting for status 'Updating'")
-		page.Timeout(awaitInstanceStatusChange).MustElementR("div#deployment-status", "Updating")
-
-		t.Log("Waiting for status 'Connected'")
-		page.Timeout(awaitInstanceStatusChange).MustElementR("div#deployment-status", "Connected")
-
-		t.Log("Verifying that the 'namespace' value was updated and persisted properly")
-		page.MustElementR(`div[role="tab"]`, "Plugins").MustClick()
-		page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
-		page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
-		page.MustElementR("input#root_defaultNamespace", "kube-system")
+		botkubeCloudPage.UpdateKubectlNamespace(t)
+		botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
+		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
+		botkubeCloudPage.VerifyUpdatedKubectlNamespace(t)
 	})
 
 	t.Run("Run E2E tests with deployment", func(t *testing.T) {
-		require.NotEmpty(t, authHeaderValue, "Previous subtest needs to pass to get authorization header value")
+		connectedDeploy := botkubeCloudPage.ConnectedDeploy
+		require.NotNil(t, connectedDeploy, "Previous subtest needs to pass to get connected deployment information")
+		require.NotEmpty(t, botkubeCloudPage.AuthHeaderValue, "Previous subtest needs to pass to get authorization header value")
 
-		fmt.Println(authHeaderValue)
 		t.Logf("Using Organization ID %q and Authorization header starting with %q", cfg.BotkubeCloud.TeamOrganizationID,
-			stringsutil.ShortenString(authHeaderValue, 15))
+			stringsutil.ShortenString(botkubeCloudPage.AuthHeaderValue, 15))
 
-		gqlCli := cloud_graphql.NewClientForAuthAndOrg(gqlEndpoint, cfg.BotkubeCloud.TeamOrganizationID, authHeaderValue)
+		gqlCli := cloud_graphql.NewClientForAuthAndOrg(botkubeCloudPage.GQLEndpoint, cfg.BotkubeCloud.TeamOrganizationID, botkubeCloudPage.AuthHeaderValue)
 
 		t.Logf("Getting connected Slack workspace...")
 		slackWorkspaces := gqlCli.MustListSlackWorkspacesForOrg(t, cfg.BotkubeCloud.TeamOrganizationID)
@@ -580,30 +433,6 @@ func TestCloudSlackE2E(t *testing.T) {
 	})
 }
 
-func installViaBotkubeCLI(t *testing.T, botkubeBinary, installCmd string) {
-	args, err := shellwords.Parse(installCmd)
-	args = append(args, "--auto-approve")
-	require.NoError(t, err)
-
-	cmd := exec.Command(botkubeBinary, args[1:]...)
-	installOutput, err := cmd.CombinedOutput()
-	t.Log(string(installOutput))
-	require.NoError(t, err)
-}
-
-func newBrowserPage(t *testing.T, browser *rod.Browser, cfg E2ESlackConfig) *rod.Page {
-	t.Helper()
-
-	page, err := browser.Page(proto.TargetCreateTarget{URL: ""})
-	require.NoError(t, err)
-	page.MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
-		UserAgent: chromeUserAgent,
-	})
-	page = page.Timeout(cfg.PageTimeout)
-	page.MustSetViewport(1200, 1080, 1, false)
-	return page
-}
-
 func removeSourcesAndAddActions(t *testing.T, gql *graphql.Client, existingDeployment *gqlModel.Deployment) *gqlModel.Deployment {
 	var updateInput struct {
 		UpdateDeployment gqlModel.Deployment `graphql:"updateDeployment(id: $id, input: $input)"`
@@ -669,47 +498,6 @@ func removeSourcesAndAddActions(t *testing.T, gql *graphql.Client, existingDeplo
 	return &updateInput.UpdateDeployment
 }
 
-func screenshotIfShould(t *testing.T, cfg E2ESlackConfig, page *rod.Page) {
-	t.Helper()
-	if cfg.ScreenshotsDir == "" {
-		return
-	}
-
-	pathParts := strings.Split(cfg.ScreenshotsDir, "/")
-	pathParts = append(pathParts)
-
-	filePath := filepath.Join(cfg.ScreenshotsDir, fmt.Sprintf("%d.png", time.Now().UnixNano()))
-
-	logMsg := fmt.Sprintf("Saving screenshot to %q", filePath)
-	if cfg.DebugMode {
-		info, err := page.Info()
-		assert.NoError(t, err)
-
-		if info != nil {
-			logMsg += fmt.Sprintf(" for URL %q", info.URL)
-		}
-	}
-	t.Log(logMsg)
-	data, err := page.Screenshot(true, nil)
-	assert.NoError(t, err)
-	if err != nil {
-		return
-	}
-
-	err = os.WriteFile(filePath, data, 0o644)
-	assert.NoError(t, err)
-}
-
-func appendOrgIDQueryParam(t *testing.T, inURL, orgID string) string {
-	parsedURL, err := url.Parse(inURL)
-	require.NoError(t, err)
-	queryValues := parsedURL.Query()
-	queryValues.Set("organizationId", orgID)
-	parsedURL.RawQuery = queryValues.Encode()
-
-	return parsedURL.String()
-}
-
 func cleanupCreatedPod(t *testing.T, podCli corev1.PodInterface, name string) {
 	t.Log("Cleaning up created Pod...")
 	err := podCli.Delete(context.Background(), name, metav1.DeleteOptions{})
@@ -726,18 +514,6 @@ func createK8sCli(t *testing.T, kubeconfigPath string) *kubernetes.Clientset {
 	k8sCli, err := kubernetes.NewForConfig(k8sConfig)
 	require.NoError(t, err)
 	return k8sCli
-}
-
-func closePage(t *testing.T, name string, page *rod.Page) {
-	t.Helper()
-	err := page.Close()
-	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			return
-		}
-
-		t.Logf("Failed to close page %q: %v", name, err)
-	}
 }
 
 func retryOperation(fn func() error) error {

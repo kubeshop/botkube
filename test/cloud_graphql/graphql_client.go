@@ -526,9 +526,7 @@ func (c *Client) NewClientForOrganization(id string) *Client {
 // NewClientForAuthAndOrg returns new GraphQL client with organization and authorization headers.
 func NewClientForAuthAndOrg(apiEndpoint, orgID, authValue string) *Client {
 	gqLCli := graphql.NewClient(apiEndpoint, nil)
-	
-	fmt.Println(apiEndpoint)
-	gqLCli.WithDebug(true)
+
 	return &Client{
 		Client: gqLCli.WithRequestModifier(func(request *http.Request) {
 			request.Header.Set(botkubeOrganizationHeaderName, orgID)
