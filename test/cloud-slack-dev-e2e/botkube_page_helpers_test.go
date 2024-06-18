@@ -102,10 +102,10 @@ func (p *BotkubeCloudPage) CreateNewInstance(t *testing.T, name string) {
 }
 
 func (p *BotkubeCloudPage) InstallAgentInCluster(t *testing.T, botkubeBinary string) {
-	t.Log("Installing Botkube using Botkube CLI")
-
+	t.Log("Getting Botkube install command")
 	installCmd := p.page.MustElement("div#install-upgrade-cmd > kbd").MustText()
 
+	t.Log("Installing Botkube using Botkube CLI")
 	args, err := shellwords.Parse(installCmd)
 	args = append(args, "--auto-approve")
 	require.NoError(t, err)
@@ -119,6 +119,7 @@ func (p *BotkubeCloudPage) InstallAgentInCluster(t *testing.T, botkubeBinary str
 }
 
 func (p *BotkubeCloudPage) OpenSlackAppIntegrationPage(t *testing.T) {
+	t.Log("Opening Slack App Integration Page")
 	p.page.MustElement(`button[aria-label="Add tab"]`).MustClick()
 	p.page.MustWaitStable()
 	p.page.MustElementR("button", "^Slack$").MustClick()
@@ -176,17 +177,17 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 
 	p.page.MustElementR("button", "/^Next$/i").
 		MustWaitEnabled().
-		// we need to wait, otherwise, we click the same 'Next' button twice, before the query is executed, and we are really
-		// moved to the next step. If we have the navigation updated for each step, it will be resolved.
-		MustClick().MustWaitStable()  
+		// We need to wait, otherwise, we click the same 'Next' button twice before the query is executed, and we are not really
+		// moved to the next step. Updating the navigation would resolve that issue.
+		MustClick().MustWaitStable()
 
 	p.page.Screenshot("after-first-next")
 
 	t.Log("Using pre-selected plugins. Navigating to wizard summary")
 	p.page.MustElementR("button", "/^Next$/i").
 		MustWaitEnabled().
-		// we need to wait, otherwise, we click the same 'Next' button twice, before the query is executed, and we are really
-		// moved to the next step. If we have the navigation updated for each step, it will be resolved.
+		// We need to wait, otherwise, we click the same 'Next' button twice before the query is executed, and we are not really
+		// moved to the next step. Updating the navigation would resolve that issue.
 		MustClick().MustWaitStable()
 	p.page.Screenshot("after-second-next")
 
@@ -198,33 +199,44 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 
 	// wait till gql mutation passes, and navigates to install details, otherwise, we could navigate to instance details with state 'draft'
 	p.page.MustWaitNavigation()
-	p.page.Screenshot()
+	p.page.Screenshot("after-deploy-changes-navigation")
 }
 
 func (p *BotkubeCloudPage) UpdateKubectlNamespace(t *testing.T) {
 	t.Log("Updating 'kubectl' namespace property")
-	p.page.MustElementR(`div[role="tab"]`, "Plugins").MustFocus().MustClick().MustWaitStable()
-
-	p.page.MustWaitStable()
-	p.page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
-	p.page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
+	
+	p.openKubectlUpdateForm()
+	
 	p.page.MustElementR("input#root_defaultNamespace", "default").MustSelectAllText().MustInput("kube-system")
+	p.page.Screenshot("after-changing-namespace-property")
 	p.page.MustElementR("button", "/^Update$/i").MustClick()
+	p.page.Screenshot("after-clicking-plugin-update")
 
 	t.Log("Submitting changes")
-	p.page.MustElementR("button", "/^Deploy changes$/i").MustClick().MustWaitStable()
+	p.page.MustWaitStable()
+	p.page.MustElementR("button", "/Deploy changes/i").MustClick()
+	p.page.Screenshot("after-deploying-plugin-changes")
 }
 
 func (p *BotkubeCloudPage) VerifyUpdatedKubectlNamespace(t *testing.T) {
 	t.Log("Verifying that the 'namespace' value was updated and persisted properly")
 
+	p.openKubectlUpdateForm()
+	p.page.MustElementR("input#root_defaultNamespace", "kube-system")
+}
+
+func (p *BotkubeCloudPage) openKubectlUpdateForm() {
 	p.page.Screenshot("before-selecting-plugins-tab")
 	p.page.MustElementR(`div[role="tab"]`, "Plugins").MustFocus().MustClick().MustWaitStable()
+
+	p.page.MustWaitStable()
 	p.page.Screenshot("after-selecting-plugins-tab")
+	
 	p.page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
+	p.page.Screenshot("after-opening-kubectl-cfg")
+	
 	p.page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
 	p.page.Screenshot("after-selecting-kubectl-cfg-form")
-	p.page.MustElementR("input#root_defaultNamespace", "kube-system")
 }
 
 func appendOrgIDQueryParam(t *testing.T, inURL, orgID string) string {

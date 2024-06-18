@@ -3,6 +3,8 @@
 package cloud_slack_dev_e2e
 
 import (
+	"strings"
+
 	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 )
 
@@ -50,13 +52,13 @@ func CreateActionUpdateInput(deploy *gqlModel.Deployment) []*gqlModel.ActionCrea
 	}
 }
 
-// DeploymentSourceAndExecutor returns last source and executor plugin found under plugins.
+// DeploymentSourceAndExecutor returns last 'kubernetes' source and 'kubectl' executor plugin found under plugins.
 func DeploymentSourceAndExecutor(deploy *gqlModel.Deployment) (source string, executor string) {
 	for _, plugin := range deploy.Plugins {
-		if plugin.Type == gqlModel.PluginTypeSource {
+		if plugin.Type == gqlModel.PluginTypeSource && strings.Contains(plugin.Name, "kubernetes"){
 			source = plugin.ConfigurationName
 		}
-		if plugin.Type == gqlModel.PluginTypeExecutor {
+		if plugin.Type == gqlModel.PluginTypeExecutor && strings.Contains(plugin.Name, "kubectl"){
 			executor = plugin.ConfigurationName
 		}
 	}

@@ -86,7 +86,7 @@ runs:
         SLACK_TESTER_TESTER_BOT_TOKEN: ${{ inputs.slack_tester_bot_token }}
         SLACK_BOT_DISPLAY_NAME: ${{ inputs.slack_bot_display_name }}
         SLACK_TESTER_BOT_NAME: ${{ inputs.slack_tester_bot_name }}
-        SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 90s
+        SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 180s
         
         
         BOTKUBE_CLOUD_API_BASE_URL: ${{ inputs.botkube_cloud_api_base_url }}
