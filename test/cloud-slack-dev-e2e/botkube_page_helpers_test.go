@@ -131,7 +131,6 @@ func (p *BotkubeCloudPage) OpenSlackAppIntegrationPage(t *testing.T) {
 
 // ReAddSlackPlatformIfShould add the slack platform again as the page was often not refreshed with a newly connected Slack Workspace.
 // It only occurs with headless mode.
-// TODO(@pkosiec): Do you have a better idea how to fix it?
 func (p *BotkubeCloudPage) ReAddSlackPlatformIfShould(t *testing.T, isHeadless bool) {
 	if !isHeadless {
 		return

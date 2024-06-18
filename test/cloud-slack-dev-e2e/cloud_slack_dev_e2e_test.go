@@ -77,8 +77,9 @@ func TestCloudSlackE2E(t *testing.T) {
 	err := envconfig.Init(&cfg)
 	require.NoError(t, err)
 
-	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
-	cfg.Slack.Tester.RecentMessagesLimit = 3       // this is used effectively only for the Botkube restarts. There are two of them in a short time window, so it shouldn't be higher than 5.
+	cfg.Slack.Tester.CloudBasedTestEnabled = false        // override property used only in the Cloud Slack E2E tests
+	cfg.Slack.Tester.RecentMessagesLimit = 3              // this is used effectively only for the Botkube restarts. There are two of them in a short time window, so it shouldn't be higher than 5.
+	cfg.Slack.Tester.MessageWaitTimeout = 3 * time.Minute // downloading plugins on restarted Agents, sometimes takes a while on GitHub runners.
 
 	var botkubeDeploymentUninstalled atomic.Bool
 	botkubeDeploymentUninstalled.Store(true) // not yet installed

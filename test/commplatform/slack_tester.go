@@ -44,7 +44,7 @@ type SlackConfig struct {
 	CloudTesterAppToken      string        `envconfig:"optional"`
 	CloudTesterName          string        `envconfig:"default=tester2"`
 	RecentMessagesLimit      int           `envconfig:"default=6"`
-	MessageWaitTimeout       time.Duration `envconfig:"default=180s"`
+	MessageWaitTimeout       time.Duration `envconfig:"default=50s"`
 }
 
 type SlackChannel struct {
