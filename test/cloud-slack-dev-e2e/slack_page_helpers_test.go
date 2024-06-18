@@ -4,6 +4,7 @@ package cloud_slack_dev_e2e
 
 import (
 	"testing"
+	"time"
 
 	"github.com/go-rod/rod"
 )
@@ -44,7 +45,13 @@ func (p *SlackPage) ConnectWorkspace(t *testing.T, headless bool, browser *rod.B
 	p.page.Screenshot()
 
 	t.Log("Hide Slack cookie banner that collides with 'Sign in' button")
-	p.page.MustElement("button#onetrust-accept-btn-handler").MustClick()
+	cookie, err := p.page.Timeout(5 * time.Second).Element("button#onetrust-accept-btn-handler")
+	if err != nil {
+		t.Logf("Failed to obtain cookie element: %s. Skipping...", err.Error())
+	} else {
+		cookie.MustClick()
+	}
+
 	p.page.MustElementR("button", "/^Sign in$/i").MustClick()
 	p.page.Screenshot()
 
@@ -57,10 +64,10 @@ func (p *SlackPage) ConnectWorkspace(t *testing.T, headless bool, browser *rod.B
 	} else {
 		t.Log("Finalizing connection...")
 		p.page.Screenshot()
-		p.page.MustElement("button#slack-workspace-connect").MustClick()
+		p.page.MustElement("button#slack-workspace-connect").MustClick().
+			MustWaitEnabled() // when it's re-enabled, then it means the query was finished 
 		p.page.Screenshot()
 	}
 
 	_ = p.page.Close() // the page should be closed automatically anyway
 }
-

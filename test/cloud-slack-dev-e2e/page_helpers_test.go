@@ -23,7 +23,7 @@ const (
 	// Currently, we get:
 	//   This browser won’t be supported starting September 1st, 2024. Update your browser to keep using Slack. Learn more:
 	//   https://slack.com/intl/en-gb/help/articles/1500001836081-Slack-support-life-cycle-for-operating-systems-app-versions-and-browsers
-	chromeUserAgent           = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+	chromeUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
 
 type Page struct {
@@ -32,7 +32,7 @@ type Page struct {
 	cfg E2ESlackConfig
 }
 
-func (p Page) Screenshot() {
+func (p Page) Screenshot(suffix ...string) {
 	p.t.Helper()
 	if p.cfg.ScreenshotsDir == "" {
 		return
@@ -41,7 +41,7 @@ func (p Page) Screenshot() {
 	pathParts := strings.Split(p.cfg.ScreenshotsDir, "/")
 	pathParts = append(pathParts)
 
-	filePath := filepath.Join(p.cfg.ScreenshotsDir, fmt.Sprintf("%d.png", time.Now().UnixNano()))
+	filePath := filepath.Join(p.cfg.ScreenshotsDir, fmt.Sprintf("%d%s.png", time.Now().UnixNano(), screenshotSuffix(suffix)))
 
 	logMsg := fmt.Sprintf("Saving screenshot to %q", filePath)
 	if p.cfg.DebugMode {
@@ -63,6 +63,13 @@ func (p Page) Screenshot() {
 	assert.NoError(p.t, err)
 }
 
+func screenshotSuffix(suffix []string) string {
+	if len(suffix) == 0 {
+		return ""
+	}
+	return "-" + strings.Join(suffix, "-")
+}
+
 func closePage(t *testing.T, name string, page *rod.Page) {
 	t.Helper()
 	err := page.Close()
@@ -74,7 +81,6 @@ func closePage(t *testing.T, name string, page *rod.Page) {
 		t.Logf("Failed to close page %q: %v", name, err)
 	}
 }
-
 
 func newBrowserPage(t *testing.T, browser *rod.Browser, cfg E2ESlackConfig) *rod.Page {
 	t.Helper()
@@ -88,4 +94,3 @@ func newBrowserPage(t *testing.T, browser *rod.Browser, cfg E2ESlackConfig) *rod
 	page.MustSetViewport(1200, 1080, 1, false)
 	return page
 }
-

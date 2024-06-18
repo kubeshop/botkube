@@ -78,7 +78,7 @@ func TestCloudSlackE2E(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
-	cfg.Slack.Tester.RecentMessagesLimit = 4       // this is used effectively only for the Botkube restarts. There are two of them in a short time window, so it shouldn't be higher than 5.
+	cfg.Slack.Tester.RecentMessagesLimit = 3       // this is used effectively only for the Botkube restarts. There are two of them in a short time window, so it shouldn't be higher than 5.
 
 	var botkubeDeploymentUninstalled atomic.Bool
 	botkubeDeploymentUninstalled.Store(true) // not yet installed
@@ -124,7 +124,7 @@ func TestCloudSlackE2E(t *testing.T) {
 	t.Run("Creating Botkube Instance with newly added Slack Workspace", func(t *testing.T) {
 		t.Log("Setting up browser...")
 
-		launcher := launcher.New().Headless(false)
+		launcher := launcher.New().Headless(true)
 		isHeadless := launcher.Has(flags.Headless)
 		t.Cleanup(launcher.Cleanup)
 
@@ -157,7 +157,6 @@ func TestCloudSlackE2E(t *testing.T) {
 		botkubeCloudPage.SetupSlackWorkspace(t, channel.Name())
 		botkubeCloudPage.FinishWizard(t)
 		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
-
 		botkubeCloudPage.UpdateKubectlNamespace(t)
 		botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
 		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
@@ -437,40 +436,40 @@ func removeSourcesAndAddActions(t *testing.T, gql *graphql.Client, existingDeplo
 	var updateInput struct {
 		UpdateDeployment gqlModel.Deployment `graphql:"updateDeployment(id: $id, input: $input)"`
 	}
+
 	var updatePluginGroup []*gqlModel.PluginConfigurationGroupUpdateInput
 	for _, createdPlugin := range existingDeployment.Plugins {
-		var pluginConfigs []*gqlModel.PluginConfigurationUpdateInput
-		pluginConfig := gqlModel.PluginConfigurationUpdateInput{
-			Name:          createdPlugin.ConfigurationName,
-			Configuration: createdPlugin.Configuration,
-		}
-		pluginConfigs = append(pluginConfigs, &pluginConfig)
-		plugin := gqlModel.PluginConfigurationGroupUpdateInput{
-			ID:             &createdPlugin.ID,
-			Name:           createdPlugin.Name,
-			Type:           createdPlugin.Type,
-			DisplayName:    createdPlugin.DisplayName,
-			Configurations: pluginConfigs,
-		}
-		updatePluginGroup = append(updatePluginGroup, &plugin)
+		updatePluginGroup = append(updatePluginGroup, &gqlModel.PluginConfigurationGroupUpdateInput{
+			ID:          &createdPlugin.ID,
+			Name:        createdPlugin.Name,
+			Type:        createdPlugin.Type,
+			DisplayName: createdPlugin.DisplayName,
+			Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+				{
+					Name:          createdPlugin.ConfigurationName,
+					Configuration: createdPlugin.Configuration,
+				},
+			},
+		})
 	}
-	var updatePlugins []*gqlModel.PluginsUpdateInput
-	updatePlugin := gqlModel.PluginsUpdateInput{
-		Groups: updatePluginGroup,
-	}
-	updatePlugins = append(updatePlugins, &updatePlugin)
 
 	platforms := gqlModel.PlatformsUpdateInput{}
-
 	for _, slack := range existingDeployment.Platforms.CloudSlacks {
 		var channelUpdateInputs []*gqlModel.ChannelBindingsByNameAndIDUpdateInput
 		for _, channel := range slack.Channels {
+			var executors []*string
+			for _, e := range channel.Bindings.Executors {
+				if strings.Contains(strings.ToLower(e), "ai") { // AI is also a source plugin
+					continue
+				}
+				executors = append(executors, &e)
+			}
 			channelUpdateInputs = append(channelUpdateInputs, &gqlModel.ChannelBindingsByNameAndIDUpdateInput{
 				ChannelID: "", // this is used for UI only so we don't need to provide it
 				Name:      channel.Name,
 				Bindings: &gqlModel.BotBindingsUpdateInput{
-					Sources:   nil,
-					Executors: []*string{&channel.Bindings.Executors[0]},
+					Sources: []*string{},
+					Executors: executors,
 				},
 			})
 		}
@@ -487,9 +486,11 @@ func removeSourcesAndAddActions(t *testing.T, gql *graphql.Client, existingDeplo
 		"input": gqlModel.DeploymentUpdateInput{
 			Name:            existingDeployment.Name,
 			ResourceVersion: existingDeployment.ResourceVersion,
-			Plugins:         updatePlugins,
-			Platforms:       &platforms,
-			Actions:         CreateActionUpdateInput(existingDeployment),
+			Plugins: []*gqlModel.PluginsUpdateInput{
+				{Groups: updatePluginGroup},
+			},
+			Platforms: &platforms,
+			Actions:   CreateActionUpdateInput(existingDeployment),
 		},
 	}
 	err := gql.Mutate(context.Background(), &updateInput, updateVariables)

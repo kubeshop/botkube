@@ -160,8 +160,9 @@ func (p *BotkubeCloudPage) SetupSlackWorkspace(t *testing.T, channel string) {
 
 	// filter by channel, to make sure that it's visible on the first table page, in order to select it in the next step
 	t.Log("Filtering by channel name")
-	p.page.Keyboard.MustType(input.End) // scroll bottom, as the footer collides with selecting filter
-	p.page.MustElement("table th:nth-child(3) span.ant-dropdown-trigger.ant-table-filter-trigger").MustFocus().MustClick()
+	p.page.Mouse.MustScroll(10, 5000) // scroll bottom, as the footer collides with selecting filter
+	p.page.Screenshot()
+	p.page.MustElement("table th:nth-child(3) span.ant-dropdown-trigger.ant-table-filter-trigger").MustClick()
 
 	t.Log("Selecting channel checkbox")
 	p.page.MustElement("input#name-channel").MustInput(channel).MustType(input.Enter)
@@ -171,36 +172,58 @@ func (p *BotkubeCloudPage) SetupSlackWorkspace(t *testing.T, channel string) {
 
 func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 	t.Log("Navigating to plugin selection")
-	p.page.MustElementR("button", "/^Next$/i").MustClick().MustWaitStable()
-	p.page.Screenshot()
+	p.page.Screenshot("before-first-next")
+
+	p.page.MustElementR("button", "/^Next$/i").
+		MustWaitEnabled().
+		// we need to wait, otherwise, we click the same 'Next' button twice, before the query is executed, and we are really
+		// moved to the next step. If we have the navigation updated for each step, it will be resolved.
+		MustClick().MustWaitStable()  
+
+	p.page.Screenshot("after-first-next")
 
 	t.Log("Using pre-selected plugins. Navigating to wizard summary")
-	p.page.MustElementR("button", "/^Next$/i").MustClick().MustWaitStable()
-	p.page.Screenshot()
+	p.page.MustElementR("button", "/^Next$/i").
+		MustWaitEnabled().
+		// we need to wait, otherwise, we click the same 'Next' button twice, before the query is executed, and we are really
+		// moved to the next step. If we have the navigation updated for each step, it will be resolved.
+		MustClick().MustWaitStable()
+	p.page.Screenshot("after-second-next")
 
 	t.Log("Submitting changes")
-	p.page.MustElementR("button", "/^Deploy changes$/i").MustClick().MustWaitStable()
+	p.page.MustElementR("button", "/^Deploy changes$/i").
+		MustWaitEnabled().
+		MustClick()
+	p.page.Screenshot("after-deploy-changes")
+
+	// wait till gql mutation passes, and navigates to install details, otherwise, we could navigate to instance details with state 'draft'
+	p.page.MustWaitNavigation()
 	p.page.Screenshot()
 }
 
 func (p *BotkubeCloudPage) UpdateKubectlNamespace(t *testing.T) {
 	t.Log("Updating 'kubectl' namespace property")
-	p.page.MustElementR(`div[role="tab"]`, "Plugins").MustClick()
+	p.page.MustElementR(`div[role="tab"]`, "Plugins").MustFocus().MustClick().MustWaitStable()
+
+	p.page.MustWaitStable()
 	p.page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
 	p.page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
 	p.page.MustElementR("input#root_defaultNamespace", "default").MustSelectAllText().MustInput("kube-system")
 	p.page.MustElementR("button", "/^Update$/i").MustClick()
 
 	t.Log("Submitting changes")
-	p.page.MustElementR("button", "/^Deploy changes$/i").MustClick().MustWaitStable() // use the case-insensitive flag "i"
+	p.page.MustElementR("button", "/^Deploy changes$/i").MustClick().MustWaitStable()
 }
 
 func (p *BotkubeCloudPage) VerifyUpdatedKubectlNamespace(t *testing.T) {
 	t.Log("Verifying that the 'namespace' value was updated and persisted properly")
 
-	p.page.MustElementR(`div[role="tab"]`, "Plugins").MustClick()
+	p.page.Screenshot("before-selecting-plugins-tab")
+	p.page.MustElementR(`div[role="tab"]`, "Plugins").MustFocus().MustClick().MustWaitStable()
+	p.page.Screenshot("after-selecting-plugins-tab")
 	p.page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
 	p.page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
+	p.page.Screenshot("after-selecting-kubectl-cfg-form")
 	p.page.MustElementR("input#root_defaultNamespace", "kube-system")
 }
 
