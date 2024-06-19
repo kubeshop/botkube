@@ -853,17 +853,19 @@ func runBotTest(t *testing.T,
 		err = botDriver.WaitForLastMessageEqual(botDriver.BotUserID(), botDriver.SecondChannel().ID(), expectedMessage)
 		assert.NoError(t, err)
 
-		t.Log("Starting notifier in second channel...")
-		command = "enable notifications"
-		expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
-		expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
+		if botDriver.Type() != commplatform.TeamsBot { // base on the previous assertion, we know that notifications are enabled 
+			t.Log("Starting notifier in second channel...")
+			command = "enable notifications"
+			expectedBody = codeBlock(fmt.Sprintf("Brace yourselves, incoming notifications from cluster '%s'.", appCfg.ClusterName))
+			expectedMessage = fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 
-		botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
-		err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
-		require.NoError(t, err)
+			botDriver.PostMessageToBot(t, botDriver.SecondChannel().Identifier(), command)
+			err = botDriver.WaitForMessagePosted(botDriver.BotUserID(), botDriver.SecondChannel().ID(), limitMessages(), botDriver.AssertEquals(expectedMessage))
+			require.NoError(t, err)
 
-		if botDriver.Type().IsCloud() {
-			waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
+			if botDriver.Type().IsCloud() {
+				waitForRestart(t, botDriver, botDriver.BotUserID(), botDriver.FirstChannel().ID(), appCfg.ClusterName)
+			}
 		}
 
 		cfgMapCli := k8sCli.CoreV1().ConfigMaps(appCfg.Deployment.Namespace)
