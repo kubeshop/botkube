@@ -174,6 +174,7 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 	t.Log("Navigating to plugin selection")
 	p.page.Screenshot("before-first-next")
 
+	time.Sleep(3 * time.Second)
 	p.page.MustElementR("button", "/^Next$/i").
 		MustWaitEnabled().
 		// We need to wait, otherwise, we click the same 'Next' button twice before the query is executed, and we are not really
@@ -183,6 +184,7 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 	p.page.Screenshot("after-first-next")
 
 	t.Log("Using pre-selected plugins. Navigating to wizard summary")
+	time.Sleep(3 * time.Second)
 	p.page.MustElementR("button", "/^Next$/i").
 		MustWaitEnabled().
 		// We need to wait, otherwise, we click the same 'Next' button twice before the query is executed, and we are not really
@@ -191,12 +193,13 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 	p.page.Screenshot("after-second-next")
 
 	t.Log("Submitting changes")
+	time.Sleep(3 * time.Second)
 	p.page.MustElementR("button", "/^Deploy changes$/i").
 		MustWaitEnabled().
 		MustClick()
 	p.page.Screenshot("after-deploy-changes")
 
-	// wait till gql mutation passes, and navigates to install details, otherwise, we could navigate to instance details with state 'draft'
+	// wait till gql mutation passes, and navigates to instance details, otherwise, we could navigate to instance details with state 'draft'
 	p.page.MustWaitNavigation()
 	p.page.Screenshot("after-deploy-changes-navigation")
 }
