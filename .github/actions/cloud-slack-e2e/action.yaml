@@ -28,6 +28,9 @@ inputs:
   botkube_cloud_api_base_url:
     description: 'BotKube Cloud API Base URL'
     required: true
+  botkube_cloud_ui_base_url:
+    description: 'BotKube Cloud UI Base URL'
+    required: true
   botkube_cloud_email:
     description: 'BotKube Cloud Email'
     required: true
@@ -88,7 +91,7 @@ runs:
         SLACK_TESTER_BOT_NAME: ${{ inputs.slack_tester_bot_name }}
         SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 180s
         
-        
+        BOTKUBE_CLOUD_UI_BASE_URL: ${{ inputs.botkube_cloud_ui_base_url }}
         BOTKUBE_CLOUD_API_BASE_URL: ${{ inputs.botkube_cloud_api_base_url }}
         BOTKUBE_CLOUD_EMAIL: ${{ inputs.botkube_cloud_email }}
         BOTKUBE_CLOUD_PASSWORD: ${{ inputs.botkube_cloud_password }}

@@ -39,6 +39,7 @@ jobs:
           slack_tester_bot_name: "botkube3"
           
           botkube_cloud_api_base_url: "https://api.botkube.io"
+          botkube_cloud_ui_base_url: "https://app.botkube.io"
           botkube_cloud_email: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
           botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
           botkube_cloud_team_organization_id: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
