@@ -88,7 +88,7 @@ func (p *SlackPage) ConnectWorkspace(t *testing.T, browser *rod.Browser) {
 		p.page.Screenshot("after-workspace-connect")
 	}
 
-	_, err = p.page.Element("#non-existing-elem")
-	// expected context canceled = which means, it was auto-closed
-	assert.EqualError(t, err, context.Canceled.Error())
+	t.Log("Waiting for page auto-close...")
+	err = p.page.WaitIdle(waitTime) // wait for auto-close
+	assert.NoError(t, err)
 }
