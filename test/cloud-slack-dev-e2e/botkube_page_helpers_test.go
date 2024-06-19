@@ -203,13 +203,17 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 
 func (p *BotkubeCloudPage) UpdateKubectlNamespace(t *testing.T) {
 	t.Log("Updating 'kubectl' namespace property")
-	
+
 	p.openKubectlUpdateForm()
-	
+
 	p.page.MustElementR("input#root_defaultNamespace", "default").MustSelectAllText().MustInput("kube-system")
 	p.page.Screenshot("after-changing-namespace-property")
 	p.page.MustElementR("button", "/^Update$/i").MustClick()
 	p.page.Screenshot("after-clicking-plugin-update")
+
+	t.Log("Moving to top left corner of the page")
+	p.page.Mouse.MustMoveTo(0, 0)
+	p.page.Screenshot("after-moving-to-top-left")
 
 	t.Log("Submitting changes")
 	p.page.MustWaitStable()
@@ -230,10 +234,10 @@ func (p *BotkubeCloudPage) openKubectlUpdateForm() {
 
 	p.page.MustWaitStable()
 	p.page.Screenshot("after-selecting-plugins-tab")
-	
+
 	p.page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
 	p.page.Screenshot("after-opening-kubectl-cfg")
-	
+
 	p.page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
 	p.page.Screenshot("after-selecting-kubectl-cfg-form")
 }

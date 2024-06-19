@@ -159,13 +159,10 @@ func TestCloudSlackE2E(t *testing.T) {
 		botkubeCloudPage.FinishWizard(t)
 		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
 
-		if !isHeadless { // it is flaky on CI, more investigation needed
-			botkubeCloudPage.UpdateKubectlNamespace(t)
-			botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
-			botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
-			botkubeCloudPage.VerifyUpdatedKubectlNamespace(t)
-		}
-
+		botkubeCloudPage.UpdateKubectlNamespace(t)
+		botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
+		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
+		botkubeCloudPage.VerifyUpdatedKubectlNamespace(t)
 	})
 
 	t.Run("Run E2E tests with deployment", func(t *testing.T) {

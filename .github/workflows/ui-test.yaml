@@ -1,0 +1,54 @@
+name: Test UI E2E tests on PR
+
+on:
+  push:
+    branches:
+      - enable-update-instance-ui
+
+env:
+  GIT_USER: botkube-dev
+  HELM_VERSION: v3.9.0
+  K3D_VERSION: v5.4.6
+  IMAGE_REGISTRY: "ghcr.io"
+  IMAGE_REPOSITORY: "kubeshop/botkube"
+  IMAGE_TAG: v9.99.9-dev # TODO: Use commit hash tag to make the predictable builds for each commit on branch
+
+jobs:
+  cloud-slack-dev-e2e:
+    name: Botkube Cloud Slack Dev E2E
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: cloud-slack-dev-e2e
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run e2e tests
+        uses: ./.github/actions/cloud-slack-e2e
+        with:
+          access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
+
+          slack_workspace_name: ${{ secrets.E2E_DEV_SLACK_WORKSPACE_NAME }}
+          slack_email: ${{ secrets.E2E_DEV_SLACK_EMAIL }}
+          slack_password: ${{ secrets.E2E_DEV_SLACK_USER_PASSWORD }}
+          slack_bot_display_name: "BotkubeDev"
+          slack_tester_bot_token: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
+          slack_tester_bot_name: "botkubedev"
+
+          botkube_cloud_api_base_url: "https://api-dev.botkube.io"
+          botkube_cloud_email: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
+          botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
+          botkube_cloud_team_organization_id: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
+
+          slack_alerts_webhook: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
+
+          e2e_type: "DEV"
+
+
+
+
+
