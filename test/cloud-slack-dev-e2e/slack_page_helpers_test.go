@@ -3,13 +3,17 @@
 package cloud_slack_dev_e2e
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
 	"github.com/go-rod/rod"
 )
 
-const slackBaseURL = "slack.com"
+const (
+	slackBaseURL = "slack.com"
+	waitTime     = 10 * time.Second
+)
 
 type SlackPage struct {
 	page *Page
@@ -63,11 +67,33 @@ func (p *SlackPage) ConnectWorkspace(t *testing.T, headless bool, browser *rod.B
 		p.page.MustElementR("div.ant-result-title", "Organization Already Connected!")
 	} else {
 		t.Log("Finalizing connection...")
+		time.Sleep(3 * time.Second)
 		p.page.Screenshot()
-		p.page.MustElement("button#slack-workspace-connect").MustClick().
-			MustWaitEnabled() // when it's re-enabled, then it means the query was finished 
+		p.page.MustElement("button#slack-workspace-connect").MustClick()
 		p.page.Screenshot()
 	}
 
+	p.waitForHomepage(t)
+
 	_ = p.page.Close() // the page should be closed automatically anyway
+}
+
+func (p *SlackPage) waitForHomepage(t *testing.T) {
+	t.Log("Detecting homepage...")
+	time.Sleep(waitTime) // ensure the screenshots shows a view after button click
+	p.page.Screenshot()
+
+	// Case 1: There are other instances on the list
+	shortBkTimeoutPage := p.page.Timeout(waitTime)
+	t.Cleanup(func() {
+		closePage(t, "shortBkTimeoutPage", shortBkTimeoutPage)
+	})
+	_, err := shortBkTimeoutPage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
+	if err != nil {
+		t.Logf("Failed to detect homepage with other instances created: %v", err)
+		// Fallback to Case 2: No other instances created
+		t.Logf("Checking if the homepage is in the 'no instances' state...")
+		_, err := p.page.ElementR(".ant-layout-content h2", "Create your Botkube instance!")
+		assert.NoError(t, err)
+	}
 }
