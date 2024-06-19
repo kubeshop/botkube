@@ -235,7 +235,9 @@ func (p *BotkubeCloudPage) openKubectlUpdateForm() {
 	p.page.MustWaitStable()
 	p.page.Screenshot("after-selecting-plugins-tab")
 
-	p.page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
+	p.page.MustElement(`button[id^="botkube/kubectl_"]`).
+		MustWaitEnabled(). // needed as we have an "Outdated version detected" glitch
+		MustClick()
 	p.page.Screenshot("after-opening-kubectl-cfg")
 
 	p.page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
