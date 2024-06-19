@@ -33,7 +33,7 @@ jobs:
           echo "versions={\"image-version\":[\"v9.99.9-dev\",\"0.0.0-${IMAGE_VERSION}\"]}" >> $GITHUB_OUTPUT
   build:
     if: github.event_name != 'repository_dispatch' # skip if triggered by repository_dispatch
-    needs: [extract-metadata]
+    needs: [ extract-metadata ]
     strategy:
       matrix: ${{ fromJson(needs.extract-metadata.outputs.versions) }}
     runs-on: ubuntu-latest
@@ -299,7 +299,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Run e2e tests 
+      - name: Run e2e tests
         uses: ./.github/actions/cloud-slack-e2e
         with:
           access_token: ${{ secrets.E2E_TEST_GH_DEV_ACCOUNT_PAT }}
@@ -311,6 +311,7 @@ jobs:
           slack_tester_bot_token: ${{ secrets.E2E_DEV_SLACK_TESTER_BOT_TOKEN }}
           slack_tester_bot_name: "botkubedev"
 
+          botkube_cloud_ui_base_url: "https://app-dev.botkube.io"
           botkube_cloud_api_base_url: "https://api-dev.botkube.io"
           botkube_cloud_email: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
           botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
