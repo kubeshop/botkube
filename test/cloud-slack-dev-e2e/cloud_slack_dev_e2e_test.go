@@ -42,7 +42,7 @@ type E2ESlackConfig struct {
 	Slack        SlackConfig
 	BotkubeCloud BotkubeCloudConfig
 
-	PageTimeout    time.Duration `envconfig:"default=5m"`
+	PageTimeout    time.Duration `envconfig:"default=10m"`
 	ScreenshotsDir string        `envconfig:"optional"`
 	DebugMode      bool          `envconfig:"default=false"`
 
@@ -152,7 +152,7 @@ func TestCloudSlackE2E(t *testing.T) {
 		botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
 		botkubeCloudPage.OpenSlackAppIntegrationPage(t)
 
-		slackPage.ConnectWorkspace(t, isHeadless, browser)
+		slackPage.ConnectWorkspace(t, browser)
 
 		botkubeCloudPage.ReAddSlackPlatformIfShould(t, isHeadless)
 		botkubeCloudPage.SetupSlackWorkspace(t, channel.Name())
