@@ -4,11 +4,7 @@ package cloud_slack_dev_e2e
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/avast/retry-go/v4"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,13 +12,14 @@ import (
 	"testing"
 	"time"
 
+	"botkube.io/botube/test/botkubex"
 	"botkube.io/botube/test/cloud_graphql"
 	"botkube.io/botube/test/commplatform"
 	"botkube.io/botube/test/diff"
-	"botkube.io/botube/test/helmx"
+	"github.com/avast/retry-go/v4"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
-	"github.com/go-rod/rod/lib/proto"
+	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/hasura/go-graphql-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,49 +36,39 @@ import (
 	"github.com/kubeshop/botkube/pkg/formatx"
 )
 
-const (
-	// Chromium is not supported by Slack web app for some reason
-	chromeUserAgent      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-	authHeaderName       = "Authorization"
-	cleanupRetryAttempts = 5
-)
+const cleanupRetryAttempts = 5
 
 type E2ESlackConfig struct {
 	Slack        SlackConfig
 	BotkubeCloud BotkubeCloudConfig
 
-	PageTimeout    time.Duration `envconfig:"default=1m"`
+	PageTimeout    time.Duration `envconfig:"default=5m"`
 	ScreenshotsDir string        `envconfig:"optional"`
 	DebugMode      bool          `envconfig:"default=false"`
 
-	ClusterNamespace string        `envconfig:"default=default"`
-	Kubeconfig       string        `envconfig:"optional"`
-	DefaultWaitTime  time.Duration `envconfig:"default=10s"`
+	ClusterNamespace     string `envconfig:"default=default"`
+	Kubeconfig           string `envconfig:"optional"`
+	BotkubeCliBinaryPath string
 }
 
 type SlackConfig struct {
 	WorkspaceName                 string
 	Email                         string
 	Password                      string
-	BotDisplayName                string `envconfig:"default=BotkubeDev"`
-	ConversationWithBotURL        string `envconfig:"default=https://app.slack.com/client/"`
-	WorkspaceAlreadyConnected     bool   `envconfig:"default=false"`
-	DisconnectWorkspaceAfterTests bool   `envconfig:"default=true"`
+	WorkspaceAlreadyConnected     bool `envconfig:"default=false"`
+	DisconnectWorkspaceAfterTests bool `envconfig:"default=true"`
 
 	Tester commplatform.SlackConfig
 }
 
 type BotkubeCloudConfig struct {
-	APIBaseURL                             string `envconfig:"default=https://api-dev.botkube.io"`
-	APIGraphQLEndpoint                     string `envconfig:"default=graphql"`
-	APISlackAppInstallationBaseURLOverride string `envconfig:"optional"`
-	APISlackAppInstallationEndpoint        string `envconfig:"default=routers/slack/v1/install"`
-	Email                                  string
-	Password                               string
+	APIBaseURL         string `envconfig:"default=https://api-dev.botkube.io"`
+	UIBaseURL          string `envconfig:"default=https://app-dev.botkube.io"`
+	APIGraphQLEndpoint string `envconfig:"default=graphql"`
+	Email              string
+	Password           string
 
 	TeamOrganizationID string
-	FreeOrganizationID string
-	PluginRepoURL      string `envconfig:"default=https://storage.googleapis.com/botkube-plugins-latest/plugins-dev-index.yaml"`
 }
 
 func TestCloudSlackE2E(t *testing.T) {
@@ -90,13 +77,25 @@ func TestCloudSlackE2E(t *testing.T) {
 	err := envconfig.Init(&cfg)
 	require.NoError(t, err)
 
-	cfg.Slack.Tester.CloudBasedTestEnabled = false // override property used only in the Cloud Slack E2E tests
-	cfg.Slack.Tester.RecentMessagesLimit = 4       // this is used effectively only for the Botkube restarts. There are two of them in a short time window, so it shouldn't be higher than 5.
+	cfg.Slack.Tester.CloudBasedTestEnabled = false        // override property used only in the Cloud Slack E2E tests
+	cfg.Slack.Tester.RecentMessagesLimit = 3              // this is used effectively only for the Botkube restarts. There are two of them in a short time window, so it shouldn't be higher than 5.
+	cfg.Slack.Tester.MessageWaitTimeout = 3 * time.Minute // downloading plugins on restarted Agents, sometimes takes a while on GitHub runners.
 
-	authHeaderValue := ""
 	var botkubeDeploymentUninstalled atomic.Bool
 	botkubeDeploymentUninstalled.Store(true) // not yet installed
-	gqlEndpoint := fmt.Sprintf("%s/%s", cfg.BotkubeCloud.APIBaseURL, cfg.BotkubeCloud.APIGraphQLEndpoint)
+	t.Cleanup(func() {
+		if t.Failed() {
+			t.Log("Tests failed, keeping the Botkube instance installed for debugging purposes.")
+			return
+		}
+		if botkubeDeploymentUninstalled.Load() {
+			return
+		}
+		t.Log("Uninstalling Botkube...")
+		botkubex.Uninstall(t, cfg.BotkubeCliBinaryPath)
+
+		botkubeDeploymentUninstalled.Store(true)
+	})
 
 	if cfg.ScreenshotsDir != "" {
 		t.Logf("Screenshots enabled. They will be saved to %s", cfg.ScreenshotsDir)
@@ -106,10 +105,28 @@ func TestCloudSlackE2E(t *testing.T) {
 		t.Log("Screenshots disabled.")
 	}
 
-	t.Run("Connecting app", func(t *testing.T) {
+	t.Log("Initializing Slack...")
+	tester, err := commplatform.NewSlackTester(cfg.Slack.Tester, nil)
+	require.NoError(t, err)
+
+	t.Log("Initializing users...")
+	tester.InitUsers(t)
+
+	t.Log("Creating channel...")
+	channel, createChannelCallback := tester.CreateChannel(t, "e2e-test")
+	t.Cleanup(func() { createChannelCallback(t) })
+
+	t.Log("Inviting Bot to the channel...")
+	tester.InviteBotToChannel(t, channel.ID())
+
+	botkubeCloudPage := NewBotkubeCloudPage(t, cfg)
+	slackPage := NewSlackPage(t, cfg)
+
+	t.Run("Creating Botkube Instance with newly added Slack Workspace", func(t *testing.T) {
 		t.Log("Setting up browser...")
 
-		launcher := launcher.New()
+		launcher := launcher.New().Headless(true)
+		isHeadless := launcher.Has(flags.Headless)
 		t.Cleanup(launcher.Cleanup)
 
 		browser := rod.New().Trace(cfg.DebugMode).ControlURL(launcher.MustLaunch()).MustConnect()
@@ -125,175 +142,41 @@ func TestCloudSlackE2E(t *testing.T) {
 			closePage(t, "page", page)
 		})
 
-		var slackAppInstallationURL string
-		if cfg.BotkubeCloud.APISlackAppInstallationBaseURLOverride == "" {
-			slackAppInstallationURL = fmt.Sprintf("%s/%s", cfg.BotkubeCloud.APIBaseURL, cfg.BotkubeCloud.APISlackAppInstallationEndpoint)
-		} else {
-			slackAppInstallationURL = fmt.Sprintf("%s/%s", cfg.BotkubeCloud.APISlackAppInstallationBaseURLOverride, cfg.BotkubeCloud.APISlackAppInstallationEndpoint)
-		}
-		page.MustNavigate(slackAppInstallationURL).MustWaitStable()
-		screenshotIfShould(t, cfg, page)
+		botkubeCloudPage.NavigateAndLogin(t, page)
+		botkubeCloudPage.HideCookieBanner(t)
 
-		isNgrok := strings.Contains(slackAppInstallationURL, "ngrok")
-		if isNgrok {
-			t.Log("ngrok host detected. Skipping the warning page...")
-			page.MustElement("button.ant-btn").MustClick()
-			screenshotIfShould(t, cfg, page)
-		}
+		stopRouter := botkubeCloudPage.CaptureBearerToken(t, browser)
+		defer stopRouter()
 
-		t.Log("Logging in to Slack...")
-		page.MustElement("input#domain").MustInput(cfg.Slack.WorkspaceName)
-		screenshotIfShould(t, cfg, page)
-		page.MustElementR("button", "Continue").MustClick()
-		screenshotIfShould(t, cfg, page)
-		page.MustElementR("a", "sign in with a password instead").MustClick()
-		screenshotIfShould(t, cfg, page)
-		page.MustElement("input#email").MustInput(cfg.Slack.Email)
-		page.MustElement("input#password").MustInput(cfg.Slack.Password)
-		screenshotIfShould(t, cfg, page)
-		page.MustElementR("button", "(^Sign in$)|(^Sign In$)").MustClick()
-		screenshotIfShould(t, cfg, page)
+		botkubeCloudPage.CreateNewInstance(t, channel.Name())
+		botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
+		botkubeCloudPage.OpenSlackAppIntegrationPage(t)
 
-		t.Log("Installing Slack app...")
-		time.Sleep(cfg.DefaultWaitTime) // ensure the screenshots shows a page after "Sign in" click
-		screenshotIfShould(t, cfg, page)
-		page.MustElementR("button.c-button:not(.c-button--disabled)", "Allow").MustClick()
-		screenshotIfShould(t, cfg, page)
-		page.MustElementR("a", "open this link in your browser")
-		page.MustClose()
+		slackPage.ConnectWorkspace(t, isHeadless, browser)
 
-		t.Log("Opening new window...")
-		// Workaround for the Slack protocol handler modal which cannot be closed programmatically
-		slackPage := newBrowserPage(t, browser, cfg)
-		t.Cleanup(func() {
-			closePage(t, "slackPage", slackPage)
-		})
+		botkubeCloudPage.ReAddSlackPlatformIfShould(t, isHeadless)
+		botkubeCloudPage.SetupSlackWorkspace(t, channel.Name())
+		botkubeCloudPage.FinishWizard(t)
+		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
 
-		t.Logf("Navigating to the conversation with %q bot...", cfg.Slack.BotDisplayName)
-		slackPage.MustNavigate(cfg.Slack.ConversationWithBotURL).MustWaitLoad()
-		screenshotIfShould(t, cfg, slackPage)
-
-		// sometimes it shows up - not sure if that really helps as I didn't see it later ¯\_(ツ)_/¯ We need to test it
-		shortTimeoutPage := slackPage.Timeout(cfg.DefaultWaitTime)
-		t.Cleanup(func() {
-			closePage(t, "shortTimeoutPage", shortTimeoutPage)
-		})
-		elem, _ := shortTimeoutPage.Element("button.p-download_modal__not_now")
-		if elem != nil {
-			t.Log("Closing the 'Download the Slack app' modal...")
-			elem.MustClick()
-			time.Sleep(cfg.DefaultWaitTime) // to ensure the additional screenshot we do below shows closed modal
-			screenshotIfShould(t, cfg, slackPage)
+		if !isHeadless { // it is flaky on CI, more investigation needed
+			botkubeCloudPage.UpdateKubectlNamespace(t)
+			botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
+			botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
+			botkubeCloudPage.VerifyUpdatedKubectlNamespace(t)
 		}
 
-		t.Log("Selecting the conversation with the bot...")
-		screenshotIfShould(t, cfg, slackPage)
-		slackPage.MustElementR(".c-scrollbar__child .c-virtual_list__scroll_container .p-channel_sidebar__static_list__item .p-channel_sidebar__name span", fmt.Sprintf("^%s$", cfg.Slack.BotDisplayName)).MustParent().MustParent().MustParent().MustClick()
-		screenshotIfShould(t, cfg, slackPage)
-
-		// it shows a popup for the new slack UI
-		elem, _ = shortTimeoutPage.ElementR("button.c-button", "I’ll Explore on My Own")
-		if elem != nil {
-			t.Log("Closing the 'New Slack UI' modal...")
-			elem.MustClick()
-			time.Sleep(cfg.DefaultWaitTime) // to ensure the additional screenshot we do below shows closed modal
-			screenshotIfShould(t, cfg, slackPage)
-		}
-
-		t.Log("Clicking 'Connect' button...")
-		slackPage.MustElement(".p-actions_block__action button.c-button") // workaround for `MustElements` not having built-in retry
-		screenshotIfShould(t, cfg, slackPage)
-		elems := slackPage.MustElements(`.p-actions_block__action button.c-button`)
-		require.NotEmpty(t, elems)
-		t.Logf("Got %d buttons, using the last one...", len(elems))
-		wait := slackPage.MustWaitOpen()
-		elems[len(elems)-1].MustClick()
-		botkubePage := wait()
-		t.Cleanup(func() {
-			closePage(t, "botkubePage", botkubePage)
-		})
-
-		t.Logf("Signing in to Botkube Cloud as %q...", cfg.BotkubeCloud.Email)
-		screenshotIfShould(t, cfg, botkubePage)
-		botkubePage.MustElement("input#username").MustInput(cfg.BotkubeCloud.Email)
-		botkubePage.MustElement("input#password").MustInput(cfg.BotkubeCloud.Password)
-		screenshotIfShould(t, cfg, botkubePage)
-		botkubePage.MustElementR("form button[name='action'][data-action-button-primary='true']", "Continue").MustClick()
-		screenshotIfShould(t, cfg, botkubePage)
-
-		t.Logf("Starting hijacking requests to %q to get the bearer token...", gqlEndpoint)
-		router := browser.HijackRequests()
-		router.MustAdd(gqlEndpoint, func(ctx *rod.Hijack) {
-			if authHeaderValue != "" {
-				ctx.ContinueRequest(&proto.FetchContinueRequest{})
-				return
-			}
-
-			if ctx.Request != nil && ctx.Request.Method() != http.MethodPost {
-				ctx.ContinueRequest(&proto.FetchContinueRequest{})
-				return
-			}
-
-			require.NotNil(t, ctx.Request)
-			authHeaderValue = ctx.Request.Header(authHeaderName)
-			ctx.ContinueRequest(&proto.FetchContinueRequest{})
-		})
-		go router.Run()
-		defer router.MustStop()
-
-		t.Log("Ensuring proper organization is selected")
-		botkubePage.MustWaitOpen()
-		screenshotIfShould(t, cfg, botkubePage)
-		botkubePage.MustElement("a.logo-link")
-
-		pageURL := botkubePage.MustInfo().URL
-		urlWithOrgID := appendOrgIDQueryParam(t, pageURL, cfg.BotkubeCloud.TeamOrganizationID)
-
-		botkubePage.MustNavigate(urlWithOrgID).MustWaitLoad()
-		screenshotIfShould(t, cfg, botkubePage)
-		botkubePage.MustElement("a.logo-link")
-		screenshotIfShould(t, cfg, botkubePage)
-
-		t.Log("Finalizing Slack workspace connection...")
-		if cfg.Slack.WorkspaceAlreadyConnected {
-			t.Log("Expecting already connected message...")
-			botkubePage.MustElementR("div.ant-result-title", "Organization Already Connected!")
-			return
-		}
-
-		t.Log("Finalizing connection...")
-		screenshotIfShould(t, cfg, botkubePage)
-		botkubePage.MustElement("a.logo-link")
-		screenshotIfShould(t, cfg, botkubePage)
-		botkubePage.MustElementR("button > span", "Connect").MustParent().MustClick()
-		screenshotIfShould(t, cfg, botkubePage)
-
-		t.Log("Detecting homepage...")
-		time.Sleep(cfg.DefaultWaitTime) // ensure the screenshots shows a view after button click
-		screenshotIfShould(t, cfg, botkubePage)
-
-		// Case 1: There are other instances on the list
-		shortBkTimeoutPage := botkubePage.Timeout(cfg.DefaultWaitTime)
-		t.Cleanup(func() {
-			closePage(t, "shortBkTimeoutPage", shortBkTimeoutPage)
-		})
-		_, err := shortBkTimeoutPage.ElementR(".ant-layout-content p", "All Botkube installations managed by Botkube Cloud.")
-		if err != nil {
-			t.Logf("Failed to detect homepage with other instances created: %v", err)
-			// Fallback to Case 2: No other instances created
-			t.Logf("Checking if the homepage is in the 'no instances' state...")
-			_, err := botkubePage.ElementR(".ant-layout-content h2", "Create your Botkube instance!")
-			assert.NoError(t, err)
-		}
 	})
 
 	t.Run("Run E2E tests with deployment", func(t *testing.T) {
-		require.NotEmpty(t, authHeaderValue, "Previous subtest needs to pass to get authorization header value")
+		connectedDeploy := botkubeCloudPage.ConnectedDeploy
+		require.NotNil(t, connectedDeploy, "Previous subtest needs to pass to get connected deployment information")
+		require.NotEmpty(t, botkubeCloudPage.AuthHeaderValue, "Previous subtest needs to pass to get authorization header value")
 
 		t.Logf("Using Organization ID %q and Authorization header starting with %q", cfg.BotkubeCloud.TeamOrganizationID,
-			stringsutil.ShortenString(authHeaderValue, 15))
+			stringsutil.ShortenString(botkubeCloudPage.AuthHeaderValue, 15))
 
-		gqlCli := cloud_graphql.NewClientForAuthAndOrg(gqlEndpoint, cfg.BotkubeCloud.TeamOrganizationID, authHeaderValue)
+		gqlCli := cloud_graphql.NewClientForAuthAndOrg(botkubeCloudPage.GQLEndpoint, cfg.BotkubeCloud.TeamOrganizationID, botkubeCloudPage.AuthHeaderValue)
 
 		t.Logf("Getting connected Slack workspace...")
 		slackWorkspaces := gqlCli.MustListSlackWorkspacesForOrg(t, cfg.BotkubeCloud.TeamOrganizationID)
@@ -313,97 +196,53 @@ func TestCloudSlackE2E(t *testing.T) {
 			}
 		})
 
-		t.Log("Initializing Slack...")
-		tester, err := commplatform.NewSlackTester(cfg.Slack.Tester, nil)
-		require.NoError(t, err)
-
-		t.Log("Initializing users...")
-		tester.InitUsers(t)
-
-		t.Log("Creating channel...")
-		channel, createChannelCallback := tester.CreateChannel(t, "e2e-test")
-		t.Cleanup(func() { createChannelCallback(t) })
-
-		t.Log("Inviting Bot to the channel...")
-		tester.InviteBotToChannel(t, channel.ID())
-
-		t.Log("Creating deployment...")
-		deployment := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, channel.Name(), slackWorkspace.TeamID, channel.Name())
-		t.Cleanup(func() {
-			err := helmx.WaitForUninstallation(context.Background(), t, &botkubeDeploymentUninstalled)
-			assert.NoError(t, err)
-
-			t.Log("Deleting first deployment...")
-			err = retryOperation(func() error {
-				return gqlCli.DeleteDeployment(t, graphql.ID(deployment.ID))
-			})
-			if err != nil {
-				t.Logf("Failed to delete first deployment: %s", err.Error())
-			}
-		})
-
-		t.Log("Creating a second deployment...")
-		deployment2 := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, fmt.Sprintf("%s-2", channel.Name()), slackWorkspace.TeamID, channel.Name())
+		t.Log("Creating a second deployment to test not connected flow...")
+		notConnectedDeploy := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, fmt.Sprintf("%s-2", channel.Name()), slackWorkspace.TeamID, channel.Name())
 		t.Cleanup(func() {
 			t.Log("Deleting second deployment...")
 			err = retryOperation(func() error {
-				return gqlCli.DeleteDeployment(t, graphql.ID(deployment2.ID))
+				return gqlCli.DeleteDeployment(t, graphql.ID(notConnectedDeploy.ID))
 			})
 			if err != nil {
 				t.Logf("Failed to delete second deployment: %s", err.Error())
 			}
 		})
 
-		botkubeDeploymentUninstalled.Store(false) // about to be installed
-		params := helmx.InstallChartParams{
-			RepoURL:       "https://storage.googleapis.com/botkube-latest-main-charts",
-			RepoName:      "botkube",
-			Name:          "botkube",
-			Namespace:     "botkube",
-			Command:       *deployment.HelmCommand,
-			PluginRepoURL: cfg.BotkubeCloud.PluginRepoURL,
-		}
-		helmInstallCallback := helmx.InstallChart(t, params)
 		t.Cleanup(func() {
-			if t.Failed() {
-				t.Log("Tests failed, keeping the Botkube instance installed for debugging purposes.")
-			} else {
-				t.Log("Uninstalling Helm chart...")
-				helmInstallCallback(t)
+			t.Log("Deleting first deployment...")
+			err = retryOperation(func() error {
+				return gqlCli.DeleteDeployment(t, graphql.ID(connectedDeploy.ID))
+			})
+			if err != nil {
+				t.Logf("Failed to delete first deployment: %s", err.Error())
 			}
-
-			botkubeDeploymentUninstalled.Store(true)
 		})
 
 		t.Log("Waiting for help message...")
 		assertionFn := func(msg string) (bool, int, string) {
-			return strings.Contains(msg, fmt.Sprintf("Botkube instance %q is now active.", deployment.Name)), 0, ""
+			return strings.Contains(msg, fmt.Sprintf("Botkube instance %q is now active.", connectedDeploy.Name)), 0, ""
 		}
-		err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), 3, assertionFn)
+		err = tester.WaitForMessagePosted(tester.BotUserID(), channel.ID(), 10, assertionFn) // we perform a few restarts before
 		require.NoError(t, err)
 
 		cmdHeader := func(command string) string {
-			return fmt.Sprintf("`%s` on `%s`", command, deployment.Name)
+			return fmt.Sprintf("`%s` on `%s`", command, connectedDeploy.Name)
 		}
 
 		t.Run("Check basic commands", func(t *testing.T) {
 			t.Log("Testing ping with --cluster-name")
-			command := fmt.Sprintf("ping --cluster-name %s", deployment.Name)
-			expectedMessage := fmt.Sprintf("`%s` on `%s`\n```\npong", command, deployment.Name)
+			command := fmt.Sprintf("ping --cluster-name %s", connectedDeploy.Name)
+			expectedMessage := fmt.Sprintf("`%s` on `%s`\n```\npong", command, connectedDeploy.Name)
 			tester.PostMessageToBot(t, channel.Identifier(), command)
 			err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
 			require.NoError(t, err)
 
 			t.Log("Testing ping for not connected deployment #2")
 			command = "ping"
-			expectedMessage = fmt.Sprintf("The cluster %s (id: %s) is not connected.", deployment2.Name, deployment2.ID)
-			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("%s --cluster-name %s", command, deployment2.Name))
+			expectedMessage = fmt.Sprintf("The cluster %s (id: %s) is not connected.", notConnectedDeploy.Name, notConnectedDeploy.ID)
+			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("%s --cluster-name %s", command, notConnectedDeploy.Name))
 
 			err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
-			if err != nil { // the new cloud backend not release yet
-				t.Logf("Fallback to the old behavior with message sent at the channel level...")
-				err = tester.OnChannel().WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
-			}
 			require.NoError(t, err)
 
 			t.Log("Testing ping for not existing deployment")
@@ -412,21 +251,13 @@ func TestCloudSlackE2E(t *testing.T) {
 			expectedMessage = fmt.Sprintf("*Instance not found* The cluster %q does not exist.", deployName)
 			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("%s --cluster-name %s", command, deployName))
 			err = tester.WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
-			if err != nil { // the new cloud backend not release yet
-				t.Logf("Fallback to the old behavior with message sent at the channel level...")
-				err = tester.OnChannel().WaitForLastMessageContains(tester.BotUserID(), channel.ID(), expectedMessage)
-			}
 			require.NoError(t, err)
 
 			t.Log("Setting cluster as default")
-			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("cloud set default-instance %s", deployment.ID))
+			tester.PostMessageToBot(t, channel.Identifier(), fmt.Sprintf("cloud set default-instance %s", connectedDeploy.ID))
 			t.Log("Waiting for confirmation message...")
-			expectedClusterDefaultMsg := fmt.Sprintf(":white_check_mark: Instance %s was successfully selected as the default cluster for this channel.", deployment.Name)
+			expectedClusterDefaultMsg := fmt.Sprintf(":white_check_mark: Instance %s was successfully selected as the default cluster for this channel.", connectedDeploy.Name)
 			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedClusterDefaultMsg)
-			if err != nil { // the new cloud backend not release yet
-				t.Logf("Fallback to the old behavior with message sent at the channel level...")
-				err = tester.OnChannel().WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedClusterDefaultMsg)
-			}
 			require.NoError(t, err)
 
 			t.Log("Testing getting all deployments")
@@ -468,7 +299,7 @@ func TestCloudSlackE2E(t *testing.T) {
 					"*:large_green_circle: v1/pods created*",
 					fmt.Sprintf("*Name:* %s", pod.Name),
 					fmt.Sprintf("*Namespace:* %s", pod.Namespace),
-					fmt.Sprintf("*Cluster:* %s", deployment.Name),
+					fmt.Sprintf("*Cluster:* %s", connectedDeploy.Name),
 					"*Recommendations*",
 					fmt.Sprintf("Pod '%s/%s' created without labels. Consider defining them, to be able to use them as a selector e.g. in Service.", pod.Namespace, pod.Name),
 					fmt.Sprintf("The 'latest' tag used in 'nginx:latest' image of Pod '%s/%s' container 'nginx' should be avoided.", pod.Namespace, pod.Name),
@@ -491,13 +322,13 @@ func TestCloudSlackE2E(t *testing.T) {
 			t.Log("Disabling notification...")
 			tester.PostMessageToBot(t, channel.Identifier(), "disable notifications")
 
-			t.Log("Waiting for config reload message...")
-			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", deployment.Name)
+			t.Log(time.Now().Format(time.TimeOnly), "Waiting for config reload message...")
+			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", connectedDeploy.Name)
 			err = tester.OnChannel().WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
 			require.NoError(t, err)
 
-			t.Log("Waiting for watch begin message...")
-			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", deployment.Name)
+			t.Log(time.Now().Format(time.TimeOnly), "Waiting for watch begin message...")
+			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", connectedDeploy.Name)
 			recentMessages := 2 // take into the account the optional "upgrade checker message"
 			err = tester.OnChannel().WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
 				if !strings.EqualFold(expectedWatchBeginMsg, msg) {
@@ -510,12 +341,12 @@ func TestCloudSlackE2E(t *testing.T) {
 			require.NoError(t, err)
 
 			t.Log("Verifying disabled notification on Cloud...")
-			deploy := gqlCli.MustGetDeployment(t, graphql.ID(deployment.ID))
+			deploy := gqlCli.MustGetDeployment(t, graphql.ID(connectedDeploy.ID))
 			require.True(t, *deploy.Platforms.CloudSlacks[0].Channels[0].NotificationsDisabled)
 
 			t.Log("Verifying disabled notifications on chat...")
 			command := "status notifications"
-			expectedBody := formatx.CodeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", deployment.Name))
+			expectedBody := formatx.CodeBlock(fmt.Sprintf("Notifications from cluster '%s' are disabled here.", connectedDeploy.Name))
 			expectedMessage := fmt.Sprintf("%s\n%s", cmdHeader(command), expectedBody)
 			tester.PostMessageToBot(t, channel.Identifier(), "status notifications")
 			err = tester.WaitForLastMessageEqual(tester.BotUserID(), channel.ID(), expectedMessage)
@@ -524,16 +355,16 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		t.Run("Cloud -> Botkube Deployment sync", func(t *testing.T) {
 			t.Log("Removing source binding from Slack platform & add actions")
-			d := gqlCli.MustGetDeployment(t, graphql.ID(deployment.ID)) // Get final resource version
-			deployment = removeSourcesAndAddActions(t, gqlCli.Client, &d)
+			d := gqlCli.MustGetDeployment(t, graphql.ID(connectedDeploy.ID)) // Get final resource version
+			connectedDeploy = removeSourcesAndAddActions(t, gqlCli.Client, &d)
 
-			t.Log("Waiting for config reload message...")
-			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", deployment.Name)
+			t.Log(time.Now().Format(time.TimeOnly), "Waiting for config reload message...")
+			expectedReloadMsg := fmt.Sprintf(":arrows_counterclockwise: Configuration reload requested for cluster '%s'. Hold on a sec...", connectedDeploy.Name)
 			err = tester.OnChannel().WaitForMessagePostedRecentlyEqual(tester.BotUserID(), channel.ID(), expectedReloadMsg)
 			require.NoError(t, err)
 
-			t.Log("Waiting for watch begin message...")
-			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", deployment.Name)
+			t.Log(time.Now().Format(time.TimeOnly), "Waiting for watch begin message...")
+			expectedWatchBeginMsg := fmt.Sprintf("My watch begins for cluster '%s'! :crossed_swords:", connectedDeploy.Name)
 			recentMessages := 2 // take into the account the  optional "upgrade checker message"
 			err = tester.OnChannel().WaitForMessagePosted(tester.BotUserID(), channel.ID(), recentMessages, func(msg string) (bool, int, string) {
 				if !strings.EqualFold(expectedWatchBeginMsg, msg) {
@@ -565,7 +396,7 @@ func TestCloudSlackE2E(t *testing.T) {
 				"offset": 0,
 				"limit":  10,
 				"filter": gqlModel.AuditEventFilter{
-					DeploymentID: &deployment.ID,
+					DeploymentID: &connectedDeploy.ID,
 				},
 			}
 
@@ -577,7 +408,7 @@ func TestCloudSlackE2E(t *testing.T) {
 			botPlatform := gqlModel.BotPlatformSLACk
 			want := ExpectedCommandExecutedEvents([]string{
 				"kubectl get deployments -A",
-				fmt.Sprintf("ping --cluster-name %s", deployment.Name),
+				fmt.Sprintf("ping --cluster-name %s", connectedDeploy.Name),
 				"disable notifications",
 				"status notifications",
 				"list sources",
@@ -588,11 +419,13 @@ func TestCloudSlackE2E(t *testing.T) {
 			require.ElementsMatch(t, want, got)
 
 			t.Log("Asserting source emitted events...")
+			deploy := gqlCli.MustGetDeployment(t, graphql.ID(connectedDeploy.ID))
+			source, _ := DeploymentSourceAndExecutor(&deploy)
 			wantSrcEvents := []gqlModel.SourceEventEmittedEvent{
 				{
 					Source: &gqlModel.SourceEventDetails{
-						Name:        "kubernetes_config",
-						DisplayName: "Kubernetes Info",
+						Name:        source,
+						DisplayName: "kubernetes",
 					},
 					PluginName: "botkube/kubernetes",
 				},
@@ -603,48 +436,28 @@ func TestCloudSlackE2E(t *testing.T) {
 	})
 }
 
-func newBrowserPage(t *testing.T, browser *rod.Browser, cfg E2ESlackConfig) *rod.Page {
-	t.Helper()
-
-	page, err := browser.Page(proto.TargetCreateTarget{URL: ""})
-	require.NoError(t, err)
-	page.MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
-		UserAgent: chromeUserAgent,
-	})
-	page = page.Timeout(cfg.PageTimeout)
-	page.MustSetViewport(1200, 1080, 1, false)
-	return page
-}
-
 func removeSourcesAndAddActions(t *testing.T, gql *graphql.Client, existingDeployment *gqlModel.Deployment) *gqlModel.Deployment {
 	var updateInput struct {
 		UpdateDeployment gqlModel.Deployment `graphql:"updateDeployment(id: $id, input: $input)"`
 	}
+
 	var updatePluginGroup []*gqlModel.PluginConfigurationGroupUpdateInput
 	for _, createdPlugin := range existingDeployment.Plugins {
-		var pluginConfigs []*gqlModel.PluginConfigurationUpdateInput
-		pluginConfig := gqlModel.PluginConfigurationUpdateInput{
-			Name:          createdPlugin.ConfigurationName,
-			Configuration: createdPlugin.Configuration,
-		}
-		pluginConfigs = append(pluginConfigs, &pluginConfig)
-		plugin := gqlModel.PluginConfigurationGroupUpdateInput{
-			ID:             &createdPlugin.ID,
-			Name:           createdPlugin.Name,
-			Type:           createdPlugin.Type,
-			DisplayName:    createdPlugin.DisplayName,
-			Configurations: pluginConfigs,
-		}
-		updatePluginGroup = append(updatePluginGroup, &plugin)
+		updatePluginGroup = append(updatePluginGroup, &gqlModel.PluginConfigurationGroupUpdateInput{
+			ID:          &createdPlugin.ID,
+			Name:        createdPlugin.Name,
+			Type:        createdPlugin.Type,
+			DisplayName: createdPlugin.DisplayName,
+			Configurations: []*gqlModel.PluginConfigurationUpdateInput{
+				{
+					Name:          createdPlugin.ConfigurationName,
+					Configuration: createdPlugin.Configuration,
+				},
+			},
+		})
 	}
-	var updatePlugins []*gqlModel.PluginsUpdateInput
-	updatePlugin := gqlModel.PluginsUpdateInput{
-		Groups: updatePluginGroup,
-	}
-	updatePlugins = append(updatePlugins, &updatePlugin)
 
 	platforms := gqlModel.PlatformsUpdateInput{}
-
 	for _, slack := range existingDeployment.Platforms.CloudSlacks {
 		var channelUpdateInputs []*gqlModel.ChannelBindingsByNameAndIDUpdateInput
 		for _, channel := range slack.Channels {
@@ -652,8 +465,8 @@ func removeSourcesAndAddActions(t *testing.T, gql *graphql.Client, existingDeplo
 				ChannelID: "", // this is used for UI only so we don't need to provide it
 				Name:      channel.Name,
 				Bindings: &gqlModel.BotBindingsUpdateInput{
-					Sources:   nil,
-					Executors: []*string{&channel.Bindings.Executors[0]},
+					Sources:   []*string{},
+					Executors: []*string{},
 				},
 			})
 		}
@@ -670,56 +483,17 @@ func removeSourcesAndAddActions(t *testing.T, gql *graphql.Client, existingDeplo
 		"input": gqlModel.DeploymentUpdateInput{
 			Name:            existingDeployment.Name,
 			ResourceVersion: existingDeployment.ResourceVersion,
-			Plugins:         updatePlugins,
-			Platforms:       &platforms,
-			Actions:         CreateActionUpdateInput(),
+			Plugins: []*gqlModel.PluginsUpdateInput{
+				{Groups: updatePluginGroup},
+			},
+			Platforms: &platforms,
+			Actions:   CreateActionUpdateInput(existingDeployment),
 		},
 	}
 	err := gql.Mutate(context.Background(), &updateInput, updateVariables)
 	require.NoError(t, err)
 
 	return &updateInput.UpdateDeployment
-}
-
-func screenshotIfShould(t *testing.T, cfg E2ESlackConfig, page *rod.Page) {
-	t.Helper()
-	if cfg.ScreenshotsDir == "" {
-		return
-	}
-
-	pathParts := strings.Split(cfg.ScreenshotsDir, "/")
-	pathParts = append(pathParts)
-
-	filePath := filepath.Join(cfg.ScreenshotsDir, fmt.Sprintf("%d.png", time.Now().UnixNano()))
-
-	logMsg := fmt.Sprintf("Saving screenshot to %q", filePath)
-	if cfg.DebugMode {
-		info, err := page.Info()
-		assert.NoError(t, err)
-
-		if info != nil {
-			logMsg += fmt.Sprintf(" for URL %q", info.URL)
-		}
-	}
-	t.Log(logMsg)
-	data, err := page.Screenshot(false, nil)
-	assert.NoError(t, err)
-	if err != nil {
-		return
-	}
-
-	err = os.WriteFile(filePath, data, 0o644)
-	assert.NoError(t, err)
-}
-
-func appendOrgIDQueryParam(t *testing.T, inURL, orgID string) string {
-	parsedURL, err := url.Parse(inURL)
-	require.NoError(t, err)
-	queryValues := parsedURL.Query()
-	queryValues.Set("organizationId", orgID)
-	parsedURL.RawQuery = queryValues.Encode()
-
-	return parsedURL.String()
 }
 
 func cleanupCreatedPod(t *testing.T, podCli corev1.PodInterface, name string) {
@@ -738,18 +512,6 @@ func createK8sCli(t *testing.T, kubeconfigPath string) *kubernetes.Clientset {
 	k8sCli, err := kubernetes.NewForConfig(k8sConfig)
 	require.NoError(t, err)
 	return k8sCli
-}
-
-func closePage(t *testing.T, name string, page *rod.Page) {
-	t.Helper()
-	err := page.Close()
-	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			return
-		}
-
-		t.Logf("Failed to close page %q: %v", name, err)
-	}
 }
 
 func retryOperation(fn func() error) error {

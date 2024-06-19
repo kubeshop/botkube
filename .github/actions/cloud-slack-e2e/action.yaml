@@ -37,12 +37,6 @@ inputs:
   botkube_cloud_team_organization_id:
     description: 'BotKube Cloud Team Organization ID'
     required: true
-  botkube_cloud_free_organization_id:
-    description: 'BotKube Cloud Free Organization ID'
-    required: true
-  botkube_cloud_plugin_repo_url:
-    description: 'BotKube Cloud Plugin Repo URL'
-    required: true
 
   slack_alerts_webhook:
     description: 'Slack Alerts Webhook'
@@ -55,11 +49,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Helm
-      uses: azure/setup-helm@v3
-      with:
-        version: ${{ env.HELM_VERSION }}
-
     - name: Download k3d
       shell: bash
       run: "wget -q -O - https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=${K3D_VERSION} bash"
@@ -68,6 +57,17 @@ runs:
       id: k3d
       shell: bash
       run: "k3d cluster create cloud-slack-e2e-cluster --wait --timeout=5m"
+
+    - name: Download Botkube CLI
+      shell: bash
+      run: |
+        curl -Lo botkube https://github.com/kubeshop/botkube/releases/download/v1.12.0/botkube-linux-amd64
+        chmod +x botkube
+
+    - name: Add Botkube CLI to env
+      shell: bash
+      run: |
+        echo BOTKUBE_CLI_BINARY_PATH="$PWD/botkube" >> $GITHUB_ENV
 
     - name: Setup Go modules
       id: modules
@@ -86,15 +86,13 @@ runs:
         SLACK_TESTER_TESTER_BOT_TOKEN: ${{ inputs.slack_tester_bot_token }}
         SLACK_BOT_DISPLAY_NAME: ${{ inputs.slack_bot_display_name }}
         SLACK_TESTER_BOT_NAME: ${{ inputs.slack_tester_bot_name }}
-        SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 90s
+        SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 180s
         
         
         BOTKUBE_CLOUD_API_BASE_URL: ${{ inputs.botkube_cloud_api_base_url }}
         BOTKUBE_CLOUD_EMAIL: ${{ inputs.botkube_cloud_email }}
         BOTKUBE_CLOUD_PASSWORD: ${{ inputs.botkube_cloud_password }}
         BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID: ${{ inputs.botkube_cloud_team_organization_id }}
-        BOTKUBE_CLOUD_FREE_ORGANIZATION_ID: ${{ inputs.botkube_cloud_free_organization_id }}
-        BOTKUBE_CLOUD_PLUGIN_REPO_URL: ${{ inputs.botkube_cloud_plugin_repo_url }}
         SCREENSHOTS_DIR: ${{ runner.temp }}/screenshots
         DEBUG_MODE: "true"
       run: |

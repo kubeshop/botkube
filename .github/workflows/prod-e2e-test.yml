@@ -42,8 +42,6 @@ jobs:
           botkube_cloud_email: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_EMAIL }}
           botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
           botkube_cloud_team_organization_id: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
-          botkube_cloud_free_organization_id: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_FREE_ORGANIZATION_ID }}
-          botkube_cloud_plugin_repo_url: "https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml"
 
           slack_alerts_webhook: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
 

@@ -36,6 +36,7 @@ require (
 
 require (
 	github.com/avast/retry-go/v4 v4.3.3
+	github.com/mattn/go-shellwords v1.0.12
 	gotest.tools/v3 v3.5.1
 )
 
@@ -142,7 +143,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
-	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/microsoft/kiota-abstractions-go v1.5.6 // indirect
 	github.com/microsoft/kiota-authentication-azure-go v1.0.1 // indirect
 	github.com/microsoft/kiota-http-go v1.1.1 // indirect

@@ -3,6 +3,8 @@
 package cloud_slack_dev_e2e
 
 import (
+	"strings"
+
 	gqlModel "github.com/kubeshop/botkube-cloud/botkube-cloud-backend/pkg/graphql"
 )
 
@@ -34,22 +36,34 @@ type AuditEventPage struct {
 }
 
 // CreateActionUpdateInput returns action create update input.
-func CreateActionUpdateInput() []*gqlModel.ActionCreateUpdateInput {
-	var actions []*gqlModel.ActionCreateUpdateInput
-	source1 := "kubernetes_config"
-	executor1 := "kubectl_config"
-	actions = append(actions, &gqlModel.ActionCreateUpdateInput{
-		Name:        "action_xxx22",
-		DisplayName: "Action Name",
-		Enabled:     true,
-		Command:     "kc get pods",
-		Bindings: &gqlModel.ActionCreateUpdateInputBindings{
-			Sources:   []string{source1},
-			Executors: []string{executor1},
+func CreateActionUpdateInput(deploy *gqlModel.Deployment) []*gqlModel.ActionCreateUpdateInput {
+	source, executor := DeploymentSourceAndExecutor(deploy)
+	return []*gqlModel.ActionCreateUpdateInput{
+		{
+			Name:        "action_xxx22",
+			DisplayName: "Action Name",
+			Enabled:     true,
+			Command:     "kc get pods",
+			Bindings: &gqlModel.ActionCreateUpdateInputBindings{
+				Sources:   []string{source},
+				Executors: []string{executor},
+			},
 		},
-	})
+	}
+}
 
-	return actions
+// DeploymentSourceAndExecutor returns last 'kubernetes' source and 'kubectl' executor plugin found under plugins.
+func DeploymentSourceAndExecutor(deploy *gqlModel.Deployment) (source string, executor string) {
+	for _, plugin := range deploy.Plugins {
+		if plugin.Type == gqlModel.PluginTypeSource && strings.Contains(plugin.Name, "kubernetes"){
+			source = plugin.ConfigurationName
+		}
+		if plugin.Type == gqlModel.PluginTypeExecutor && strings.Contains(plugin.Name, "kubectl"){
+			executor = plugin.ConfigurationName
+		}
+	}
+
+	return source, executor
 }
 
 // ExpectedCommandExecutedEvents returns expected command executed events.
