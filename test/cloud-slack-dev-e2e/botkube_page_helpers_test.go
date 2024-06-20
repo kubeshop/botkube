@@ -174,6 +174,7 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 	t.Log("Navigating to plugin selection")
 	p.page.Screenshot("before-first-next")
 
+	time.Sleep(3 * time.Second)
 	p.page.MustElementR("button", "/^Next$/i").
 		MustWaitEnabled().
 		// We need to wait, otherwise, we click the same 'Next' button twice before the query is executed, and we are not really
@@ -183,6 +184,7 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 	p.page.Screenshot("after-first-next")
 
 	t.Log("Using pre-selected plugins. Navigating to wizard summary")
+	time.Sleep(3 * time.Second)
 	p.page.MustElementR("button", "/^Next$/i").
 		MustWaitEnabled().
 		// We need to wait, otherwise, we click the same 'Next' button twice before the query is executed, and we are not really
@@ -191,25 +193,30 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 	p.page.Screenshot("after-second-next")
 
 	t.Log("Submitting changes")
+	time.Sleep(3 * time.Second)
 	p.page.MustElementR("button", "/^Deploy changes$/i").
 		MustWaitEnabled().
 		MustClick()
 	p.page.Screenshot("after-deploy-changes")
 
-	// wait till gql mutation passes, and navigates to install details, otherwise, we could navigate to instance details with state 'draft'
+	// wait till gql mutation passes, and navigates to instance details, otherwise, we could navigate to instance details with state 'draft'
 	p.page.MustWaitNavigation()
 	p.page.Screenshot("after-deploy-changes-navigation")
 }
 
 func (p *BotkubeCloudPage) UpdateKubectlNamespace(t *testing.T) {
 	t.Log("Updating 'kubectl' namespace property")
-	
+
 	p.openKubectlUpdateForm()
-	
+
 	p.page.MustElementR("input#root_defaultNamespace", "default").MustSelectAllText().MustInput("kube-system")
 	p.page.Screenshot("after-changing-namespace-property")
 	p.page.MustElementR("button", "/^Update$/i").MustClick()
 	p.page.Screenshot("after-clicking-plugin-update")
+
+	t.Log("Moving to top left corner of the page")
+	p.page.Mouse.MustMoveTo(0, 0)
+	p.page.Screenshot("after-moving-to-top-left")
 
 	t.Log("Submitting changes")
 	p.page.MustWaitStable()
@@ -230,10 +237,12 @@ func (p *BotkubeCloudPage) openKubectlUpdateForm() {
 
 	p.page.MustWaitStable()
 	p.page.Screenshot("after-selecting-plugins-tab")
-	
-	p.page.MustElement(`button[id^="botkube/kubectl_"]`).MustClick()
+
+	p.page.MustElement(`button[id^="botkube/kubectl_"]`).
+		MustWaitEnabled(). // needed as we have an "Outdated version detected" glitch
+		MustClick()
 	p.page.Screenshot("after-opening-kubectl-cfg")
-	
+
 	p.page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
 	p.page.Screenshot("after-selecting-kubectl-cfg-form")
 }

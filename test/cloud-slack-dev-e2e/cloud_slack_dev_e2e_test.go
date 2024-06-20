@@ -42,7 +42,7 @@ type E2ESlackConfig struct {
 	Slack        SlackConfig
 	BotkubeCloud BotkubeCloudConfig
 
-	PageTimeout    time.Duration `envconfig:"default=5m"`
+	PageTimeout    time.Duration `envconfig:"default=10m"`
 	ScreenshotsDir string        `envconfig:"optional"`
 	DebugMode      bool          `envconfig:"default=false"`
 
@@ -152,20 +152,17 @@ func TestCloudSlackE2E(t *testing.T) {
 		botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
 		botkubeCloudPage.OpenSlackAppIntegrationPage(t)
 
-		slackPage.ConnectWorkspace(t, isHeadless, browser)
+		slackPage.ConnectWorkspace(t, browser)
 
 		botkubeCloudPage.ReAddSlackPlatformIfShould(t, isHeadless)
 		botkubeCloudPage.SetupSlackWorkspace(t, channel.Name())
 		botkubeCloudPage.FinishWizard(t)
 		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
 
-		if !isHeadless { // it is flaky on CI, more investigation needed
-			botkubeCloudPage.UpdateKubectlNamespace(t)
-			botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
-			botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
-			botkubeCloudPage.VerifyUpdatedKubectlNamespace(t)
-		}
-
+		botkubeCloudPage.UpdateKubectlNamespace(t)
+		botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
+		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
+		botkubeCloudPage.VerifyUpdatedKubectlNamespace(t)
 	})
 
 	t.Run("Run E2E tests with deployment", func(t *testing.T) {
