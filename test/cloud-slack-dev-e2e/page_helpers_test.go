@@ -74,7 +74,7 @@ func closePage(t *testing.T, name string, page *rod.Page) {
 	t.Helper()
 	err := page.Close()
 	if err != nil {
-		if errors.Is(err, context.Canceled) {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return
 		}
 

@@ -3,6 +3,7 @@
 package cloud_slack_dev_e2e
 
 import (
+	"botkube.io/botube/test/cloud_graphql"
 	"context"
 	"errors"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,6 @@ import (
 const (
 	slackBaseURL          = "slack.com"
 	waitTime              = 10 * time.Second
-	contextTimeout        = 30 * time.Second
 	shorterContextTimeout = 10 * time.Second
 )
 
@@ -85,10 +85,21 @@ func (p *SlackPage) ConnectWorkspace(t *testing.T, browser *rod.Browser) {
 		time.Sleep(waitTime)
 		p.page.Screenshot("before-workspace-connect")
 		p.page.MustElement("button#slack-workspace-connect").MustClick()
+		time.Sleep(1 * time.Second)
 		p.page.Screenshot("after-workspace-connect")
 	}
 
 	t.Log("Waiting for page auto-close...")
 	err = p.page.WaitIdle(waitTime) // wait for auto-close
 	assert.NoError(t, err)
+}
+
+func (p *SlackPage) Cleanup(t *testing.T, gqlCli *cloud_graphql.Client) {
+	t.Log("Cleaning up Slack workspace on test failure...")
+	if !p.cfg.Slack.DisconnectWorkspaceAfterTests {
+		return
+	}
+
+	slackWorkspace := findConnectedSlackWorkspace(t, p.cfg, gqlCli)
+	disconnectConnectedSlackWorkspace(t, p.cfg, gqlCli, slackWorkspace)
 }
