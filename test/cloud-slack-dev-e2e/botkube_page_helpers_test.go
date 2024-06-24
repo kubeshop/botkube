@@ -34,6 +34,7 @@ type BotkubeCloudPage struct {
 	AuthHeaderValue string
 	GQLEndpoint     string
 	ConnectedDeploy *gqlModel.Deployment
+	AlreadyDeleted  bool
 }
 
 func NewBotkubeCloudPage(t *testing.T, cfg E2ESlackConfig) *BotkubeCloudPage {
@@ -254,6 +255,10 @@ func (p *BotkubeCloudPage) openKubectlUpdateForm() {
 }
 
 func (p *BotkubeCloudPage) Cleanup(t *testing.T, gqlCli *cloud_graphql.Client) {
+	if p.AlreadyDeleted {
+		return
+	}
+
 	t.Log("Cleaning up Botkube instance on test failure...")
 
 	if p.ConnectedDeploy == nil {
@@ -262,6 +267,7 @@ func (p *BotkubeCloudPage) Cleanup(t *testing.T, gqlCli *cloud_graphql.Client) {
 	}
 
 	deleteDeployment(t, gqlCli, p.ConnectedDeploy.ID, "connected")
+	p.AlreadyDeleted = true
 }
 
 func appendOrgIDQueryParam(t *testing.T, inURL, orgID string) string {

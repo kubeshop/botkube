@@ -149,18 +149,26 @@ func TestCloudSlackE2E(t *testing.T) {
 	botkubeCloudPage.HideCookieBanner(t)
 
 	botkubeCloudPage.CreateNewInstance(t, channel.Name())
-
+	t.Cleanup(func() {
+		// Delete Botkube instance.
+		// Cleanup is skipped if the instance was already deleted.
+		// This cleanup is needed if there's a fail between instance creation and Slack workspace connection.
+		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
+		botkubeCloudPage.Cleanup(t, gqlCli)
+	})
 	botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
 	botkubeCloudPage.OpenSlackAppIntegrationPage(t)
 
 	slackPage.ConnectWorkspace(t, browser)
 	t.Cleanup(func() {
-		// disconnect Slack workspace
+		// Disconnect Slack workspace.
 		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
 		slackPage.Cleanup(t, gqlCli)
 	})
 	t.Cleanup(func() {
-		// delete Botkube instance
+		// Delete Botkube instance.
+		// The code is repeated on purpose: we want to make sure the instance is cleaned up before the Slack workspace.
+		// t.Cleanup functions are called in last added, first called order.
 		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
 		botkubeCloudPage.Cleanup(t, gqlCli)
 	})
