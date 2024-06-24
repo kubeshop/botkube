@@ -72,7 +72,7 @@ type BotkubeCloudConfig struct {
 }
 
 func TestCloudSlackE2E(t *testing.T) {
-	t.Log("Loading configuration...")
+	t.Log("1. Loading configuration...")
 	var cfg E2ESlackConfig
 	err := envconfig.Init(&cfg)
 	require.NoError(t, err)
@@ -122,97 +122,76 @@ func TestCloudSlackE2E(t *testing.T) {
 	botkubeCloudPage := NewBotkubeCloudPage(t, cfg)
 	slackPage := NewSlackPage(t, cfg)
 
-	t.Run("Creating Botkube Instance with newly added Slack Workspace", func(t *testing.T) {
-		t.Log("Setting up browser...")
+	t.Log("2. Creating Botkube Instance with newly added Slack Workspace")
 
-		launcher := launcher.New().Headless(true)
-		isHeadless := launcher.Has(flags.Headless)
-		t.Cleanup(launcher.Cleanup)
+	t.Log("Setting up browser...")
+	launcher := launcher.New().Headless(true)
+	isHeadless := launcher.Has(flags.Headless)
+	t.Cleanup(launcher.Cleanup)
 
-		browser := rod.New().Trace(cfg.DebugMode).ControlURL(launcher.MustLaunch()).MustConnect()
-		t.Cleanup(func() {
-			err := browser.Close()
-			if err != nil {
-				t.Logf("Failed to close browser: %v", err)
-			}
-		})
-
-		page := newBrowserPage(t, browser, cfg)
-		t.Cleanup(func() {
-			closePage(t, "page", page)
-		})
-
-		botkubeCloudPage.NavigateAndLogin(t, page)
-		botkubeCloudPage.HideCookieBanner(t)
-
-		stopRouter := botkubeCloudPage.CaptureBearerToken(t, browser)
-		defer stopRouter()
-
-		botkubeCloudPage.CreateNewInstance(t, channel.Name())
-		botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
-		botkubeCloudPage.OpenSlackAppIntegrationPage(t)
-
-		slackPage.ConnectWorkspace(t, browser)
-
-		botkubeCloudPage.ReAddSlackPlatformIfShould(t, isHeadless)
-		botkubeCloudPage.SetupSlackWorkspace(t, channel.Name())
-		botkubeCloudPage.FinishWizard(t)
-		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
-
-		botkubeCloudPage.UpdateKubectlNamespace(t)
-		botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
-		botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
-		botkubeCloudPage.VerifyUpdatedKubectlNamespace(t)
+	browser := rod.New().Trace(cfg.DebugMode).ControlURL(launcher.MustLaunch()).MustConnect()
+	t.Cleanup(func() {
+		err := browser.Close()
+		if err != nil {
+			t.Logf("Failed to close browser: %v", err)
+		}
 	})
 
+	page := newBrowserPage(t, browser, cfg)
+	t.Cleanup(func() {
+		closePage(t, "page", page)
+	})
+
+	stopRouter := botkubeCloudPage.InterceptBearerToken(t, browser)
+	defer stopRouter()
+
+	botkubeCloudPage.NavigateAndLogin(t, page)
+	botkubeCloudPage.HideCookieBanner(t)
+
+	botkubeCloudPage.CreateNewInstance(t, channel.Name())
+	t.Cleanup(func() {
+		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
+		botkubeCloudPage.CleanupOnFail(t, gqlCli)
+	})
+
+	botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
+	botkubeCloudPage.OpenSlackAppIntegrationPage(t)
+
+	slackPage.ConnectWorkspace(t, browser)
+	t.Cleanup(func() {
+		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
+		slackPage.CleanupOnFail(t, gqlCli)
+	})
+
+	botkubeCloudPage.ReAddSlackPlatformIfShould(t, isHeadless)
+	botkubeCloudPage.SetupSlackWorkspace(t, channel.Name())
+	botkubeCloudPage.FinishWizard(t)
+	botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
+
+	botkubeCloudPage.UpdateKubectlNamespace(t)
+	botkubeCloudPage.VerifyDeploymentStatus(t, "Updating")
+	botkubeCloudPage.VerifyDeploymentStatus(t, "Connected")
+	botkubeCloudPage.VerifyUpdatedKubectlNamespace(t)
+
 	t.Run("Run E2E tests with deployment", func(t *testing.T) {
+		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
+
 		connectedDeploy := botkubeCloudPage.ConnectedDeploy
 		require.NotNil(t, connectedDeploy, "Previous subtest needs to pass to get connected deployment information")
-		require.NotEmpty(t, botkubeCloudPage.AuthHeaderValue, "Previous subtest needs to pass to get authorization header value")
-
-		t.Logf("Using Organization ID %q and Authorization header starting with %q", cfg.BotkubeCloud.TeamOrganizationID,
-			stringsutil.ShortenString(botkubeCloudPage.AuthHeaderValue, 15))
-
-		gqlCli := cloud_graphql.NewClientForAuthAndOrg(botkubeCloudPage.GQLEndpoint, cfg.BotkubeCloud.TeamOrganizationID, botkubeCloudPage.AuthHeaderValue)
-
-		t.Logf("Getting connected Slack workspace...")
-		slackWorkspaces := gqlCli.MustListSlackWorkspacesForOrg(t, cfg.BotkubeCloud.TeamOrganizationID)
-		require.Len(t, slackWorkspaces, 1)
-		slackWorkspace := slackWorkspaces[0]
-		require.NotNil(t, slackWorkspace)
 		t.Cleanup(func() {
-			if !cfg.Slack.DisconnectWorkspaceAfterTests {
-				return
-			}
-			t.Log("Disconnecting Slack workspace...")
-			err = retryOperation(func() error {
-				return gqlCli.DeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
-			})
-			if err != nil {
-				t.Logf("Failed to disconnect Slack workspace: %s", err.Error())
-			}
+			deleteDeployment(t, gqlCli, connectedDeploy.ID, "first (connected)")
 		})
+
+		slackWorkspace := findConnectedSlackWorkspace(t, cfg, gqlCli)
+		t.Cleanup(func() {
+			disconnectConnectedSlackWorkspace(t, cfg, gqlCli, slackWorkspace)
+		})
+		require.NotNil(t, slackWorkspace)
 
 		t.Log("Creating a second deployment to test not connected flow...")
 		notConnectedDeploy := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, fmt.Sprintf("%s-2", channel.Name()), slackWorkspace.TeamID, channel.Name())
 		t.Cleanup(func() {
-			t.Log("Deleting second deployment...")
-			err = retryOperation(func() error {
-				return gqlCli.DeleteDeployment(t, graphql.ID(notConnectedDeploy.ID))
-			})
-			if err != nil {
-				t.Logf("Failed to delete second deployment: %s", err.Error())
-			}
-		})
-
-		t.Cleanup(func() {
-			t.Log("Deleting first deployment...")
-			err = retryOperation(func() error {
-				return gqlCli.DeleteDeployment(t, graphql.ID(connectedDeploy.ID))
-			})
-			if err != nil {
-				t.Logf("Failed to delete first deployment: %s", err.Error())
-			}
+			deleteDeployment(t, gqlCli, notConnectedDeploy.ID, "second (not connected)")
 		})
 
 		t.Log("Waiting for help message...")
@@ -509,6 +488,60 @@ func createK8sCli(t *testing.T, kubeconfigPath string) *kubernetes.Clientset {
 	k8sCli, err := kubernetes.NewForConfig(k8sConfig)
 	require.NoError(t, err)
 	return k8sCli
+}
+
+func createGQLCli(t *testing.T, cfg E2ESlackConfig, botkubeCloudPage *BotkubeCloudPage) *cloud_graphql.Client {
+	require.NotEmpty(t, botkubeCloudPage.AuthHeaderValue, "Authorization header value should be set")
+
+	t.Logf("Using Organization ID %q and Authorization header starting with %q", cfg.BotkubeCloud.TeamOrganizationID,
+		stringsutil.ShortenString(botkubeCloudPage.AuthHeaderValue, 15))
+	return cloud_graphql.NewClientForAuthAndOrg(botkubeCloudPage.GQLEndpoint, cfg.BotkubeCloud.TeamOrganizationID, botkubeCloudPage.AuthHeaderValue)
+}
+
+func findConnectedSlackWorkspace(t *testing.T, cfg E2ESlackConfig, gqlCli *cloud_graphql.Client) *gqlModel.SlackWorkspace {
+	t.Logf("Finding connected Slack workspace...")
+	slackWorkspaces := gqlCli.MustListSlackWorkspacesForOrg(t, cfg.BotkubeCloud.TeamOrganizationID)
+	if len(slackWorkspaces) == 0 {
+		return nil
+	}
+
+	if len(slackWorkspaces) > 1 {
+		t.Logf("Found multiple connected Slack workspaces: %v", slackWorkspaces)
+		return nil
+	}
+
+	slackWorkspace := slackWorkspaces[0]
+	return slackWorkspace
+}
+
+func disconnectConnectedSlackWorkspace(t *testing.T, cfg E2ESlackConfig, gqlCli *cloud_graphql.Client, slackWorkspace *gqlModel.SlackWorkspace) {
+	if slackWorkspace == nil {
+		t.Log("Skipping disconnecting Slack workspace as it is nil")
+		return
+	}
+
+	if !cfg.Slack.DisconnectWorkspaceAfterTests {
+		t.Log("Skipping disconnecting Slack workspace...")
+		return
+	}
+
+	t.Log("Disconnecting Slack workspace...")
+	err := retryOperation(func() error {
+		return gqlCli.DeleteSlackWorkspace(t, cfg.BotkubeCloud.TeamOrganizationID, slackWorkspace.ID)
+	})
+	if err != nil {
+		t.Logf("Failed to disconnect Slack workspace: %s", err.Error())
+	}
+}
+
+func deleteDeployment(t *testing.T, gqlCli *cloud_graphql.Client, deployID string, label string) {
+	t.Logf("Deleting %s deployment...", label)
+	err := retryOperation(func() error {
+		return gqlCli.DeleteDeployment(t, graphql.ID(deployID))
+	})
+	if err != nil {
+		t.Logf("Failed to delete first deployment: %s", err.Error())
+	}
 }
 
 func retryOperation(fn func() error) error {

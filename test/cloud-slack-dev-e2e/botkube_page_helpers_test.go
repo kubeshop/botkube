@@ -3,6 +3,7 @@
 package cloud_slack_dev_e2e
 
 import (
+	"botkube.io/botube/test/cloud_graphql"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -63,7 +64,7 @@ func (p *BotkubeCloudPage) HideCookieBanner(t *testing.T) {
 	p.page.Screenshot()
 }
 
-func (p *BotkubeCloudPage) CaptureBearerToken(t *testing.T, browser *rod.Browser) func() {
+func (p *BotkubeCloudPage) InterceptBearerToken(t *testing.T, browser *rod.Browser) func() {
 	t.Logf("Starting hijacking requests to %q to get the bearer token...", p.GQLEndpoint)
 
 	router := browser.HijackRequests()
@@ -80,6 +81,7 @@ func (p *BotkubeCloudPage) CaptureBearerToken(t *testing.T, browser *rod.Browser
 
 		require.NotNil(t, ctx.Request)
 		p.AuthHeaderValue = ctx.Request.Header(authHeaderName)
+		t.Log("Bearer token intercepted")
 		ctx.ContinueRequest(&proto.FetchContinueRequest{})
 	})
 	go router.Run()
@@ -90,8 +92,10 @@ func (p *BotkubeCloudPage) CreateNewInstance(t *testing.T, name string) {
 	t.Log("Create new Botkube Instance")
 
 	p.page.MustElement("h6#create-instance").MustClick()
+	time.Sleep(3 * time.Second)
+	p.page.Screenshot("after-clicking-create-instance")
 	p.page.MustElement(`input[name="name"]`).MustSelectAllText().MustInput(name)
-	p.page.Screenshot()
+	p.page.Screenshot("after-filling-in-instance-name")
 
 	// persist connected deploy info
 	_, id, _ := strings.Cut(p.page.MustInfo().URL, "add/")
@@ -193,6 +197,7 @@ func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
 	p.page.Screenshot("after-second-next")
 
 	t.Log("Submitting changes")
+	p.page.Mouse.MustMoveTo(0, 0)
 	time.Sleep(3 * time.Second)
 	p.page.MustElementR("button", "/^Deploy changes$/i").
 		MustWaitEnabled().
@@ -216,10 +221,11 @@ func (p *BotkubeCloudPage) UpdateKubectlNamespace(t *testing.T) {
 
 	t.Log("Moving to top left corner of the page")
 	p.page.Mouse.MustMoveTo(0, 0)
-	p.page.Screenshot("after-moving-to-top-left")
+	time.Sleep(3 * time.Second)
 
 	t.Log("Submitting changes")
 	p.page.MustWaitStable()
+	p.page.Screenshot("before-deploying-plugin-changes")
 	p.page.MustElementR("button", "/Deploy changes/i").MustClick()
 	p.page.Screenshot("after-deploying-plugin-changes")
 }
@@ -245,6 +251,17 @@ func (p *BotkubeCloudPage) openKubectlUpdateForm() {
 
 	p.page.MustElement(`div[data-node-key="ui-form"]`).MustClick()
 	p.page.Screenshot("after-selecting-kubectl-cfg-form")
+}
+
+func (p *BotkubeCloudPage) CleanupOnFail(t *testing.T, gqlCli *cloud_graphql.Client) {
+	t.Log("Cleaning up Botkube instance on test failure...")
+
+	if p.ConnectedDeploy == nil {
+		t.Log("No deployment to delete")
+		return
+	}
+
+	deleteDeployment(t, gqlCli, p.ConnectedDeploy.ID, "connected")
 }
 
 func appendOrgIDQueryParam(t *testing.T, inURL, orgID string) string {
