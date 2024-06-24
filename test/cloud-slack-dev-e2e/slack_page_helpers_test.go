@@ -16,7 +16,6 @@ import (
 const (
 	slackBaseURL          = "slack.com"
 	waitTime              = 10 * time.Second
-	contextTimeout        = 30 * time.Second
 	shorterContextTimeout = 10 * time.Second
 )
 
@@ -86,6 +85,7 @@ func (p *SlackPage) ConnectWorkspace(t *testing.T, browser *rod.Browser) {
 		time.Sleep(waitTime)
 		p.page.Screenshot("before-workspace-connect")
 		p.page.MustElement("button#slack-workspace-connect").MustClick()
+		time.Sleep(1 * time.Second)
 		p.page.Screenshot("after-workspace-connect")
 	}
 

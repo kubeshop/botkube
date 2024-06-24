@@ -157,22 +157,23 @@ func (p *BotkubeCloudPage) VerifyDeploymentStatus(t *testing.T, status string) {
 
 func (p *BotkubeCloudPage) SetupSlackWorkspace(t *testing.T, channel string) {
 	t.Logf("Selecting newly connected %q Slack Workspace", p.cfg.Slack.WorkspaceName)
-
+	time.Sleep(3 * time.Second)
+	p.page.Screenshot("before-selecting-workspace")
 	p.page.MustElement(`input[type="search"]`).
 		MustInput(p.cfg.Slack.WorkspaceName).
 		MustType(input.Enter)
-	p.page.Screenshot()
+	p.page.Screenshot("after-selecting-workspace")
 
 	// filter by channel, to make sure that it's visible on the first table page, in order to select it in the next step
 	t.Log("Filtering by channel name")
 	p.page.Mouse.MustScroll(10, 5000) // scroll bottom, as the footer collides with selecting filter
-	p.page.Screenshot()
+	p.page.Screenshot("before-filtering-channel")
 	p.page.MustElement("table th:nth-child(3) span.ant-dropdown-trigger.ant-table-filter-trigger").MustClick()
 
 	t.Log("Selecting channel checkbox")
 	p.page.MustElement("input#name-channel").MustInput(channel).MustType(input.Enter)
 	p.page.MustElement(fmt.Sprintf(`input[type="checkbox"][name="%s"]`, channel)).MustClick()
-	p.page.Screenshot()
+	p.page.Screenshot("after-selecting-channel")
 }
 
 func (p *BotkubeCloudPage) FinishWizard(t *testing.T) {
