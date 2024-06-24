@@ -94,14 +94,9 @@ func (p *SlackPage) ConnectWorkspace(t *testing.T, browser *rod.Browser) {
 	assert.NoError(t, err)
 }
 
-func (p *SlackPage) CleanupOnFail(t *testing.T, gqlCli *cloud_graphql.Client) {
+func (p *SlackPage) Cleanup(t *testing.T, gqlCli *cloud_graphql.Client) {
 	t.Log("Cleaning up Slack workspace on test failure...")
 	if !p.cfg.Slack.DisconnectWorkspaceAfterTests {
-		return
-	}
-
-	if !t.Failed() {
-		t.Log("Skipping Slack workspace cleanup as the subtest passed...")
 		return
 	}
 

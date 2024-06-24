@@ -253,7 +253,7 @@ func (p *BotkubeCloudPage) openKubectlUpdateForm() {
 	p.page.Screenshot("after-selecting-kubectl-cfg-form")
 }
 
-func (p *BotkubeCloudPage) CleanupOnFail(t *testing.T, gqlCli *cloud_graphql.Client) {
+func (p *BotkubeCloudPage) Cleanup(t *testing.T, gqlCli *cloud_graphql.Client) {
 	t.Log("Cleaning up Botkube instance on test failure...")
 
 	if p.ConnectedDeploy == nil {

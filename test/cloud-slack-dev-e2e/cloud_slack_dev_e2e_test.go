@@ -149,18 +149,20 @@ func TestCloudSlackE2E(t *testing.T) {
 	botkubeCloudPage.HideCookieBanner(t)
 
 	botkubeCloudPage.CreateNewInstance(t, channel.Name())
-	t.Cleanup(func() {
-		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
-		botkubeCloudPage.CleanupOnFail(t, gqlCli)
-	})
 
 	botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
 	botkubeCloudPage.OpenSlackAppIntegrationPage(t)
 
 	slackPage.ConnectWorkspace(t, browser)
 	t.Cleanup(func() {
+		// disconnect Slack workspace
 		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
-		slackPage.CleanupOnFail(t, gqlCli)
+		slackPage.Cleanup(t, gqlCli)
+	})
+	t.Cleanup(func() {
+		// delete Botkube instance
+		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
+		botkubeCloudPage.Cleanup(t, gqlCli)
 	})
 
 	botkubeCloudPage.ReAddSlackPlatformIfShould(t, isHeadless)
@@ -178,15 +180,11 @@ func TestCloudSlackE2E(t *testing.T) {
 
 		connectedDeploy := botkubeCloudPage.ConnectedDeploy
 		require.NotNil(t, connectedDeploy, "Previous subtest needs to pass to get connected deployment information")
-		t.Cleanup(func() {
-			deleteDeployment(t, gqlCli, connectedDeploy.ID, "first (connected)")
-		})
+		// cleanup is done in the upper test function
 
 		slackWorkspace := findConnectedSlackWorkspace(t, cfg, gqlCli)
-		t.Cleanup(func() {
-			disconnectConnectedSlackWorkspace(t, cfg, gqlCli, slackWorkspace)
-		})
 		require.NotNil(t, slackWorkspace)
+		// cleanup is done in the upper test function
 
 		t.Log("Creating a second deployment to test not connected flow...")
 		notConnectedDeploy := gqlCli.MustCreateBasicDeploymentWithCloudSlack(t, fmt.Sprintf("%s-2", channel.Name()), slackWorkspace.TeamID, channel.Name())
