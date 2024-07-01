@@ -156,7 +156,6 @@ func TestCloudSlackE2E(t *testing.T) {
 		gqlCli := createGQLCli(t, cfg, botkubeCloudPage)
 		botkubeCloudPage.Cleanup(t, gqlCli)
 	})
-	t.FailNow()
 	botkubeCloudPage.InstallAgentInCluster(t, cfg.BotkubeCliBinaryPath)
 	botkubeCloudPage.OpenSlackAppIntegrationPage(t)
 

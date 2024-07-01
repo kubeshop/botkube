@@ -41,10 +41,6 @@ inputs:
     description: 'BotKube Cloud Team Organization ID'
     required: true
 
-  slack_alerts_webhook:
-    description: 'Slack Alerts Webhook'
-    required: true
-
   slack_token:
     description: 'Slack Alerts Webhook'
     required: true
@@ -137,8 +133,7 @@ runs:
       uses: rtCamp/action-slack-notify@v2
       if: ${{ failure() }}
       env:
-        #        SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
-        SLACK_CHANNEL: 'test-botkube-ci-alerts'
+        SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
         SLACK_USERNAME: Botkube Cloud CI
         SLACK_COLOR: 'red'
         SLACK_TITLE: 'Message'
