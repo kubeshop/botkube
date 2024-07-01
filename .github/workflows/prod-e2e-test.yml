@@ -44,6 +44,6 @@ jobs:
           botkube_cloud_password: ${{ secrets.E2E_DEV_BOTKUBE_CLOUD_PASSWORD }}
           botkube_cloud_team_organization_id: ${{ secrets.E2E_PROD_BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID }}
 
-          slack_alerts_webhook: ${{ secrets.SLACK_CI_ALERTS_WEBHOOK }}
+          slack_token: ${{ secrets.SLACK_APP_TOKEN_FOR_CI_ALERTS }}
 
           e2e_type: "PROD"

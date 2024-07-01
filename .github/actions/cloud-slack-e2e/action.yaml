@@ -41,7 +41,7 @@ inputs:
     description: 'BotKube Cloud Team Organization ID'
     required: true
 
-  slack_alerts_webhook:
+  slack_token:
     description: 'Slack Alerts Webhook'
     required: true
 
@@ -90,13 +90,13 @@ runs:
         SLACK_BOT_DISPLAY_NAME: ${{ inputs.slack_bot_display_name }}
         SLACK_TESTER_BOT_NAME: ${{ inputs.slack_tester_bot_name }}
         SLACK_TESTER_MESSAGE_WAIT_TIMEOUT: 180s
-        
+
         BOTKUBE_CLOUD_UI_BASE_URL: ${{ inputs.botkube_cloud_ui_base_url }}
         BOTKUBE_CLOUD_API_BASE_URL: ${{ inputs.botkube_cloud_api_base_url }}
         BOTKUBE_CLOUD_EMAIL: ${{ inputs.botkube_cloud_email }}
         BOTKUBE_CLOUD_PASSWORD: ${{ inputs.botkube_cloud_password }}
         BOTKUBE_CLOUD_TEAM_ORGANIZATION_ID: ${{ inputs.botkube_cloud_team_organization_id }}
-        SCREENSHOTS_DIR: ${{ runner.temp }}/screenshots
+        SCREENSHOTS_DIR: ${{ github.workspace }}/screenshots
         DEBUG_MODE: "true"
       run: |
         KUBECONFIG=$(k3d kubeconfig write cloud-slack-e2e-cluster) make test-cloud-slack-dev-e2e
@@ -105,7 +105,7 @@ runs:
       if: ${{ always() }}
       with:
         name: screenshots_dump_${{github.sha}}
-        path: ${{ runner.temp }}/screenshots
+        path: ${{ github.workspace }}/screenshots
         retention-days: 5
 
     - name: Dump cluster state
@@ -114,16 +114,19 @@ runs:
       with:
         name: cloud-slack-e2e
 
+    - name: Select the latest screenshot
+      if: ${{ failure() }}
+      shell: bash
+      run: |
+        FILE=$(find "${{ github.workspace }}/screenshots" -type f -exec ls -t1 {} + | head -1)
+        echo "SCREENSHOT_LOCATION=${FILE}" >> $GITHUB_ENV
+
     - name: Detect failed jobs
       if: ${{ failure() }}
       id: footer
       shell: bash
       run: |
-        FOOTER=''
-        if [[ ${{ steps.k3d.outcome }}     == failure ]]; then FOOTER='Failed to setup k3d cluster'; fi
-        if [[ ${{ steps.modules.outcome }} == failure ]]; then FOOTER='Failed to setup Go modules'; fi
-        if [[ ${{ steps.tests.outcome }}   == failure ]]; then FOOTER='Failed to run e2e tests'; fi
-
+        FOOTER='https://github.com/kubeshop/botkube/actions/runs/${{ github.run_id }}'
         echo "footer=${FOOTER}" >> $GITHUB_OUTPUT
 
     - name: Slack Notification
@@ -137,4 +140,5 @@ runs:
         SLACK_MESSAGE: "Cloud Slack ${{ inputs.e2e_type }} E2E tests failed :scream:"
         SLACK_ICON_EMOJI: ':this-is-fine-fire:'
         SLACK_FOOTER: ${{ steps.footer.outputs.footer }}
-        SLACK_WEBHOOK: ${{ inputs.slack_alerts_webhook }}
+        SLACK_TOKEN: ${{ inputs.slack_token }}
+        SLACK_FILE_UPLOAD: ${{ env.SCREENSHOT_LOCATION }}
