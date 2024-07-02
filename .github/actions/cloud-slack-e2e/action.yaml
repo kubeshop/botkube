@@ -129,16 +129,16 @@ runs:
         FOOTER='https://github.com/kubeshop/botkube/actions/runs/${{ github.run_id }}'
         echo "footer=${FOOTER}" >> $GITHUB_OUTPUT
 
-#    - name: Slack Notification
-#      uses: rtCamp/action-slack-notify@v2
-#      if: ${{ failure() }}
-#      env:
-#        SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
-#        SLACK_USERNAME: Botkube Cloud CI
-#        SLACK_COLOR: 'red'
-#        SLACK_TITLE: 'Message'
-#        SLACK_MESSAGE: "Cloud Slack ${{ inputs.e2e_type }} E2E tests failed :scream:"
-#        SLACK_ICON_EMOJI: ':this-is-fine-fire:'
-#        SLACK_FOOTER: ${{ steps.footer.outputs.footer }}
-#        SLACK_TOKEN: ${{ inputs.slack_token }}
-#        SLACK_FILE_UPLOAD: ${{ env.SCREENSHOT_LOCATION }}
+    - name: Slack Notification
+      uses: rtCamp/action-slack-notify@v2
+      if: ${{ failure() }}
+      env:
+        SLACK_CHANNEL: 'botkube-cloud-ci-alerts'
+        SLACK_USERNAME: Botkube Cloud CI
+        SLACK_COLOR: 'red'
+        SLACK_TITLE: 'Message'
+        SLACK_MESSAGE: "Cloud Slack ${{ inputs.e2e_type }} E2E tests failed :scream:"
+        SLACK_ICON_EMOJI: ':this-is-fine-fire:'
+        SLACK_FOOTER: ${{ steps.footer.outputs.footer }}
+        SLACK_TOKEN: ${{ inputs.slack_token }}
+        SLACK_FILE_UPLOAD: ${{ env.SCREENSHOT_LOCATION }}
