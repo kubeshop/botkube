@@ -228,20 +228,25 @@ func (p *BotkubeCloudPage) UpdateKubectlNamespace(t *testing.T) {
 	t.Log("Submitting changes")
 	p.page.MustWaitStable()
 	p.page.Screenshot("before-deploying-plugin-changes")
-	p.page.MustElementR("button", "/Deploy changes/i").MustClick()
+	p.page.MustElementR("button", "/Deploy changes/i").
+		MustWaitEnabled().
+		MustClick()
 	p.page.Screenshot("after-deploying-plugin-changes")
+	time.Sleep(3 * time.Second)
+	p.page.Screenshot("after-deploying-plugin-changes-later")
 }
 
 func (p *BotkubeCloudPage) VerifyUpdatedKubectlNamespace(t *testing.T) {
 	t.Log("Verifying that the 'namespace' value was updated and persisted properly")
 
+	time.Sleep(3 * time.Second)
 	p.openKubectlUpdateForm()
 	p.page.MustElementR("input#root_defaultNamespace", "kube-system")
 }
 
 func (p *BotkubeCloudPage) openKubectlUpdateForm() {
 	p.page.Screenshot("before-selecting-plugins-tab")
-	p.page.MustElementR(`div[role="tab"]`, "Plugins").MustFocus().MustClick().MustWaitStable()
+	p.page.MustElementR(`div[role="tab"]`, "Plugins").MustClick()
 
 	p.page.MustWaitStable()
 	p.page.Screenshot("after-selecting-plugins-tab")
