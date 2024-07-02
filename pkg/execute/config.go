@@ -69,10 +69,20 @@ func (e *ConfigExecutor) renderBotkubeConfiguration() (string, error) {
 		val.Discord.Token = redactedSecretStr
 		val.Mattermost.Token = redactedSecretStr
 		val.CloudSlack.Token = redactedSecretStr
-
 		// To keep the printed config readable, we don't print the certificate bytes.
 		val.CloudSlack.Server.TLS.CACertificate = nil
 		val.CloudTeams.Server.TLS.CACertificate = nil
+
+		// Replace private channel names with aliases
+		for i, channel := range val.CloudSlack.Channels {
+			if channel.Alias == nil {
+				continue
+			}
+
+			outChannel := channel
+			outChannel.ChannelBindingsByName.Name = *channel.Alias
+			val.CloudSlack.Channels[i] = outChannel
+		}
 
 		// maps are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
 		cfg.Communications[key] = val
