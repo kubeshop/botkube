@@ -11,6 +11,7 @@ import (
 	koanfyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/rawbytes"
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -197,12 +198,12 @@ type IncomingWebhook struct {
 
 // CloudSlackChannel contains configuration bindings per channel.
 type CloudSlackChannel struct {
-	ChannelBindingsByName `yaml:",inline"`
+	ChannelBindingsByName `yaml:",inline" mapstructure:",squash"`
 
 	// ChannelID is the Slack ID of the channel.
 	ChannelID string `yaml:"channelID"`
 	// Alias is an optional public alias for a private channel.
-	Alias *string `yaml:"alias"`
+	Alias *string `yaml:"alias,omitempty"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.
@@ -725,7 +726,20 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 	}
 
 	var cfg Config
-	err = k.Unmarshal("", &cfg)
+	err = k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{
+		DecoderConfig: &mapstructure.DecoderConfig{
+			Squash: true, // needed to properly unmarshal CloudSlack channel's ChannelBindingsByName
+
+			// also use defaults from koanf.UnmarshalWithConf
+			DecodeHook: mapstructure.ComposeDecodeHookFunc(
+				mapstructure.StringToTimeDurationHookFunc(),
+				mapstructure.StringToSliceHookFunc(","),
+				mapstructure.TextUnmarshallerHookFunc()),
+			Metadata:         nil,
+			Result:           &cfg,
+			WeaklyTypedInput: true,
+		},
+	})
 	if err != nil {
 		return nil, LoadWithDefaultsDetails{}, err
 	}

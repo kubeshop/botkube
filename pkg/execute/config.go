@@ -74,15 +74,19 @@ func (e *ConfigExecutor) renderBotkubeConfiguration() (string, error) {
 		val.CloudTeams.Server.TLS.CACertificate = nil
 
 		// Replace private channel names with aliases
-		for i, channel := range val.CloudSlack.Channels {
+		cloudSlackChannels := make(config.IdentifiableMap[config.CloudSlackChannel])
+		for _, channel := range val.CloudSlack.Channels {
 			if channel.Alias == nil {
+				cloudSlackChannels[channel.ChannelBindingsByName.Name] = channel
 				continue
 			}
 
 			outChannel := channel
-			outChannel.ChannelBindingsByName.Name = *channel.Alias
-			val.CloudSlack.Channels[i] = outChannel
+			outChannel.ChannelBindingsByName.Name = fmt.Sprintf("%s (public alias)", *channel.Alias)
+			outChannel.Alias = nil
+			cloudSlackChannels[*channel.Alias] = outChannel
 		}
+		val.CloudSlack.Channels = cloudSlackChannels
 
 		// maps are not addressable: https://stackoverflow.com/questions/42605337/cannot-assign-to-struct-field-in-a-map
 		cfg.Communications[key] = val
