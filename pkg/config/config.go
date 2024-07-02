@@ -97,7 +97,7 @@ const (
 	// DiscordCommPlatformIntegration defines Discord integration.
 	DiscordCommPlatformIntegration CommPlatformIntegration = "discord"
 
-	//ElasticsearchCommPlatformIntegration defines Elasticsearch integration.
+	// ElasticsearchCommPlatformIntegration defines Elasticsearch integration.
 	ElasticsearchCommPlatformIntegration CommPlatformIntegration = "elasticsearch"
 
 	// WebhookCommPlatformIntegration defines an outgoing webhook integration.
@@ -193,6 +193,16 @@ type IncomingWebhook struct {
 
 	// InClusterBaseURL is the in-cluster URL of the incoming webhook. Passed for plugins in context.
 	InClusterBaseURL string `yaml:"inClusterBaseURL"`
+}
+
+// CloudSlackChannel contains configuration bindings per channel.
+type CloudSlackChannel struct {
+	ChannelBindingsByName `yaml:",inline"`
+
+	// ChannelID is the Slack ID of the channel.
+	ChannelID string `yaml:"channelID"`
+	// Alias is an optional public alias for a private channel.
+	Alias *string `yaml:"alias"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.
@@ -498,12 +508,12 @@ type SocketSlack struct {
 
 // CloudSlack configuration for multi-slack support
 type CloudSlack struct {
-	Enabled                         bool                                   `yaml:"enabled"`
-	Channels                        IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	Token                           string                                 `yaml:"token"`
-	BotID                           string                                 `yaml:"botID,omitempty"`
-	Server                          GRPCServer                             `yaml:"server"`
-	ExecutionEventStreamingDisabled bool                                   `yaml:"executionEventStreamingDisabled"`
+	Enabled                         bool                               `yaml:"enabled"`
+	Channels                        IdentifiableMap[CloudSlackChannel] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
+	Token                           string                             `yaml:"token"`
+	BotID                           string                             `yaml:"botID,omitempty"`
+	Server                          GRPCServer                         `yaml:"server"`
+	ExecutionEventStreamingDisabled bool                               `yaml:"executionEventStreamingDisabled"`
 }
 
 // GRPCServer config for gRPC server
