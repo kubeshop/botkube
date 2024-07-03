@@ -201,6 +201,8 @@ type CloudSlackChannel struct {
 	ChannelBindingsByName `yaml:",inline" mapstructure:",squash"`
 
 	// ChannelID is the Slack ID of the channel.
+	// Currently, it is used for AI plugin as it has ability to fetch the Botkube Agent configuration.
+	// Later it can be used for deep linking to a given channel, see: https://api.slack.com/reference/deep-linking#app_channel
 	ChannelID string `yaml:"channelID"`
 	// Alias is an optional public alias for a private channel.
 	Alias *string `yaml:"alias,omitempty"`
