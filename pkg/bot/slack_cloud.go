@@ -29,6 +29,7 @@ import (
 	pb "github.com/kubeshop/botkube/pkg/api/cloudslack"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	conversationx "github.com/kubeshop/botkube/pkg/conversation"
 	"github.com/kubeshop/botkube/pkg/execute"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/formatx"
@@ -87,7 +88,7 @@ func NewCloudSlack(log logrus.FieldLogger,
 		return nil, err
 	}
 
-	channels := slackChannelsConfigFrom(log, cfg.Channels)
+	channels := cloudSlackChannelsConfigFrom(log, cfg.Channels)
 	if err != nil {
 		return nil, fmt.Errorf("while producing channels configuration map by ID: %w", err)
 	}
@@ -573,7 +574,7 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 	// TODO: Currently, we don't get the channel ID once we use modal. This needs to be investigated and fixed.
 	//
 	// we can open modal only if we have a TriggerID (it's available when user clicks a button)
-	//if resp.Type == api.PopupMessage && event.TriggerID != "" {
+	// if resp.Type == api.PopupMessage && event.TriggerID != "" {
 	//	modalView := b.renderer.RenderModal(resp)
 	//	modalView.PrivateMetadata = event.Channel
 	//	_, err := b.client.OpenViewContext(ctx, event.TriggerID, modalView)
@@ -581,7 +582,7 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 	//		return fmt.Errorf("while opening modal: %w", err)
 	//	}
 	//	return nil
-	//}
+	// }
 
 	options := []slack.MsgOption{
 		b.renderer.RenderInteractiveMessage(resp),
@@ -765,4 +766,23 @@ func (b *CloudSlack) GetStatus() health.PlatformStatus {
 		Restarts: fmt.Sprintf("%d/%d", b.failuresNo, maxRetries),
 		Reason:   b.failureReason,
 	}
+}
+
+func cloudSlackChannelsConfigFrom(log logrus.FieldLogger, channelsCfg config.IdentifiableMap[config.CloudSlackChannel]) map[string]channelConfigByName {
+	channels := make(map[string]channelConfigByName)
+	for channAlias, channCfg := range channelsCfg {
+		normalizedChannelName, changed := conversationx.NormalizeChannelIdentifier(channCfg.Name)
+		if changed {
+			log.Warnf("Channel name %q has been normalized to %q", channCfg.Name, normalizedChannelName)
+		}
+		channCfg.Name = normalizedChannelName
+
+		channels[channCfg.Identifier()] = channelConfigByName{
+			ChannelBindingsByName: channCfg.ChannelBindingsByName,
+			alias:                 channAlias,
+			notify:                !channCfg.Notification.Disabled,
+		}
+	}
+
+	return channels
 }
