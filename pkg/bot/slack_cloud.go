@@ -76,7 +76,8 @@ func NewCloudSlack(log logrus.FieldLogger,
 	cfg config.CloudSlack,
 	clusterName string,
 	executorFactory ExecutorFactory,
-	reporter AnalyticsCommandReporter) (*CloudSlack, error) {
+	reporter AnalyticsCommandReporter,
+) (*CloudSlack, error) {
 	client := slack.New(cfg.Token)
 
 	_, err := client.AuthTest()
@@ -553,14 +554,14 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 	}
 
 	// Upload message as a file if too long
-	var file *slack.File
 	var err error
+	var file *slack.File
 	if len(markdown) >= slackMaxMessageSize {
 		file, err = b.uploadFileToSlack(ctx, event, resp)
 		if err != nil {
 			return err
 		}
-		// the main message body was sent as a file, the only think that left is the filter input (if any)
+		// the main message body was sent as a file, the only thing that left is the filter input (if any)
 		if len(resp.PlaintextInputs) == 0 {
 			return nil
 		}
@@ -612,16 +613,20 @@ func (b *CloudSlack) send(ctx context.Context, event slackMessage, resp interact
 }
 
 func (b *CloudSlack) uploadFileToSlack(ctx context.Context, event slackMessage, resp interactive.CoreMessage) (*slack.File, error) {
-	params := slack.FileUploadParameters{
+	content := interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)
+	r := strings.NewReader(content)
+
+	params := slack.UploadFileV2Parameters{
 		Filename:        "Response.txt",
+		FileSize:        len(content),
 		Title:           "Response.txt",
 		InitialComment:  resp.Description,
-		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
-		Channels:        []string{event.Channel},
+		Reader:          r,
+		Channel:         event.Channel,
 		ThreadTimestamp: b.resolveMessageTimestamp(resp, event),
 	}
 
-	file, err := b.client.UploadFileContext(ctx, params)
+	file, err := b.client.UploadFileV2Context(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("while uploading file: %w", err)
 	}
@@ -666,7 +671,7 @@ func (b *CloudSlack) getThreadOptionIfNeeded(resp interactive.CoreMessage, event
 func (b *CloudSlack) resolveMessageTimestamp(resp interactive.CoreMessage, event slackMessage) string {
 	// If the message is coming e.g. from source, it may already belong to a given thread
 	if resp.ParentActivityID != "" {
-		return resp.Message.ParentActivityID
+		return resp.ParentActivityID
 	}
 
 	// otherwise, we use the event timestamp to respond in the thread to the message that triggered our response

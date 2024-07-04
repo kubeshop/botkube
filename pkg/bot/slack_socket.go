@@ -531,8 +531,8 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interacti
 		}
 
 		// Upload message as a file if too long
-		var file *slack.File
 		var err error
+		var file *slack.File
 		if len(markdown) >= slackMaxMessageSize {
 			file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
 			if err != nil {
@@ -540,7 +540,7 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interacti
 			}
 			resp = interactive.CoreMessage{
 				Message: api.Message{
-					PlaintextInputs: resp.Message.PlaintextInputs,
+					PlaintextInputs: resp.PlaintextInputs,
 				},
 			}
 		}
@@ -586,7 +586,7 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interacti
 				options = append(options, slack.MsgOptionTS(resp.Message.ParentActivityID))
 			}
 
-			_, _, err = b.client.PostMessageContext(ctx, id, options...)
+			_, _, err := b.client.PostMessageContext(ctx, id, options...)
 			if err != nil {
 				return fmt.Errorf("while posting Slack message: %w", slackError(err, event.Channel))
 			}
@@ -708,7 +708,7 @@ func resolveBlockActionCommand(act slack.BlockAction) (string, command.Origin) {
 }
 
 func (b *SocketSlack) getThreadOptionIfNeeded(event slackMessage, file *slack.File) slack.MsgOption {
-	//if the message is from thread then add an option to return the response to the thread
+	// if the message is from thread then add an option to return the response to the thread
 	if event.ThreadTimeStamp != "" {
 		return slack.MsgOptionTS(event.ThreadTimeStamp)
 	}
@@ -767,16 +767,20 @@ func (b *SocketSlack) GetStatus() health.PlatformStatus {
 }
 
 func uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {
-	params := slack.FileUploadParameters{
+	content := interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)
+	r := strings.NewReader(content)
+
+	params := slack.UploadFileV2Parameters{
 		Filename:        "Response.txt",
+		FileSize:        len(content),
 		Title:           "Response.txt",
 		InitialComment:  resp.Description,
-		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
-		Channels:        []string{channel},
+		Reader:          r,
+		Channel:         channel,
 		ThreadTimestamp: ts,
 	}
 
-	file, err := client.UploadFileContext(ctx, params)
+	file, err := client.UploadFileV2Context(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("while uploading file: %w", err)
 	}
