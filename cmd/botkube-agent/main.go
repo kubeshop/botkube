@@ -61,6 +61,8 @@ const (
 	reportHeartbeatMaxRetries = 30
 )
 
+var healthNotifiers = make(map[string]health.Notifier)
+
 func main() {
 	// Set up context
 	ctx := signals.SetupSignalHandler()
@@ -262,8 +264,9 @@ func run(ctx context.Context) (err error) {
 			Index: commGroupIdx + 1,
 		}
 
-		scheduleBotNotifier := func(in bot.Bot) {
-			bots[fmt.Sprintf("%s-%s", commGroupName, in.IntegrationName())] = in
+		scheduleBotNotifier := func(in bot.Bot, key string) {
+			setHealthBotNotifier(in, key)
+			bots[key] = in
 			errGroup.Go(func() error {
 				defer analytics.ReportPanicIfOccurs(commGroupLogger, analyticsReporter)
 				return in.Start(ctx)
@@ -272,72 +275,105 @@ func run(ctx context.Context) (err error) {
 
 		// Run bots
 		if commGroupCfg.SocketSlack.Enabled {
+			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.SocketSlackCommPlatformIntegration)
 			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupMeta, commGroupCfg.SocketSlack, executorFactory, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating SocketSlack bot", err)
+				errorMsg := fmt.Sprintf("while creating SocketSlack bot: %s", err.Error())
+				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
+				logger.Error(errorMsg)
+			} else {
+				scheduleBotNotifier(sb, notifierKey)
 			}
-			scheduleBotNotifier(sb)
 		}
 
 		if commGroupCfg.CloudSlack.Enabled {
+			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.CloudSlackCommPlatformIntegration)
 			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupMeta, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating CloudSlack bot", err)
+				errorMsg := fmt.Sprintf("while creating CloudSlack bot: %s", err.Error())
+				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
+				logger.Error(errorMsg)
+			} else {
+				scheduleBotNotifier(sb, notifierKey)
 			}
-			scheduleBotNotifier(sb)
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
+			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.MattermostCommPlatformIntegration)
 			mb, err := bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupMeta, commGroupCfg.Mattermost, executorFactory, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating Mattermost bot", err)
+				errorMsg := fmt.Sprintf("while creating Mattermost bot: %s", err.Error())
+				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
+				logger.Error(errorMsg)
+			} else {
+				scheduleBotNotifier(mb, notifierKey)
 			}
-			scheduleBotNotifier(mb)
 		}
 
 		if commGroupCfg.CloudTeams.Enabled {
+			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.CloudTeamsCommPlatformIntegration)
 			ctb, err := bot.NewCloudTeams(commGroupLogger.WithField(botLogFieldKey, "CloudTeams"), commGroupMeta, commGroupCfg.CloudTeams, conf.Settings.ClusterName, executorFactory, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating CloudTeams bot", err)
+				errorMsg := fmt.Sprintf("while creating CloudTeams bot: %s", err.Error())
+				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
+				logger.Error(errorMsg)
+			} else {
+				scheduleBotNotifier(ctb, notifierKey)
 			}
-			scheduleBotNotifier(ctb)
 		}
 
 		if commGroupCfg.Discord.Enabled {
+			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.DiscordCommPlatformIntegration)
 			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupMeta, commGroupCfg.Discord, executorFactory, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating Discord bot", err)
+				errorMsg := fmt.Sprintf("while creating Discord bot: %s", err.Error())
+				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
+				logger.Error(errorMsg)
+			} else {
+				scheduleBotNotifier(db, notifierKey)
 			}
-			scheduleBotNotifier(db)
 		}
 
 		// Run sinks
 		if commGroupCfg.Elasticsearch.Enabled {
+			notifierKey := fmt.Sprintf("%s-%d", config.ElasticsearchCommPlatformIntegration, commGroupIdx)
 			es, err := sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupMeta.Index, commGroupCfg.Elasticsearch, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating Elasticsearch sink", err)
+				errorMsg := fmt.Sprintf("while creating Elasticsearch sink: %s", err.Error())
+				setHealthSinkNotifier(sink.NewSinkFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
+				logger.Errorf(errorMsg)
+			} else {
+				setHealthSinkNotifier(es, notifierKey)
+				sinkNotifiers = append(sinkNotifiers, es)
 			}
-			sinkNotifiers = append(sinkNotifiers, es)
 		}
 
 		if commGroupCfg.Webhook.Enabled {
+			notifierKey := fmt.Sprintf("%s-%d", config.WebhookCommPlatformIntegration, commGroupIdx)
 			wh, err := sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupMeta.Index, commGroupCfg.Webhook, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating Webhook sink", err)
+				errorMsg := fmt.Sprintf("while creating Webhook sink: %s", err.Error())
+				setHealthSinkNotifier(sink.NewSinkFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
+				logger.Errorf(errorMsg)
+			} else {
+				setHealthSinkNotifier(wh, notifierKey)
+				sinkNotifiers = append(sinkNotifiers, wh)
 			}
-
-			sinkNotifiers = append(sinkNotifiers, wh)
 		}
 		if commGroupCfg.PagerDuty.Enabled {
+			notifierKey := fmt.Sprintf("%s-%d", config.PagerDutyCommPlatformIntegration, commGroupIdx)
 			pd, err := sink.NewPagerDuty(commGroupLogger.WithField(sinkLogFieldKey, "PagerDuty"), commGroupMeta.Index, commGroupCfg.PagerDuty, conf.Settings.ClusterName, analyticsReporter)
 			if err != nil {
-				return reportFatalError("while creating PagerDuty sink", err)
+				errorMsg := fmt.Sprintf("while creating PagerDuty sink: %s", err.Error())
+				setHealthSinkNotifier(sink.NewSinkFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
+				logger.Errorf(errorMsg)
+			} else {
+				setHealthSinkNotifier(pd, notifierKey)
+				sinkNotifiers = append(sinkNotifiers, pd)
 			}
-
-			sinkNotifiers = append(sinkNotifiers, pd)
 		}
 	}
-	healthChecker.SetNotifiers(getHealthNotifiers(bots, sinkNotifiers))
+	healthChecker.SetNotifiers(healthNotifiers)
 
 	if conf.ConfigWatcher.Enabled {
 		restarter := reloader.NewRestarter(
@@ -496,12 +532,7 @@ func getAnalyticsReporter(disableAnalytics bool, logger logrus.FieldLogger) (ana
 		return nil, fmt.Errorf("while creating new Analytics Client: %w", err)
 	}
 
-	analyticsReporter := analytics.NewSegmentReporter(wrappedLogger, segmentCli)
-	if err != nil {
-		return nil, err
-	}
-
-	return analyticsReporter, nil
+	return analytics.NewSegmentReporter(wrappedLogger, segmentCli), nil
 }
 
 func getK8sClients(cfg *rest.Config) (dynamic.Interface, discovery.DiscoveryInterface, error) {
@@ -555,15 +586,15 @@ func sendHelp(ctx context.Context, s *storage.Help, clusterName string, executor
 
 	var sent []string
 
-	for key, notifier := range notifiers {
+	for key, notifierItem := range notifiers {
 		if alreadySentHelp[key] {
 			continue
 		}
 
-		help := interactive.NewHelpMessage(notifier.IntegrationName(), clusterName, executors).Build(true)
-		err := notifier.SendMessageToAll(ctx, help)
+		help := interactive.NewHelpMessage(notifierItem.IntegrationName(), clusterName, executors).Build(true)
+		err := notifierItem.SendMessageToAll(ctx, help)
 		if err != nil {
-			return fmt.Errorf("while sending help message for %s: %w", notifier.IntegrationName(), err)
+			return fmt.Errorf("while sending help message for %s: %w", notifierItem.IntegrationName(), err)
 		}
 		sent = append(sent, key)
 	}
@@ -585,14 +616,10 @@ func findVersions(cli *kubernetes.Clientset) (string, string, error) {
 	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), k8sVer.String(), nil
 }
 
-func getHealthNotifiers(bots map[string]bot.Bot, sinks []notifier.Sink) map[string]health.Notifier {
-	notifiers := make(map[string]health.Notifier)
-	for key, botInstance := range bots {
-		notifiers[key] = botInstance
-	}
-	for key, sinkInstance := range sinks {
-		notifiers[fmt.Sprintf("%s-%d", sinkInstance.IntegrationName(), key)] = sinkInstance
-	}
+func setHealthBotNotifier(bot bot.HealthNotifierBot, key string) {
+	healthNotifiers[key] = bot
+}
 
-	return notifiers
+func setHealthSinkNotifier(sink sink.HealthNotifierSink, key string) {
+	healthNotifiers[key] = sink
 }

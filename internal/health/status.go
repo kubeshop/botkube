@@ -25,6 +25,7 @@ type PlatformStatus struct {
 	Status   PlatformStatusMsg `json:"status,omitempty"`
 	Restarts string            `json:"restarts,omitempty"`
 	Reason   FailureReasonMsg  `json:"reason,omitempty"`
+	ErrorMsg string            `json:"error_msg,omitempty"`
 }
 
 // status defines bot agent status.

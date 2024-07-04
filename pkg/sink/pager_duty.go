@@ -33,6 +33,7 @@ type PagerDuty struct {
 
 	status        health.PlatformStatusMsg
 	failureReason health.FailureReasonMsg
+	errorMsg      string
 	statusMux     sync.Mutex
 }
 
@@ -96,7 +97,7 @@ func (w *PagerDuty) SendEvent(ctx context.Context, rawData any, sources []string
 
 	resp, err := w.postEvent(ctx, in)
 	if err != nil {
-		w.setFailureReason(health.FailureReasonConnectionError)
+		w.setFailureReason(health.FailureReasonConnectionError, fmt.Sprintf("while sending message to PagerDuty: %s", err.Error()))
 		return fmt.Errorf("while sending message to PagerDuty: %w", err)
 	}
 
@@ -121,6 +122,7 @@ func (w *PagerDuty) GetStatus() health.PlatformStatus {
 		Status:   w.status,
 		Restarts: "0/0",
 		Reason:   w.failureReason,
+		ErrorMsg: w.errorMsg,
 	}
 }
 
@@ -218,7 +220,7 @@ func (w *PagerDuty) triggerChange(ctx context.Context, in *incomingEvent, meta e
 	})
 }
 
-func (w *PagerDuty) setFailureReason(reason health.FailureReasonMsg) {
+func (w *PagerDuty) setFailureReason(reason health.FailureReasonMsg, errorMsg string) {
 	if reason == "" {
 		return
 	}
@@ -228,6 +230,7 @@ func (w *PagerDuty) setFailureReason(reason health.FailureReasonMsg) {
 
 	w.status = health.StatusUnHealthy
 	w.failureReason = reason
+	w.errorMsg = errorMsg
 }
 
 func (w *PagerDuty) markHealthy() {
@@ -240,4 +243,5 @@ func (w *PagerDuty) markHealthy() {
 
 	w.status = health.StatusHealthy
 	w.failureReason = ""
+	w.errorMsg = ""
 }

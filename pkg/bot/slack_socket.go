@@ -64,6 +64,7 @@ type SocketSlack struct {
 	shutdownOnce      sync.Once
 	status            health.PlatformStatusMsg
 	failureReason     health.FailureReasonMsg
+	errorMsg          string
 }
 
 // socketSlackAnalyticsReporter defines a reporter that collects analytics data.
@@ -128,7 +129,7 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 		}
 	}()
 
-	b.setFailureReason("")
+	b.setFailureReason("", "")
 	go b.startMessageProcessor(ctx)
 
 	for {
@@ -746,13 +747,14 @@ func (b *SocketSlack) getRealNameWithFallbackToUserID(ctx context.Context, userI
 	return user.RealName
 }
 
-func (b *SocketSlack) setFailureReason(reason health.FailureReasonMsg) {
+func (b *SocketSlack) setFailureReason(reason health.FailureReasonMsg, errorMsg string) {
 	if reason == "" {
 		b.status = health.StatusHealthy
 	} else {
 		b.status = health.StatusUnHealthy
 	}
 	b.failureReason = reason
+	b.errorMsg = errorMsg
 }
 
 func (b *SocketSlack) GetStatus() health.PlatformStatus {
@@ -760,6 +762,7 @@ func (b *SocketSlack) GetStatus() health.PlatformStatus {
 		Status:   b.status,
 		Restarts: "0/0",
 		Reason:   b.failureReason,
+		ErrorMsg: b.errorMsg,
 	}
 }
 
