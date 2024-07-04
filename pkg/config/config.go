@@ -11,6 +11,7 @@ import (
 	koanfyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/rawbytes"
+	"github.com/mitchellh/mapstructure"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -97,7 +98,7 @@ const (
 	// DiscordCommPlatformIntegration defines Discord integration.
 	DiscordCommPlatformIntegration CommPlatformIntegration = "discord"
 
-	//ElasticsearchCommPlatformIntegration defines Elasticsearch integration.
+	// ElasticsearchCommPlatformIntegration defines Elasticsearch integration.
 	ElasticsearchCommPlatformIntegration CommPlatformIntegration = "elasticsearch"
 
 	// WebhookCommPlatformIntegration defines an outgoing webhook integration.
@@ -193,6 +194,18 @@ type IncomingWebhook struct {
 
 	// InClusterBaseURL is the in-cluster URL of the incoming webhook. Passed for plugins in context.
 	InClusterBaseURL string `yaml:"inClusterBaseURL"`
+}
+
+// CloudSlackChannel contains configuration bindings per channel.
+type CloudSlackChannel struct {
+	ChannelBindingsByName `yaml:",inline" mapstructure:",squash"`
+
+	// ChannelID is the Slack ID of the channel.
+	// Currently, it is used for AI plugin as it has ability to fetch the Botkube Agent configuration.
+	// Later it can be used for deep linking to a given channel, see: https://api.slack.com/reference/deep-linking#app_channel
+	ChannelID string `yaml:"channelID"`
+	// Alias is an optional public alias for a private channel.
+	Alias *string `yaml:"alias,omitempty"`
 }
 
 // ChannelBindingsByName contains configuration bindings per channel.
@@ -498,12 +511,12 @@ type SocketSlack struct {
 
 // CloudSlack configuration for multi-slack support
 type CloudSlack struct {
-	Enabled                         bool                                   `yaml:"enabled"`
-	Channels                        IdentifiableMap[ChannelBindingsByName] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
-	Token                           string                                 `yaml:"token"`
-	BotID                           string                                 `yaml:"botID,omitempty"`
-	Server                          GRPCServer                             `yaml:"server"`
-	ExecutionEventStreamingDisabled bool                                   `yaml:"executionEventStreamingDisabled"`
+	Enabled                         bool                               `yaml:"enabled"`
+	Channels                        IdentifiableMap[CloudSlackChannel] `yaml:"channels"  validate:"required_if=Enabled true,dive,omitempty,min=1"`
+	Token                           string                             `yaml:"token"`
+	BotID                           string                             `yaml:"botID,omitempty"`
+	Server                          GRPCServer                         `yaml:"server"`
+	ExecutionEventStreamingDisabled bool                               `yaml:"executionEventStreamingDisabled"`
 }
 
 // GRPCServer config for gRPC server
@@ -715,7 +728,20 @@ func LoadWithDefaults(configs [][]byte) (*Config, LoadWithDefaultsDetails, error
 	}
 
 	var cfg Config
-	err = k.Unmarshal("", &cfg)
+	err = k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{
+		DecoderConfig: &mapstructure.DecoderConfig{
+			Squash: true, // needed to properly unmarshal CloudSlack channel's ChannelBindingsByName
+
+			// also use defaults from koanf.UnmarshalWithConf
+			DecodeHook: mapstructure.ComposeDecodeHookFunc(
+				mapstructure.StringToTimeDurationHookFunc(),
+				mapstructure.StringToSliceHookFunc(","),
+				mapstructure.TextUnmarshallerHookFunc()),
+			Metadata:         nil,
+			Result:           &cfg,
+			WeaklyTypedInput: true,
+		},
+	})
 	if err != nil {
 		return nil, LoadWithDefaultsDetails{}, err
 	}
