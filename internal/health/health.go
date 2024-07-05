@@ -60,7 +60,7 @@ func (h *Checker) ServeHTTP(resp http.ResponseWriter, _ *http.Request) {
 	}
 	resp.Header().Set("Content-Type", "application/json")
 
-	status := h.getStatus()
+	status := h.GetStatus()
 	respJSon, err := json.Marshal(status)
 	if err != nil {
 		http.Error(resp, err.Error(), http.StatusInternalServerError)
@@ -84,13 +84,13 @@ func (h *Checker) SetNotifiers(notifiers map[string]Notifier) {
 	h.notifiers = notifiers
 }
 
-func (h *Checker) getStatus() *status {
-	pluginsStats := make(map[string]pluginStatuses)
+func (h *Checker) GetStatus() *Status {
+	pluginsStats := make(map[string]PluginStatus)
 	h.collectSourcePluginsStatuses(pluginsStats)
 	h.collectExecutorPluginsStatuses(pluginsStats)
 
-	return &status{
-		Botkube: botStatus{
+	return &Status{
+		Botkube: BotStatus{
 			Status: h.getBotkubeStatus(),
 		},
 		Plugins:   pluginsStats,
@@ -98,7 +98,7 @@ func (h *Checker) getStatus() *status {
 	}
 }
 
-func (h *Checker) collectSourcePluginsStatuses(plugins map[string]pluginStatuses) {
+func (h *Checker) collectSourcePluginsStatuses(plugins map[string]PluginStatus) {
 	if h.config == nil {
 		return
 	}
@@ -109,7 +109,7 @@ func (h *Checker) collectSourcePluginsStatuses(plugins map[string]pluginStatuses
 	}
 }
 
-func (h *Checker) collectExecutorPluginsStatuses(plugins map[string]pluginStatuses) {
+func (h *Checker) collectExecutorPluginsStatuses(plugins map[string]PluginStatus) {
 	if h.config == nil {
 		return
 	}
@@ -120,9 +120,9 @@ func (h *Checker) collectExecutorPluginsStatuses(plugins map[string]pluginStatus
 	}
 }
 
-func (h *Checker) collectPluginStatus(plugins map[string]pluginStatuses, pluginConfigName string, pluginName string, enabled bool) {
+func (h *Checker) collectPluginStatus(plugins map[string]PluginStatus, pluginConfigName string, pluginName string, enabled bool) {
 	status, restarts, threshold, _ := h.pluginHealthStats.GetStats(pluginName)
-	plugins[pluginConfigName] = pluginStatuses{
+	plugins[pluginConfigName] = PluginStatus{
 		Enabled:  enabled,
 		Status:   status,
 		Restarts: fmt.Sprintf("%d/%d", restarts, threshold),

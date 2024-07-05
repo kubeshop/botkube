@@ -484,7 +484,7 @@ func run(ctx context.Context) (err error) {
 				logger.Errorf("while reporting fatal error: %s", reportErr.Error())
 			}
 		}()
-		heartbeatReporter := heartbeat.GetReporter(logger, gqlClient)
+		heartbeatReporter := heartbeat.GetReporter(logger, gqlClient, healthChecker)
 		k8sCollector := insights.NewK8sCollector(k8sCli, heartbeatReporter, logger, reportHeartbeatInterval, reportHeartbeatMaxRetries)
 		return k8sCollector.Start(ctx)
 	})

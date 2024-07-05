@@ -44,7 +44,7 @@ func (k *K8sCollector) Start(ctx context.Context) error {
 				k.failureCount.Add(1)
 			} else {
 				k.failureCount.Store(0)
-				err = k.heartbeatReporter.ReportHeartbeat(ctx, heartbeat.DeploymentHeartbeatInput{NodeCount: len(list.Items)})
+				err = k.heartbeatReporter.ReportHeartbeat(ctx, heartbeat.ReportHeartBeat{NodeCount: len(list.Items)})
 				if err != nil {
 					k.logger.Errorf("while reporting heartbeat: %s", err.Error())
 				}
