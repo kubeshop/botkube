@@ -3,9 +3,9 @@ package heartbeat
 import (
 	"context"
 
-	"github.com/kubeshop/botkube/internal/health"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/kubeshop/botkube/internal/health"
 )
 
 type DeploymentHeartbeatInput struct {

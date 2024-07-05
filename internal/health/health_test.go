@@ -16,7 +16,7 @@ import (
 func TestServeHTTPUnavailable(t *testing.T) {
 	// given
 	checker := NewChecker(context.TODO(), &config.Config{}, nil)
-	expectedStatus := checker.getStatus()
+	expectedStatus := checker.GetStatus()
 
 	req, err := http.NewRequest("GET", "/", nil)
 	require.NoError(t, err)
@@ -29,7 +29,7 @@ func TestServeHTTPUnavailable(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 
-	var resp status
+	var resp Status
 	err = json.Unmarshal(rr.Body.Bytes(), &resp)
 	require.NoError(t, err)
 
@@ -41,7 +41,7 @@ func TestServeHTTPOK(t *testing.T) {
 	// given
 	checker := NewChecker(context.TODO(), &config.Config{}, nil)
 	checker.MarkAsReady()
-	expectedStatus := checker.getStatus()
+	expectedStatus := checker.GetStatus()
 
 	req, err := http.NewRequest("GET", "/", nil)
 	require.NoError(t, err)
@@ -54,7 +54,7 @@ func TestServeHTTPOK(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 
-	var resp status
+	var resp Status
 	err = json.Unmarshal(rr.Body.Bytes(), &resp)
 	require.NoError(t, err)
 
