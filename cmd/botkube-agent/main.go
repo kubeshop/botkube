@@ -275,7 +275,7 @@ func run(ctx context.Context) (err error) {
 
 		// Run bots
 		if commGroupCfg.SocketSlack.Enabled {
-			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.SocketSlackCommPlatformIntegration)
+			notifierKey := getNotifierKey(commGroupName, config.SocketSlackCommPlatformIntegration)
 			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupMeta, commGroupCfg.SocketSlack, executorFactory, analyticsReporter)
 			if err != nil {
 				errorMsg := fmt.Sprintf("while creating SocketSlack bot: %s", err.Error())
@@ -287,7 +287,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.CloudSlack.Enabled {
-			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.CloudSlackCommPlatformIntegration)
+			notifierKey := getNotifierKey(commGroupName, config.CloudSlackCommPlatformIntegration)
 			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupMeta, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, analyticsReporter)
 			if err != nil {
 				errorMsg := fmt.Sprintf("while creating CloudSlack bot: %s", err.Error())
@@ -299,7 +299,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
-			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.MattermostCommPlatformIntegration)
+			notifierKey := getNotifierKey(commGroupName, config.MattermostCommPlatformIntegration)
 			mb, err := bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupMeta, commGroupCfg.Mattermost, executorFactory, analyticsReporter)
 			if err != nil {
 				errorMsg := fmt.Sprintf("while creating Mattermost bot: %s", err.Error())
@@ -311,7 +311,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.CloudTeams.Enabled {
-			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.CloudTeamsCommPlatformIntegration)
+			notifierKey := getNotifierKey(commGroupName, config.CloudTeamsCommPlatformIntegration)
 			ctb, err := bot.NewCloudTeams(commGroupLogger.WithField(botLogFieldKey, "CloudTeams"), commGroupMeta, commGroupCfg.CloudTeams, conf.Settings.ClusterName, executorFactory, analyticsReporter)
 			if err != nil {
 				errorMsg := fmt.Sprintf("while creating CloudTeams bot: %s", err.Error())
@@ -323,7 +323,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Discord.Enabled {
-			notifierKey := fmt.Sprintf("%s-%s", commGroupName, config.DiscordCommPlatformIntegration)
+			notifierKey := getNotifierKey(commGroupName, config.DiscordCommPlatformIntegration)
 			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupMeta, commGroupCfg.Discord, executorFactory, analyticsReporter)
 			if err != nil {
 				errorMsg := fmt.Sprintf("while creating Discord bot: %s", err.Error())
@@ -336,7 +336,7 @@ func run(ctx context.Context) (err error) {
 
 		// Run sinks
 		if commGroupCfg.Elasticsearch.Enabled {
-			notifierKey := fmt.Sprintf("%s-%d", config.ElasticsearchCommPlatformIntegration, commGroupIdx)
+			notifierKey := getNotifierKey(commGroupName, config.ElasticsearchCommPlatformIntegration)
 			es, err := sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupMeta.Index, commGroupCfg.Elasticsearch, analyticsReporter)
 			if err != nil {
 				errorMsg := fmt.Sprintf("while creating Elasticsearch sink: %s", err.Error())
@@ -349,7 +349,7 @@ func run(ctx context.Context) (err error) {
 		}
 
 		if commGroupCfg.Webhook.Enabled {
-			notifierKey := fmt.Sprintf("%s-%d", config.WebhookCommPlatformIntegration, commGroupIdx)
+			notifierKey := getNotifierKey(commGroupName, config.WebhookCommPlatformIntegration)
 			wh, err := sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupMeta.Index, commGroupCfg.Webhook, analyticsReporter)
 			if err != nil {
 				errorMsg := fmt.Sprintf("while creating Webhook sink: %s", err.Error())
@@ -361,7 +361,7 @@ func run(ctx context.Context) (err error) {
 			}
 		}
 		if commGroupCfg.PagerDuty.Enabled {
-			notifierKey := fmt.Sprintf("%s-%d", config.PagerDutyCommPlatformIntegration, commGroupIdx)
+			notifierKey := getNotifierKey(commGroupName, config.PagerDutyCommPlatformIntegration)
 			pd, err := sink.NewPagerDuty(commGroupLogger.WithField(sinkLogFieldKey, "PagerDuty"), commGroupMeta.Index, commGroupCfg.PagerDuty, conf.Settings.ClusterName, analyticsReporter)
 			if err != nil {
 				errorMsg := fmt.Sprintf("while creating PagerDuty sink: %s", err.Error())
@@ -622,4 +622,8 @@ func setHealthBotNotifier(bot bot.HealthNotifierBot, key string) {
 
 func setHealthSinkNotifier(sink sink.HealthNotifierSink, key string) {
 	healthNotifiers[key] = sink
+}
+
+func getNotifierKey(commGroupName string, commPlatformIntegration config.CommPlatformIntegration) string {
+	return fmt.Sprintf("%s-%s", commGroupName, commPlatformIntegration)
 }
