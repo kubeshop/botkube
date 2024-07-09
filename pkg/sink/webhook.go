@@ -27,6 +27,7 @@ type Webhook struct {
 	Bindings      config.SinkBindings
 	status        health.PlatformStatusMsg
 	failureReason health.FailureReasonMsg
+	errorMsg      string
 }
 
 // WebhookPayload contains json payload to be sent to webhook url
@@ -64,11 +65,11 @@ func (w *Webhook) SendEvent(ctx context.Context, rawData any, sources []string) 
 
 	err := w.PostWebhook(ctx, jsonPayload)
 	if err != nil {
-		w.setFailureReason(health.FailureReasonConnectionError)
+		w.setFailureReason(health.FailureReasonConnectionError, fmt.Sprintf("while sending message to webhook: %s", err.Error()))
 		return fmt.Errorf("while sending message to webhook: %w", err)
 	}
 
-	w.setFailureReason("")
+	w.setFailureReason("", "")
 	w.log.Debugf("Message successfully sent to Webhook: %+v", rawData)
 	return nil
 }
@@ -115,13 +116,14 @@ func (w *Webhook) Type() config.IntegrationType {
 	return config.SinkIntegrationType
 }
 
-func (w *Webhook) setFailureReason(reason health.FailureReasonMsg) {
+func (w *Webhook) setFailureReason(reason health.FailureReasonMsg, errorMsg string) {
 	if reason == "" {
 		w.status = health.StatusHealthy
 	} else {
 		w.status = health.StatusUnHealthy
 	}
 	w.failureReason = reason
+	w.errorMsg = errorMsg
 }
 
 // GetStatus gets sink status
@@ -130,5 +132,6 @@ func (w *Webhook) GetStatus() health.PlatformStatus {
 		Status:   w.status,
 		Restarts: "0/0",
 		Reason:   w.failureReason,
+		ErrorMsg: w.errorMsg,
 	}
 }

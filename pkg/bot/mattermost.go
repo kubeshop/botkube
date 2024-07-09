@@ -72,6 +72,7 @@ type Mattermost struct {
 	shutdownOnce      sync.Once
 	status            health.PlatformStatusMsg
 	failureReason     health.FailureReasonMsg
+	errorMsg          string
 }
 
 // mattermostMessage contains message details to execute command and send back the result
@@ -164,7 +165,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// Check connection to Mattermost server
 	err := b.checkServerConnection(ctx)
 	if err != nil {
-		b.setStatusReason(health.FailureReasonConnectionError)
+		b.setStatusReason(health.FailureReasonConnectionError, fmt.Sprintf("while pinging Mattermost server %q: %s", b.serverURL, err.Error()))
 		return fmt.Errorf("while pinging Mattermost server %q: %w", b.serverURL, err)
 	}
 
@@ -177,7 +178,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 	// For now, we are adding retry logic to reconnect to the server
 	// https://github.com/kubeshop/botkube/issues/201
 	b.log.Info("Botkube connected to Mattermost!")
-	b.setStatusReason("")
+	b.setStatusReason("", "")
 	go b.startMessageProcessor(ctx)
 
 	for {
@@ -190,7 +191,7 @@ func (b *Mattermost) Start(ctx context.Context) error {
 			var appErr error
 			b.wsClient, appErr = model.NewWebSocketClient4(b.webSocketURL, b.apiClient.AuthToken)
 			if appErr != nil {
-				b.setStatusReason(health.FailureReasonConnectionError)
+				b.setStatusReason(health.FailureReasonConnectionError, fmt.Sprintf("while creating WebSocket connection: %s", appErr.Error()))
 				return fmt.Errorf("while creating WebSocket connection: %w", appErr)
 			}
 			b.listen(ctx)
@@ -593,13 +594,14 @@ func postFromEvent(event *model.WebSocketEvent) (*model.Post, error) {
 	return post, nil
 }
 
-func (b *Mattermost) setStatusReason(reason health.FailureReasonMsg) {
+func (b *Mattermost) setStatusReason(reason health.FailureReasonMsg, errorMsg string) {
 	if reason == "" {
 		b.status = health.StatusHealthy
 	} else {
 		b.status = health.StatusUnHealthy
 	}
 	b.failureReason = reason
+	b.errorMsg = errorMsg
 }
 
 // GetStatus gets bot status.
@@ -608,5 +610,6 @@ func (b *Mattermost) GetStatus() health.PlatformStatus {
 		Status:   b.status,
 		Restarts: "0/0",
 		Reason:   b.failureReason,
+		ErrorMsg: b.errorMsg,
 	}
 }

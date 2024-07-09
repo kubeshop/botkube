@@ -52,6 +52,7 @@ type Elasticsearch struct {
 	clusterVersion string
 	status         health.PlatformStatusMsg
 	failureReason  health.FailureReasonMsg
+	errorMsg       string
 }
 
 // NewElasticsearch creates a new Elasticsearch instance.
@@ -217,12 +218,12 @@ func (e *Elasticsearch) SendEvent(ctx context.Context, rawData any, sources []st
 		}
 		err := e.flushIndex(ctx, indexCfg, rawData)
 		if err != nil {
-			e.setFailureReason(health.FailureReasonConnectionError)
+			e.setFailureReason(health.FailureReasonConnectionError, fmt.Sprintf("while sending event to Elasticsearch index %q: %s", indexCfg.Name, err.Error()))
 			errs = multierror.Append(errs, fmt.Errorf("while sending event to Elasticsearch index %q: %w", indexCfg.Name, err))
 			continue
 		}
 
-		e.setFailureReason("")
+		e.setFailureReason("", "")
 		e.log.Debugf("Event successfully sent to Elasticsearch index %q", indexCfg.Name)
 	}
 
@@ -239,13 +240,14 @@ func (e *Elasticsearch) Type() config.IntegrationType {
 	return config.SinkIntegrationType
 }
 
-func (e *Elasticsearch) setFailureReason(reason health.FailureReasonMsg) {
+func (e *Elasticsearch) setFailureReason(reason health.FailureReasonMsg, errorMsg string) {
 	if reason == "" {
 		e.status = health.StatusHealthy
 	} else {
 		e.status = health.StatusUnHealthy
 	}
 	e.failureReason = reason
+	e.errorMsg = errorMsg
 }
 
 // GetStatus gets sink status
@@ -254,6 +256,7 @@ func (e *Elasticsearch) GetStatus() health.PlatformStatus {
 		Status:   e.status,
 		Restarts: "0/0",
 		Reason:   e.failureReason,
+		ErrorMsg: e.errorMsg,
 	}
 }
 

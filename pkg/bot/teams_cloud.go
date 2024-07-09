@@ -81,6 +81,7 @@ type CloudTeams struct {
 	status               health.PlatformStatusMsg
 	failuresNo           int
 	failureReason        health.FailureReasonMsg
+	errorMsg             string
 	reportOnce           sync.Once
 	botMentionRegex      *regexp.Regexp
 	botName              string
@@ -183,6 +184,7 @@ func (b *CloudTeams) GetStatus() health.PlatformStatus {
 		Status:   b.status,
 		Restarts: fmt.Sprintf("%d/%d", b.failuresNo, maxRetries),
 		Reason:   b.failureReason,
+		ErrorMsg: b.errorMsg,
 	}
 }
 
@@ -204,7 +206,7 @@ func (b *CloudTeams) start(ctx context.Context) error {
 		}
 	})
 	b.failuresNo = 0 // Reset the failures to start exponential back-off from the beginning
-	b.setFailureReason("")
+	b.setFailureReason("", "")
 	b.log.Info("Botkube connected to Cloud Teams!")
 
 	parallel, ctx := errgroup.WithContext(ctx)
@@ -226,11 +228,11 @@ func (b *CloudTeams) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 			// if the last run was long enough, we treat is as success, so we reset failures
 			log.Infof("Resetting failures counter as last failure was more than %s ago", successIntervalDuration)
 			b.failuresNo = 0
-			b.setFailureReason("")
+			b.setFailureReason("", "")
 		}
 		lastFailureTimestamp = time.Now()
 		b.failuresNo++
-		b.setFailureReason(health.FailureReasonConnectionError)
+		b.setFailureReason(health.FailureReasonConnectionError, err.Error())
 
 		return retry.BackOffDelay(uint(b.failuresNo), err, cfg)
 	}
@@ -238,7 +240,7 @@ func (b *CloudTeams) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 		func() error {
 			err := fn()
 			if b.failuresNo >= maxRetries {
-				b.setFailureReason(health.FailureReasonMaxRetriesExceeded)
+				b.setFailureReason(health.FailureReasonMaxRetriesExceeded, fmt.Sprintf("Reached max number of %d retries", maxRetries))
 				log.Debugf("Reached max number of %d retries: %s", maxRetries, err)
 				return retry.Unrecoverable(err)
 			}
@@ -255,7 +257,7 @@ func (b *CloudTeams) withRetries(ctx context.Context, log logrus.FieldLogger, ma
 }
 
 func (b *CloudTeams) handleStreamMessage(ctx context.Context, data *pb.CloudActivity) (*pb.AgentActivity, error) {
-	b.setFailureReason("")
+	b.setFailureReason("", "")
 	var act schema.Activity
 	err := json.Unmarshal(data.Event, &act)
 	if err != nil {
@@ -468,13 +470,14 @@ func (b *CloudTeams) trimBotMention(msg string) string {
 	return b.botMentionRegex.ReplaceAllString(msg, "")
 }
 
-func (b *CloudTeams) setFailureReason(reason health.FailureReasonMsg) {
+func (b *CloudTeams) setFailureReason(reason health.FailureReasonMsg, errorMsg string) {
 	if reason == "" {
 		b.status = health.StatusHealthy
 	} else {
 		b.status = health.StatusUnHealthy
 	}
 	b.failureReason = reason
+	b.errorMsg = errorMsg
 }
 
 type teamsCloudChannelConfigByID struct {

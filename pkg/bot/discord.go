@@ -57,6 +57,7 @@ type Discord struct {
 	shutdownOnce          sync.Once
 	status                health.PlatformStatusMsg
 	failureReason         health.FailureReasonMsg
+	errorMsg              string
 }
 
 // discordMessage contains message details to execute command and send back the result.
@@ -124,7 +125,7 @@ func (b *Discord) Start(ctx context.Context) error {
 	// Open a websocket connection to Discord and begin listening.
 	err := b.api.Open()
 	if err != nil {
-		b.setFailureReason(health.FailureReasonConnectionError)
+		b.setFailureReason(health.FailureReasonConnectionError, fmt.Sprintf("while opening connection: %s", err.Error()))
 		return fmt.Errorf("while opening connection: %w", err)
 	}
 
@@ -134,7 +135,7 @@ func (b *Discord) Start(ctx context.Context) error {
 	}
 
 	b.log.Info("Botkube connected to Discord!")
-	b.setFailureReason("")
+	b.setFailureReason("", "")
 	go b.startMessageProcessor(ctx)
 	<-ctx.Done()
 	b.log.Info("Shutdown requested. Finishing...")
@@ -423,13 +424,14 @@ func discordError(err error, channel string) error {
 	return err
 }
 
-func (b *Discord) setFailureReason(reason health.FailureReasonMsg) {
+func (b *Discord) setFailureReason(reason health.FailureReasonMsg, errorMsg string) {
 	if reason == "" {
 		b.status = health.StatusHealthy
 	} else {
 		b.status = health.StatusUnHealthy
 	}
 	b.failureReason = reason
+	b.errorMsg = errorMsg
 }
 
 // GetStatus gets bot status.
@@ -438,5 +440,6 @@ func (b *Discord) GetStatus() health.PlatformStatus {
 		Status:   b.status,
 		Restarts: "0/0",
 		Reason:   b.failureReason,
+		ErrorMsg: b.errorMsg,
 	}
 }

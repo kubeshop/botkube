@@ -25,23 +25,24 @@ type PlatformStatus struct {
 	Status   PlatformStatusMsg `json:"status,omitempty"`
 	Restarts string            `json:"restarts,omitempty"`
 	Reason   FailureReasonMsg  `json:"reason,omitempty"`
+	ErrorMsg string            `json:"errorMsg,omitempty"`
 }
 
-// status defines bot agent status.
-type status struct {
-	Botkube   botStatus                 `json:"botkube"`
-	Plugins   map[string]pluginStatuses `json:"plugins,omitempty"`
-	Platforms platformStatuses          `json:"platforms,omitempty"`
+// Status defines bot agent status.
+type Status struct {
+	Botkube   BotStatus               `json:"botkube"`
+	Plugins   map[string]PluginStatus `json:"plugins,omitempty"`
+	Platforms platformStatuses        `json:"platforms,omitempty"`
 }
 
 type platformStatuses map[string]PlatformStatus
 
-type pluginStatuses struct {
+type PluginStatus struct {
 	Enabled  bool   `json:"enabled,omitempty"`
 	Status   string `json:"status,omitempty"`
 	Restarts string `json:"restarts,omitempty"`
 }
 
-type botStatus struct {
+type BotStatus struct {
 	Status BotkubeStatus `json:"status,omitempty"`
 }

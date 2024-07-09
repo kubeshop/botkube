@@ -39,6 +39,7 @@ func NewChecker(ctx context.Context, config *config.Config, stats *plugin.Health
 		ctx:                ctx,
 		config:             config,
 		pluginHealthStats:  stats,
+		notifiers:          map[string]Notifier{},
 	}
 }
 
@@ -60,7 +61,7 @@ func (h *Checker) ServeHTTP(resp http.ResponseWriter, _ *http.Request) {
 	}
 	resp.Header().Set("Content-Type", "application/json")
 
-	status := h.getStatus()
+	status := h.GetStatus()
 	respJSon, err := json.Marshal(status)
 	if err != nil {
 		http.Error(resp, err.Error(), http.StatusInternalServerError)
@@ -79,18 +80,18 @@ func (h *Checker) NewServer(log logrus.FieldLogger, port string) *httpx.Server {
 	return httpx.NewServer(log, addr, router)
 }
 
-// SetNotifiers sets platform bots instances.
-func (h *Checker) SetNotifiers(notifiers map[string]Notifier) {
-	h.notifiers = notifiers
+// AddNotifier add platform bot instance
+func (h *Checker) AddNotifier(key string, notifier Notifier) {
+	h.notifiers[key] = notifier
 }
 
-func (h *Checker) getStatus() *status {
-	pluginsStats := make(map[string]pluginStatuses)
+func (h *Checker) GetStatus() *Status {
+	pluginsStats := make(map[string]PluginStatus)
 	h.collectSourcePluginsStatuses(pluginsStats)
 	h.collectExecutorPluginsStatuses(pluginsStats)
 
-	return &status{
-		Botkube: botStatus{
+	return &Status{
+		Botkube: BotStatus{
 			Status: h.getBotkubeStatus(),
 		},
 		Plugins:   pluginsStats,
@@ -98,7 +99,7 @@ func (h *Checker) getStatus() *status {
 	}
 }
 
-func (h *Checker) collectSourcePluginsStatuses(plugins map[string]pluginStatuses) {
+func (h *Checker) collectSourcePluginsStatuses(plugins map[string]PluginStatus) {
 	if h.config == nil {
 		return
 	}
@@ -109,7 +110,7 @@ func (h *Checker) collectSourcePluginsStatuses(plugins map[string]pluginStatuses
 	}
 }
 
-func (h *Checker) collectExecutorPluginsStatuses(plugins map[string]pluginStatuses) {
+func (h *Checker) collectExecutorPluginsStatuses(plugins map[string]PluginStatus) {
 	if h.config == nil {
 		return
 	}
@@ -120,9 +121,9 @@ func (h *Checker) collectExecutorPluginsStatuses(plugins map[string]pluginStatus
 	}
 }
 
-func (h *Checker) collectPluginStatus(plugins map[string]pluginStatuses, pluginConfigName string, pluginName string, enabled bool) {
+func (h *Checker) collectPluginStatus(plugins map[string]PluginStatus, pluginConfigName string, pluginName string, enabled bool) {
 	status, restarts, threshold, _ := h.pluginHealthStats.GetStats(pluginName)
-	plugins[pluginConfigName] = pluginStatuses{
+	plugins[pluginConfigName] = PluginStatus{
 		Enabled:  enabled,
 		Status:   status,
 		Restarts: fmt.Sprintf("%d/%d", restarts, threshold),
