@@ -27,12 +27,12 @@ type DeploymentHeartbeatHealthInput struct {
 	Platforms []DeploymentHeartbeatHealthPlatformInput `json:"platforms,omitempty"`
 }
 
-type ReportHeartBeat struct {
+type ReportHeartbeat struct {
 	NodeCount int `json:"nodeCount"`
 }
 
 type HeartbeatReporter interface {
-	ReportHeartbeat(ctx context.Context, heartBeat ReportHeartBeat) error
+	ReportHeartbeat(ctx context.Context, heartBeat ReportHeartbeat) error
 }
 
 func GetReporter(logger logrus.FieldLogger, gql GraphQLClient, healthChecker health.Checker) HeartbeatReporter {

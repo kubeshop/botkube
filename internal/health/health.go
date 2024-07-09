@@ -39,6 +39,7 @@ func NewChecker(ctx context.Context, config *config.Config, stats *plugin.Health
 		ctx:                ctx,
 		config:             config,
 		pluginHealthStats:  stats,
+		notifiers:          map[string]Notifier{},
 	}
 }
 
@@ -79,9 +80,9 @@ func (h *Checker) NewServer(log logrus.FieldLogger, port string) *httpx.Server {
 	return httpx.NewServer(log, addr, router)
 }
 
-// SetNotifiers sets platform bots instances.
-func (h *Checker) SetNotifiers(notifiers map[string]Notifier) {
-	h.notifiers = notifiers
+// AddNotifier add platform bot instance
+func (h *Checker) AddNotifier(key string, notifier Notifier) {
+	h.notifiers[key] = notifier
 }
 
 func (h *Checker) GetStatus() *Status {

@@ -61,8 +61,6 @@ const (
 	reportHeartbeatMaxRetries = 30
 )
 
-var healthNotifiers = make(map[string]health.Notifier)
-
 func main() {
 	// Set up context
 	ctx := signals.SetupSignalHandler()
@@ -264,116 +262,78 @@ func run(ctx context.Context) (err error) {
 			Index: commGroupIdx + 1,
 		}
 
-		scheduleBotNotifier := func(in bot.Bot, key string) {
-			setHealthBotNotifier(in, key)
-			bots[key] = in
-			errGroup.Go(func() error {
-				defer analytics.ReportPanicIfOccurs(commGroupLogger, analyticsReporter)
-				return in.Start(ctx)
-			})
+		scheduleNotifier := func(provider func() (notifier.Platform, error)) {
+			app, err := provider()
+			key := fmt.Sprintf("%s-%s", commGroupName, app.IntegrationName())
+			if err != nil {
+				commGroupLogger.WithError(err).Errorf("while creating %s bot", app.IntegrationName())
+				healthChecker.AddNotifier(key, health.NewFailed(health.FailureReasonConnectionError, err.Error()))
+				return
+			}
+
+			healthChecker.AddNotifier(key, app)
+
+			switch platform := app.(type) {
+			case notifier.Sink:
+				sinkNotifiers = append(sinkNotifiers, platform)
+			case bot.Bot:
+				bots[key] = platform
+				errGroup.Go(func() error {
+					defer analytics.ReportPanicIfOccurs(commGroupLogger, analyticsReporter)
+					return platform.Start(ctx)
+				})
+			}
 		}
 
 		// Run bots
 		if commGroupCfg.SocketSlack.Enabled {
-			notifierKey := getNotifierKey(commGroupName, config.SocketSlackCommPlatformIntegration)
-			sb, err := bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupMeta, commGroupCfg.SocketSlack, executorFactory, analyticsReporter)
-			if err != nil {
-				errorMsg := fmt.Sprintf("while creating SocketSlack bot: %s", err.Error())
-				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
-				logger.Error(errorMsg)
-			} else {
-				scheduleBotNotifier(sb, notifierKey)
-			}
+			scheduleNotifier(func() (notifier.Platform, error) {
+				return bot.NewSocketSlack(commGroupLogger.WithField(botLogFieldKey, "SocketSlack"), commGroupMeta, commGroupCfg.SocketSlack, executorFactory, analyticsReporter)
+			})
 		}
 
 		if commGroupCfg.CloudSlack.Enabled {
-			notifierKey := getNotifierKey(commGroupName, config.CloudSlackCommPlatformIntegration)
-			sb, err := bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupMeta, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, analyticsReporter)
-			if err != nil {
-				errorMsg := fmt.Sprintf("while creating CloudSlack bot: %s", err.Error())
-				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
-				logger.Error(errorMsg)
-			} else {
-				scheduleBotNotifier(sb, notifierKey)
-			}
+			scheduleNotifier(func() (notifier.Platform, error) {
+				return bot.NewCloudSlack(commGroupLogger.WithField(botLogFieldKey, "CloudSlack"), commGroupMeta, commGroupCfg.CloudSlack, conf.Settings.ClusterName, executorFactory, analyticsReporter)
+			})
 		}
 
 		if commGroupCfg.Mattermost.Enabled {
-			notifierKey := getNotifierKey(commGroupName, config.MattermostCommPlatformIntegration)
-			mb, err := bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupMeta, commGroupCfg.Mattermost, executorFactory, analyticsReporter)
-			if err != nil {
-				errorMsg := fmt.Sprintf("while creating Mattermost bot: %s", err.Error())
-				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
-				logger.Error(errorMsg)
-			} else {
-				scheduleBotNotifier(mb, notifierKey)
-			}
+			scheduleNotifier(func() (notifier.Platform, error) {
+				return bot.NewMattermost(ctx, commGroupLogger.WithField(botLogFieldKey, "Mattermost"), commGroupMeta, commGroupCfg.Mattermost, executorFactory, analyticsReporter)
+			})
 		}
 
 		if commGroupCfg.CloudTeams.Enabled {
-			notifierKey := getNotifierKey(commGroupName, config.CloudTeamsCommPlatformIntegration)
-			ctb, err := bot.NewCloudTeams(commGroupLogger.WithField(botLogFieldKey, "CloudTeams"), commGroupMeta, commGroupCfg.CloudTeams, conf.Settings.ClusterName, executorFactory, analyticsReporter)
-			if err != nil {
-				errorMsg := fmt.Sprintf("while creating CloudTeams bot: %s", err.Error())
-				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
-				logger.Error(errorMsg)
-			} else {
-				scheduleBotNotifier(ctb, notifierKey)
-			}
+			scheduleNotifier(func() (notifier.Platform, error) {
+				return bot.NewCloudTeams(commGroupLogger.WithField(botLogFieldKey, "CloudTeams"), commGroupMeta, commGroupCfg.CloudTeams, conf.Settings.ClusterName, executorFactory, analyticsReporter)
+			})
 		}
 
 		if commGroupCfg.Discord.Enabled {
-			notifierKey := getNotifierKey(commGroupName, config.DiscordCommPlatformIntegration)
-			db, err := bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupMeta, commGroupCfg.Discord, executorFactory, analyticsReporter)
-			if err != nil {
-				errorMsg := fmt.Sprintf("while creating Discord bot: %s", err.Error())
-				setHealthBotNotifier(bot.NewBotFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
-				logger.Error(errorMsg)
-			} else {
-				scheduleBotNotifier(db, notifierKey)
-			}
+			scheduleNotifier(func() (notifier.Platform, error) {
+				return bot.NewDiscord(commGroupLogger.WithField(botLogFieldKey, "Discord"), commGroupMeta, commGroupCfg.Discord, executorFactory, analyticsReporter)
+			})
 		}
 
 		// Run sinks
 		if commGroupCfg.Elasticsearch.Enabled {
-			notifierKey := getNotifierKey(commGroupName, config.ElasticsearchCommPlatformIntegration)
-			es, err := sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupMeta.Index, commGroupCfg.Elasticsearch, analyticsReporter)
-			if err != nil {
-				errorMsg := fmt.Sprintf("while creating Elasticsearch sink: %s", err.Error())
-				setHealthSinkNotifier(sink.NewSinkFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
-				logger.Errorf(errorMsg)
-			} else {
-				setHealthSinkNotifier(es, notifierKey)
-				sinkNotifiers = append(sinkNotifiers, es)
-			}
+			scheduleNotifier(func() (notifier.Platform, error) {
+				return sink.NewElasticsearch(commGroupLogger.WithField(sinkLogFieldKey, "Elasticsearch"), commGroupMeta.Index, commGroupCfg.Elasticsearch, analyticsReporter)
+			})
 		}
 
 		if commGroupCfg.Webhook.Enabled {
-			notifierKey := getNotifierKey(commGroupName, config.WebhookCommPlatformIntegration)
-			wh, err := sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupMeta.Index, commGroupCfg.Webhook, analyticsReporter)
-			if err != nil {
-				errorMsg := fmt.Sprintf("while creating Webhook sink: %s", err.Error())
-				setHealthSinkNotifier(sink.NewSinkFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
-				logger.Errorf(errorMsg)
-			} else {
-				setHealthSinkNotifier(wh, notifierKey)
-				sinkNotifiers = append(sinkNotifiers, wh)
-			}
+			scheduleNotifier(func() (notifier.Platform, error) {
+				return sink.NewWebhook(commGroupLogger.WithField(sinkLogFieldKey, "Webhook"), commGroupMeta.Index, commGroupCfg.Webhook, analyticsReporter)
+			})
 		}
 		if commGroupCfg.PagerDuty.Enabled {
-			notifierKey := getNotifierKey(commGroupName, config.PagerDutyCommPlatformIntegration)
-			pd, err := sink.NewPagerDuty(commGroupLogger.WithField(sinkLogFieldKey, "PagerDuty"), commGroupMeta.Index, commGroupCfg.PagerDuty, conf.Settings.ClusterName, analyticsReporter)
-			if err != nil {
-				errorMsg := fmt.Sprintf("while creating PagerDuty sink: %s", err.Error())
-				setHealthSinkNotifier(sink.NewSinkFailed(health.FailureReasonConnectionError, errorMsg), notifierKey)
-				logger.Errorf(errorMsg)
-			} else {
-				setHealthSinkNotifier(pd, notifierKey)
-				sinkNotifiers = append(sinkNotifiers, pd)
-			}
+			scheduleNotifier(func() (notifier.Platform, error) {
+				return sink.NewPagerDuty(commGroupLogger.WithField(sinkLogFieldKey, "PagerDuty"), commGroupMeta.Index, commGroupCfg.PagerDuty, conf.Settings.ClusterName, analyticsReporter)
+			})
 		}
 	}
-	healthChecker.SetNotifiers(healthNotifiers)
 
 	if conf.ConfigWatcher.Enabled {
 		restarter := reloader.NewRestarter(
@@ -614,16 +574,4 @@ func findVersions(cli *kubernetes.Clientset) (string, string, error) {
 	}
 
 	return fmt.Sprintf("K8s Server Version: %s\nBotkube version: %s", k8sVer.String(), botkubeVersion), k8sVer.String(), nil
-}
-
-func setHealthBotNotifier(bot bot.HealthNotifierBot, key string) {
-	healthNotifiers[key] = bot
-}
-
-func setHealthSinkNotifier(sink sink.HealthNotifierSink, key string) {
-	healthNotifiers[key] = sink
-}
-
-func getNotifierKey(commGroupName string, commPlatformIntegration config.CommPlatformIntegration) string {
-	return fmt.Sprintf("%s-%s", commGroupName, commPlatformIntegration)
 }
