@@ -56,9 +56,11 @@ type SlackMessageAssertion func(content slack.Message) (bool, int, string)
 func (s *SlackChannel) ID() string {
 	return s.Channel.ID
 }
+
 func (s *SlackChannel) Name() string {
 	return s.Channel.Name
 }
+
 func (s *SlackChannel) Identifier() string {
 	return s.Channel.Name
 }
@@ -347,7 +349,7 @@ func (s *SlackTester) WaitForMessagePostedWithFileUpload(userID, channelID strin
 	var fetchedMessages []slack.Message
 	var lastErr error
 	err := wait.PollUntilContextTimeout(context.Background(), pollInterval, s.cfg.MessageWaitTimeout, false, func(ctx context.Context) (done bool, err error) {
-		fetchedMessages, err := s.getMessages(channelID, 2) // Fetching 2 messages, where the first one is the file itself and the second is the filter input.
+		fetchedMessages, err = s.getMessages(channelID, 2) // Fetching 2 messages, where the first one is the file itself and the second is the filter input.
 		if err != nil {
 			lastErr = err
 			return false, nil
