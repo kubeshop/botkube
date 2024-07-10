@@ -50,7 +50,7 @@ require (
 	github.com/segmentio/analytics-go v3.1.0+incompatible
 	github.com/sha1sum/aws_signing_client v0.0.0-20200229211254-f7815c59d5c1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/slack-go/slack v0.12.2
+	github.com/slack-go/slack v0.13.0
 	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
@@ -271,3 +271,5 @@ require (
 )
 
 replace github.com/hashicorp/go-getter v1.7.3 => github.com/kubeshop/go-getter v0.0.0-20240219121353-061e752b1b28
+
+replace github.com/slack-go/slack v0.13.0 => github.com/kubeshop/slack v0.0.0-20240710080407-1ca22ed3b567

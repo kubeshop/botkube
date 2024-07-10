@@ -22,7 +22,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/sanity-io/litter v1.5.5
-	github.com/slack-go/slack v0.12.3
+	github.com/slack-go/slack v0.13.0
 	github.com/stretchr/testify v1.9.0
 	github.com/vrischmann/envconfig v1.3.0
 	golang.org/x/oauth2 v0.16.0
@@ -243,4 +243,5 @@ require (
 replace (
 	github.com/DanielTitkov/go-adaptive-cards => github.com/kubeshop/go-adaptive-cards v0.0.0-20231114223529-d6d8b980f0c8
 	github.com/kubeshop/botkube => ./..
+	github.com/slack-go/slack v0.13.0 => github.com/kubeshop/slack v0.0.0-20240710080407-1ca22ed3b567
 )
