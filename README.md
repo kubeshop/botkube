@@ -28,7 +28,7 @@
 
 ## Overview
 
-Botkube is a troubleshooting and monitoring solution that empowers DevOps teams to work more efficiently, enables developers to troubleshoot their applications without special Kubernetes access or knowledge, and improves reliability by delivering timely, context-enhanced notifications about events in your Kubernetes environments. It integrates with multiple communication platforms, such as [Slack](https://botkube.io/integration/slack), [Microsoft Teams](https://botkube.io/integration/teams), [Discord](https://botkube.io/integration/discord), or [Mattermost](https://botkube.io/integration/mattermost). Botkube monitors events from various sources, allows you to securely run commands, and run automated actions triggered by any of the [plugins Botkube supports](https://botkube.io/integrations) or your [own custom plugins](https://botkube.io/integration/custom-executor-plugin).
+Botkube is a troubleshooting and monitoring solution that empowers DevOps teams to work more efficiently, enables developers to troubleshoot their applications without special Kubernetes access or knowledge, and improves reliability by delivering timely, context-enhanced notifications about events in your Kubernetes environments. It integrates with multiple communication platforms, such as [Slack](https://docs.botkube.io/installation/slack/), [Discord](https://docs.botkube.io/installation/discord/), or [Mattermost](https://docs.botkube.io/installation/mattermost/). Botkube monitors events from various sources, allows you to securely run commands, and run automated actions triggered by any of the [plugins Botkube supports](https://docs.botkube.io/plugins/) or your [own custom plugins](https://docs.botkube.io/plugins/development/).
 
 You can also execute `kubectl`, `helm` and other commands on your K8s, which helps debugging an application or cluster.
 
@@ -45,8 +45,6 @@ Follow [the official Botkube installation guide](https://docs.botkube.io/install
 ### 💬 Connect to your clusters from anywhere at any time
 
 Botkube integrates with all common messaging platforms including:
-
-- Microsoft Teams
 - Slack
 - Discord
 - Mattermost
@@ -58,10 +56,6 @@ Supercharge your technical workflow with our seamless alert consolidation and fi
 ### 🚀 See alerts, Take action
 
 Take your ChatOps experience to new heights and go beyond just monitoring. Seamlessly take action on your clusters with ease and efficiency. Access tools like `kubectl` and `helm` right from your collaboration workspace. Collaborate with other team members in real time.
-
-### 📖 Wait, there's more!
-
-Read more about Botkube features on [the official website](https://botkube.io/features/).
 
 ## Documentation
 
