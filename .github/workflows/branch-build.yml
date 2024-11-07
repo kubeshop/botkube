@@ -86,9 +86,9 @@ jobs:
 
       matrix:
         integration:
-          - slack
+          # - slack they are cloud based
+          # - teams they are cloud based
           - discord
-          - teams
 
     steps:
       - name: Checkout code

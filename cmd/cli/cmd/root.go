@@ -29,11 +29,6 @@ func NewRoot() *cobra.Command {
 
             $ <cli> install                              # Install Botkube
             $ <cli> uninstall                            # Uninstall Botkube
-
-        Botkube Cloud:
-
-            $ <cli> login                                # Login into Botkube Cloud
-            $ <cli> migrate                              # Automatically migrates Open Source installation into Botkube Cloud
             `, cli.Name),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -44,8 +39,6 @@ func NewRoot() *cobra.Command {
 	cli.RegisterVerboseModeFlag(rootCmd.PersistentFlags())
 
 	rootCmd.AddCommand(
-		NewLogin(),
-		NewMigrate(),
 		NewDocs(),
 		NewInstall(),
 		NewUninstall(),

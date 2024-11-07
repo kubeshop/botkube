@@ -224,7 +224,7 @@ func (r *SegmentReporter) Run(ctx context.Context) error {
 		case <-ticker.C:
 			err := r.reportHeartbeatEvent()
 			if err != nil {
-				r.log.WithError(err).Error("Failed to report heartbeat event")
+				r.log.WithError(err).Debug("Failed to report heartbeat event")
 				r.batchedData.IncrementTimeWindowInHours()
 				continue
 			}
