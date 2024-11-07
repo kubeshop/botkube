@@ -3,6 +3,8 @@ package analytics
 import (
 	"fmt"
 	"runtime/debug"
+
+	"github.com/sirupsen/logrus"
 )
 
 // FatalErrorAnalyticsReporter reports a fatal errors.
@@ -14,17 +16,11 @@ type FatalErrorAnalyticsReporter interface {
 	Close() error
 }
 
-// ReportPanicLogger is a fakeLogger interface used by ReportPanicIfOccurs function.
-type ReportPanicLogger interface {
-	Errorf(format string, args ...interface{})
-	Fatal(args ...interface{})
-}
-
 // ReportPanicIfOccurs recovers from a panic and reports it, and then calls log.Fatal.
 // This function should be called with `defer` at the beginning of the goroutine logic.
 //
 // NOTE: Make sure the reporter is not closed before reporting the panic. It will be cleaned up as a part of this function.
-func ReportPanicIfOccurs(logger ReportPanicLogger, reporter FatalErrorAnalyticsReporter) {
+func ReportPanicIfOccurs(log logrus.FieldLogger, reporter FatalErrorAnalyticsReporter) {
 	r := recover()
 	if r == nil {
 		return
@@ -33,15 +29,15 @@ func ReportPanicIfOccurs(logger ReportPanicLogger, reporter FatalErrorAnalyticsR
 	panicDetailsErr := fmt.Errorf("panic: %v\n\n%s", r, string(debug.Stack()))
 	err := reporter.ReportFatalError(panicDetailsErr)
 	if err != nil {
-		logger.Errorf("while reporting fatal error: %s", err.Error())
+		log.WithError(err).Debug("failed to report panic for analytics")
 	}
 
 	// Close the reader manually before exiting the app as it won't be cleaned up in other way.
 	closeErr := reporter.Close()
 	if closeErr != nil {
-		logger.Errorf("while closing the reporter: %s", closeErr.Error())
+		log.WithError(closeErr).Debug("failed to close analytics reporter")
 	}
 
 	// No other option than exiting the app
-	logger.Fatal(panicDetailsErr)
+	log.Fatal(panicDetailsErr)
 }

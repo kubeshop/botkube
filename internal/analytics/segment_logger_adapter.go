@@ -21,5 +21,6 @@ func (l *segmentLoggerAdapter) Logf(format string, args ...interface{}) {
 }
 
 func (l *segmentLoggerAdapter) Errorf(format string, args ...interface{}) {
-	l.log.Errorf(format, args...)
+	// Segment is optional component, we don't want to spam logs with errors.
+	l.log.Debugf(format, args...)
 }
