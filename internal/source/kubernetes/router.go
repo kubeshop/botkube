@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -156,7 +157,7 @@ func mergeResourceEvents(cfgs map[string]SourceConfig) mergedEvents {
 			if _, ok := out[resource.Type]; !ok {
 				out[resource.Type] = make(map[config.EventType]struct{})
 			}
-			for _, e := range flattenEventTypes(cfg.Event.Types, resource.Event.Types) {
+			for _, e := range flattenEventTypes(cfg.Event, resource.Event) {
 				out[resource.Type][e] = struct{}{}
 			}
 		}
@@ -178,7 +179,7 @@ func (r *Router) mergeEventRoutes(resource string, cfgs map[string]SourceConfig)
 		cfg := srcCfg.cfg
 		for idx := range cfg.Resources {
 			r := cfg.Resources[idx] // make sure that we work on a copy
-			for _, e := range flattenEventTypes(cfg.Event.Types, r.Event.Types) {
+			for _, e := range flattenEventTypes(cfg.Event, r.Event) {
 				if resource != r.Type {
 					continue
 				}
@@ -188,7 +189,7 @@ func (r *Router) mergeEventRoutes(resource string, cfgs map[string]SourceConfig)
 					Annotations:  resourceStringMap(cfg.Annotations, r.Annotations),
 					Labels:       resourceStringMap(cfg.Labels, r.Labels),
 					ResourceName: r.Name,
-					Event:        resourceEvent(*cfg.Event, r.Event),
+					Event:        resourceEvent(cfg.Event, r.Event),
 				}
 				if e == config.UpdateEvent {
 					route.UpdateSetting = &config.UpdateSetting{
@@ -248,7 +249,7 @@ func (r *Router) setEventRouteForRecommendationsIfShould(routeMap *map[config.Ev
 func eventRoutes(routeTable map[string][]entry, targetResource string, targetEvent config.EventType) []route {
 	var out []route
 	for _, routedEvent := range routeTable[targetResource] {
-		if routedEvent.Event == targetEvent {
+		if strings.EqualFold(string(routedEvent.Event), string(targetEvent)) {
 			out = append(out, routedEvent.Routes...)
 		}
 	}
@@ -287,10 +288,13 @@ func (r *Router) mappedInformer(event config.EventType) (registration, bool) {
 	return registration{}, false
 }
 
-func flattenEventTypes(globalEvents []config.EventType, resourceEvents config.KubernetesResourceEventTypes) []config.EventType {
-	checkEvents := globalEvents
-	if len(resourceEvents) > 0 {
-		checkEvents = resourceEvents
+func flattenEventTypes(globalEvents *config.KubernetesEvent, resourceEvents config.KubernetesEvent) []config.EventType {
+	var checkEvents []config.EventType
+	if globalEvents != nil {
+		checkEvents = globalEvents.Types
+	}
+	if len(resourceEvents.Types) > 0 {
+		checkEvents = resourceEvents.Types
 	}
 
 	var out []config.EventType
@@ -321,10 +325,10 @@ func resourceStringMap(sourceMap *map[string]string, resourceMap map[string]stri
 	return sourceMap
 }
 
-func resourceEvent(sourceEvent, resourceEvent config.KubernetesEvent) *config.KubernetesEvent {
+func resourceEvent(sourceEvent *config.KubernetesEvent, resourceEvent config.KubernetesEvent) *config.KubernetesEvent {
 	if resourceEvent.AreConstraintsDefined() {
 		return &resourceEvent
 	}
 
-	return &sourceEvent
+	return sourceEvent
 }
