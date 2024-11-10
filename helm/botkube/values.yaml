@@ -487,6 +487,10 @@ executors:
       #      # Configures which K8s resource are displayed in resources dropdown.
       #      resources: [ "deployments", "pods", "namespaces", "daemonsets", "statefulsets", "storageclasses", "nodes", "configmaps", "services", "ingresses", "replicasets", "secrets", "cronjobs", "jobs" ]
       context: *default-plugin-context
+    botkubeExtra/helm:
+      displayName: "Helm"
+      enabled: true
+      context: *default-plugin-context
 
 # -- Custom aliases for given commands.
 # The aliases are replaced with the underlying command before executing it.
@@ -909,6 +913,8 @@ plugins:
     botkube:
       url: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
       # headers: {} # optional headers for plugins repository.
+    botkubeExtra:
+      url: https://github.com/kubeshop/botkube-plugins/releases/download/v1.14.0/plugins-index.yaml
 
   # -- Configure Incoming webhook for source plugins.
   incomingWebhook:
