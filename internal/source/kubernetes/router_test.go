@@ -74,6 +74,40 @@ func TestRouter_BuildTable_CreatesRoutesWithProperEventsList(t *testing.T) {
 	}
 }
 
+func TestRouter_BuildTable_WithoutRootTypes(t *testing.T) {
+	const resourceType = "autoscaling/v2/horizontalpodautoscalers"
+
+	givenCfg := map[string]SourceConfig{
+		"k8s-events": {
+			name: "k8s-events",
+			cfg: config.Config{
+				Resources: []config.Resource{
+					{
+						Type: resourceType,
+						Event: config.KubernetesEvent{
+							Reason: config.RegexConstraints{
+								Include: []string{
+									"SuccessfulRescale",
+								},
+							},
+							Types: config.KubernetesResourceEventTypes{
+								"Normal",
+							},
+						},
+					},
+				},
+				Namespaces: &config.RegexConstraints{
+					Include: []string{
+						".*",
+					},
+				},
+			},
+		},
+	}
+	router := NewRouter(nil, nil, loggerx.NewNoop()).BuildTable(givenCfg)
+	assert.Len(t, router.getSourceRoutes(resourceType, config.NormalEvent), 1)
+}
+
 func TestRouterListMergingNestedFields(t *testing.T) {
 	// given
 	router := NewRouter(nil, nil, loggerx.NewNoop())
