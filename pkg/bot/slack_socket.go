@@ -8,7 +8,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/google/uuid"
+	"github.com/sanity-io/litter"
 	"github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -531,10 +533,10 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interacti
 		}
 
 		// Upload message as a file if too long
-		var file *slack.File
+		var file *slack.FileSummary
 		var err error
 		if len(markdown) >= slackMaxMessageSize {
-			file, err = uploadFileToSlack(ctx, event.Channel, resp, b.client, event.ThreadTimeStamp)
+			file, err = b.uploadFileToSlack(ctx, event.Channel, resp, event.ThreadTimeStamp)
 			if err != nil {
 				return err
 			}
@@ -564,7 +566,7 @@ func (b *SocketSlack) send(ctx context.Context, event slackMessage, in interacti
 			// if the message should be sent in thread, but thread is not yet started, then use the root message timestamp
 			event.ThreadTimeStamp = event.RootMessageTimeStamp
 		}
-		if ts := b.getThreadOptionIfNeeded(event, file); ts != nil {
+		if ts := b.getThreadOptionIfNeeded(ctx, event, file); ts != nil {
 			options = append(options, ts)
 		}
 
@@ -707,7 +709,7 @@ func resolveBlockActionCommand(act slack.BlockAction) (string, command.Origin) {
 	return cmd, cmdOrigin
 }
 
-func (b *SocketSlack) getThreadOptionIfNeeded(event slackMessage, file *slack.File) slack.MsgOption {
+func (b *SocketSlack) getThreadOptionIfNeeded(ctx context.Context, event slackMessage, file *slack.FileSummary) slack.MsgOption {
 	//if the message is from thread then add an option to return the response to the thread
 	if event.ThreadTimeStamp != "" {
 		return slack.MsgOptionTS(event.ThreadTimeStamp)
@@ -717,11 +719,45 @@ func (b *SocketSlack) getThreadOptionIfNeeded(event slackMessage, file *slack.Fi
 		return nil
 	}
 
-	// If the message was already as a file attachment, reply it a given thread
-	for _, share := range file.Shares.Public {
-		if len(share) >= 1 && share[0].Ts != "" {
-			return slack.MsgOptionTS(share[0].Ts)
+	var ts string
+	err := b.withRetry(ctx, func() error {
+		info, _, _, err := b.client.GetFileInfoContext(ctx, file.ID, 100, 1)
+		if err != nil {
+			fmt.Println(err)
+			return err
 		}
+
+		for _, share := range info.Shares.Public {
+			if len(share) >= 1 && share[0].Ts != "" {
+				ts = share[0].Ts
+				return nil
+			}
+		}
+
+		litter.Dump(info)
+		return fmt.Errorf("file was not yet processed")
+	})
+	if err != nil {
+		b.log.WithError(err).Error("Cannot get file share info. Sending message without thread option.")
+		return nil
+	}
+
+	if ts != "" {
+		return slack.MsgOptionTS(ts)
+	}
+
+	return nil
+}
+
+func (b *SocketSlack) withRetry(ctx context.Context, fn func() error) error {
+	err := retry.Do(
+		fn,
+		retry.Attempts(maxRetries),
+		retry.LastErrorOnly(true),
+		retry.Context(ctx),
+	)
+	if err != nil {
+		return fmt.Errorf("while retrying: %w", err)
 	}
 
 	return nil
@@ -766,17 +802,19 @@ func (b *SocketSlack) GetStatus() health.PlatformStatus {
 	}
 }
 
-func uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, client *slack.Client, ts string) (*slack.File, error) {
-	params := slack.FileUploadParameters{
+func (b *SocketSlack) uploadFileToSlack(ctx context.Context, channel string, resp interactive.CoreMessage, ts string) (*slack.FileSummary, error) {
+	content := interactive.MessageToPlaintext(resp, interactive.NewlineFormatter)
+	params := slack.UploadFileV2Parameters{
 		Filename:        "Response.txt",
 		Title:           "Response.txt",
 		InitialComment:  resp.Description,
-		Content:         interactive.MessageToPlaintext(resp, interactive.NewlineFormatter),
-		Channels:        []string{channel},
+		Content:         content,
+		FileSize:        len(content),
+		Channel:         channel,
 		ThreadTimestamp: ts,
 	}
 
-	file, err := client.UploadFileContext(ctx, params)
+	file, err := b.client.UploadFileV2Context(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("while uploading file: %w", err)
 	}

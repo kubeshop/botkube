@@ -621,6 +621,7 @@ func (b *CloudSlack) uploadFileToSlack(ctx context.Context, event slackMessage, 
 		ThreadTimestamp: b.resolveMessageTimestamp(resp, event),
 	}
 
+	//nolint:staticcheck
 	file, err := b.client.UploadFileContext(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("while uploading file: %w", err)

@@ -22,7 +22,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/sanity-io/litter v1.5.5
-	github.com/slack-go/slack v0.12.3
+	github.com/slack-go/slack v0.15.0
 	github.com/stretchr/testify v1.9.0
 	github.com/vrischmann/envconfig v1.3.0
 	golang.org/x/oauth2 v0.16.0
@@ -105,7 +105,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/gookit/color v1.5.2 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
-	github.com/gorilla/websocket v1.5.1 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230110080634-edea822f558a // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
