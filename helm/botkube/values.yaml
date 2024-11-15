@@ -911,7 +911,7 @@ plugins:
   repositories:
     # -- This repository serves officially supported Botkube plugins.
     botkube:
-      url: https://storage.googleapis.com/botkube-plugins-latest/plugins-index.yaml
+      url: https://github.com/kubeshop/botkube/releases/download/v1.14.0/plugins-index.yaml
       # headers: {} # optional headers for plugins repository.
     botkubeExtra:
       url: https://github.com/kubeshop/botkube-plugins/releases/download/v1.14.0/plugins-index.yaml
