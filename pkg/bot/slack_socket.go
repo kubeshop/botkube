@@ -200,8 +200,8 @@ func (b *SocketSlack) Start(ctx context.Context) error {
 
 						b.messages <- msg
 					case *slackevents.AppMentionEvent:
-						if ev.BotID != "" {
-							b.log.Infof("Not reacting to own messages, or anything from other bots")
+						if ev.BotID == b.botID {
+							b.log.Infof("Not reacting to own messages")
 							continue
 						}
 						b.log.Debugf("Got app mention %s", formatx.StructDumper().Sdump(innerEvent))
