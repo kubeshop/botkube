@@ -1,6 +1,6 @@
 module botkube.io/botube/test
 
-go 1.21
+go 1.25
 
 require (
 	cloud.google.com/go/pubsub v1.35.0

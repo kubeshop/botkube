@@ -1,6 +1,6 @@
-module botkube.io/demo
+module botkube-plugins
 
-go 1.18
+go 1.25
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible

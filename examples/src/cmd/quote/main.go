@@ -5,7 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"botkube.io/demo/internal/quote"
+	"botkube-plugins/internal/quote"
+
 	"github.com/sirupsen/logrus"
 	"github.com/vrischmann/envconfig"
 )

@@ -66,7 +66,7 @@ func (b *SlackRenderer) RenderInteractiveMessage(msg interactive.CoreMessage) sl
 func (b *SlackRenderer) RenderAsSlackBlocks(msg interactive.CoreMessage) []slack.Block {
 	var blocks []slack.Block
 	if msg.Header != "" {
-		blocks = append(blocks, b.mdTextSection("*%s*", msg.Header))
+		blocks = append(blocks, b.mdTextSectionf("*%s*", msg.Header))
 	}
 
 	if msg.Description != "" {
@@ -164,7 +164,7 @@ func (b *SlackRenderer) renderAsSimpleTextSection(msg interactive.CoreMessage) s
 func (b *SlackRenderer) renderSection(in api.Section) []slack.Block {
 	var out []slack.Block
 	if in.Header != "" {
-		out = append(out, b.mdTextSection("*%s*", in.Header))
+		out = append(out, b.mdTextSectionf("*%s*", in.Header))
 	}
 
 	if in.Description != "" {
@@ -409,8 +409,15 @@ func (*SlackRenderer) intWithMax(a, max int) int {
 	return a
 }
 
-func (*SlackRenderer) mdTextSection(in string, args ...any) *slack.SectionBlock {
-	msg := fmt.Sprintf(in, args...)
+func (*SlackRenderer) mdTextSection(msg string) *slack.SectionBlock {
+	return slack.NewSectionBlock(
+		slack.NewTextBlockObject(slack.MarkdownType, msg, false, false),
+		nil, nil,
+	)
+}
+
+func (*SlackRenderer) mdTextSectionf(format string, args ...any) *slack.SectionBlock {
+	msg := fmt.Sprintf(format, args...)
 	return slack.NewSectionBlock(
 		slack.NewTextBlockObject(slack.MarkdownType, msg, false, false),
 		nil, nil,
