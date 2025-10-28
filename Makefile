@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := build
-.PHONY: container-image test test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources gen-plugins-index build-plugins build-plugins-single gen-docs-cli gen-plugins-goreleaser serve-local-plugins
+.PHONY: container-image test test-coverage test-integration-slack test-integration-discord build pre-build publish lint lint-fix go-import-fmt system-check save-images load-and-push-images gen-grpc-resources gen-plugins-index build-plugins build-plugins-single gen-docs-cli gen-plugins-goreleaser serve-local-plugins
 
 # Show this help.
 help:
@@ -19,6 +19,20 @@ go-import-fmt:
 # test
 test: system-check
 	@go test -v  -race ./...
+
+# Run tests with coverage
+test-coverage: system-check
+	@echo "Running tests with coverage..."
+	@go test -race -coverprofile=coverage.out -covermode=atomic ./... 2>&1 | { grep -v "go: no such tool" || true; } | { grep -v "has malformed LC_DYSYMTAB" || true; }
+	@if [ ! -f coverage.out ]; then echo "Coverage generation failed"; exit 1; fi
+	@echo "\nCoverage Summary:"
+	@go tool cover -func=coverage.out | tail -1
+	@echo "\nTop 10 Packages with Lowest Coverage:"
+	@go test -race -cover ./... 2>&1 | grep -E "ok.*coverage:" | sort -t: -k2 -n | head -10
+	@echo "\nTop 10 Packages with Highest Coverage:"
+	@go test -race -cover ./... 2>&1 | grep -E "ok.*coverage:" | sort -t: -k2 -rn | head -10
+	@echo "\nDetailed coverage report saved to coverage.out"
+	@echo "Run 'go tool cover -html=coverage.out' to view HTML coverage report"
 
 test-integration-slack: system-check
 	@cd ./test; go test -timeout=20m -v -tags=integration -race -count=1 ./e2e/... -run "TestSlack"

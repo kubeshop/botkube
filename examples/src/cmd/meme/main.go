@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vrischmann/envconfig"
 
-	"botkube.io/demo/internal/meme"
+	"botkube-plugins/internal/meme"
 )
 
 // Config holds the application configuration.

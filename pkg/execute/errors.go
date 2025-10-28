@@ -16,8 +16,13 @@ type ExecutionCommandError struct {
 	msg string
 }
 
-// NewExecutionCommandError creates a new ExecutionCommandError instance. Messages should be suitable to be printed to the end user.
-func NewExecutionCommandError(format string, args ...any) *ExecutionCommandError {
+// NewExecutionCommandError creates a new ExecutionCommandError instance from a plain message.
+func NewExecutionCommandError(msg string) *ExecutionCommandError {
+	return &ExecutionCommandError{msg: msg}
+}
+
+// NewExecutionCommandErrorf creates a new ExecutionCommandError instance with formatting.
+func NewExecutionCommandErrorf(format string, args ...any) *ExecutionCommandError {
 	return &ExecutionCommandError{msg: fmt.Sprintf(format, args...)}
 }
 

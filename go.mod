@@ -1,6 +1,6 @@
 module github.com/kubeshop/botkube
 
-go 1.21
+go 1.25
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
