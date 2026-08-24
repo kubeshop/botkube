@@ -44,6 +44,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/httpx"
 	"github.com/kubeshop/botkube/pkg/loggerx"
 	"github.com/kubeshop/botkube/pkg/maputil"
+	"github.com/kubeshop/botkube/pkg/metrics"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/plugin"
@@ -108,6 +109,9 @@ func run(ctx context.Context) (err error) {
 	if conf == nil {
 		return fmt.Errorf("configuration cannot be nil")
 	}
+
+	metricsReporter := metrics.NewPrometheusReporter()
+	metricsReporter.UpdateConfigurationMetrics(*conf)
 
 	logger := loggerx.New(conf.Settings.Log)
 	if confDetails.ValidateWarnings != nil {
@@ -237,6 +241,7 @@ func run(ctx context.Context) (err error) {
 			RestCfg:           kubeConfig,
 			AuditReporter:     auditReporter,
 			PluginHealthStats: pluginHealthStats,
+			MetricsReporter:   metricsReporter,
 		},
 	)
 	if err != nil {
@@ -396,7 +401,7 @@ func run(ctx context.Context) (err error) {
 
 	actionProvider := action.NewProvider(logger.WithField(componentLogFieldKey, "Action Provider"), conf.Actions, executorFactory)
 
-	sourcePluginDispatcher := source.NewDispatcher(logger, conf.Settings.ClusterName, bots, sinkNotifiers, pluginManager, actionProvider, analyticsReporter, auditReporter, kubeConfig)
+	sourcePluginDispatcher := source.NewDispatcher(logger, conf.Settings.ClusterName, bots, sinkNotifiers, pluginManager, actionProvider, analyticsReporter, auditReporter, kubeConfig, metricsReporter)
 	scheduler := source.NewScheduler(ctx, logger, conf, sourcePluginDispatcher, schedulerChan)
 	err = scheduler.Start(ctx)
 	if err != nil {

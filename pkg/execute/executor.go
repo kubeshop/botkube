@@ -19,6 +19,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/execute/alias"
 	"github.com/kubeshop/botkube/pkg/execute/command"
 	"github.com/kubeshop/botkube/pkg/formatx"
+	"github.com/kubeshop/botkube/pkg/metrics"
 	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
@@ -62,6 +63,7 @@ type DefaultExecutor struct {
 	auditReporter         audit.AuditReporter
 	pluginHealthStats     *plugin.HealthStats
 	auditContext          map[string]interface{}
+	metricsReporter       metrics.Reporter
 }
 
 // Execute executes commands and returns output
@@ -274,6 +276,12 @@ func (e *DefaultExecutor) reportCommand(ctx context.Context, pluginName, cmd str
 	if err := e.reportAuditEvent(ctx, pluginName, cmdCtx); err != nil {
 		e.log.Errorf("while reporting executor audit event for %s: %s", cmd, err.Error())
 	}
+
+	executorName := "botkube"
+	if pluginName != "" {
+		executorName = pluginName
+	}
+	e.metricsReporter.ReportCommandExecuted(executorName)
 }
 
 func (e *DefaultExecutor) reportAuditEvent(ctx context.Context, pluginName string, cmdCtx CommandContext) error {

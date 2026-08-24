@@ -13,6 +13,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
 	"github.com/kubeshop/botkube/pkg/execute/command"
+	"github.com/kubeshop/botkube/pkg/metrics"
 	"github.com/kubeshop/botkube/pkg/plugin"
 )
 
@@ -35,6 +36,7 @@ type DefaultExecutorFactory struct {
 	cmdsMapping           *CommandMapping
 	auditReporter         audit.AuditReporter
 	pluginHealthStats     *plugin.HealthStats
+	metricsReporter       metrics.Reporter
 }
 
 // DefaultExecutorFactoryParams contains input parameters for DefaultExecutorFactory.
@@ -49,6 +51,7 @@ type DefaultExecutorFactoryParams struct {
 	BotKubeVersion    string
 	AuditReporter     audit.AuditReporter
 	PluginHealthStats *plugin.HealthStats
+	MetricsReporter   metrics.Reporter
 }
 
 // Executor is an interface for processes to execute commands
@@ -157,6 +160,7 @@ func NewExecutorFactory(params DefaultExecutorFactoryParams) (*DefaultExecutorFa
 		cmdsMapping:           mappings,
 		auditReporter:         params.AuditReporter,
 		pluginHealthStats:     params.PluginHealthStats,
+		metricsReporter:       params.MetricsReporter,
 	}, nil
 }
 
@@ -212,6 +216,7 @@ func (f *DefaultExecutorFactory) NewDefault(cfg NewDefaultInput) Executor {
 		cmdsMapping:           f.cmdsMapping,
 		auditReporter:         f.auditReporter,
 		pluginHealthStats:     f.pluginHealthStats,
+		metricsReporter:       f.metricsReporter,
 		user:                  cfg.User,
 		notifierHandler:       cfg.NotifierHandler,
 		conversation:          cfg.Conversation,

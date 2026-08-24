@@ -18,6 +18,7 @@ import (
 	"github.com/kubeshop/botkube/pkg/bot"
 	"github.com/kubeshop/botkube/pkg/bot/interactive"
 	"github.com/kubeshop/botkube/pkg/config"
+	"github.com/kubeshop/botkube/pkg/metrics"
 	"github.com/kubeshop/botkube/pkg/multierror"
 	"github.com/kubeshop/botkube/pkg/notifier"
 	"github.com/kubeshop/botkube/pkg/plugin"
@@ -35,6 +36,7 @@ type Dispatcher struct {
 	sinkNotifiers        []notifier.Sink
 	restCfg              *rest.Config
 	clusterName          string
+	metricsReporter      metrics.Reporter
 }
 
 // ActionProvider defines a provider that is responsible for automated actions.
@@ -59,7 +61,7 @@ type AnalyticsReporter interface {
 }
 
 // NewDispatcher create a new Dispatcher instance.
-func NewDispatcher(log logrus.FieldLogger, clusterName string, notifiers map[string]bot.Bot, sinkNotifiers []notifier.Sink, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter, restCfg *rest.Config) *Dispatcher {
+func NewDispatcher(log logrus.FieldLogger, clusterName string, notifiers map[string]bot.Bot, sinkNotifiers []notifier.Sink, manager *plugin.Manager, actionProvider ActionProvider, reporter AnalyticsReporter, auditReporter audit.AuditReporter, restCfg *rest.Config, metricsReporter metrics.Reporter) *Dispatcher {
 	var (
 		interactiveNotifiers []notifier.Bot
 		markdownNotifiers    []notifier.Bot
@@ -84,6 +86,7 @@ func NewDispatcher(log logrus.FieldLogger, clusterName string, notifiers map[str
 		sinkNotifiers:        sinkNotifiers,
 		restCfg:              restCfg,
 		clusterName:          clusterName,
+		metricsReporter:      metricsReporter,
 	}
 }
 
@@ -187,6 +190,8 @@ func (d *Dispatcher) dispatchMsg(ctx context.Context, event source.Event, dispat
 		pluginName = dispatch.pluginName
 		sources    = []string{dispatch.sourceName}
 	)
+
+	d.metricsReporter.ReportEventEvaluated(dispatch.sourceName)
 
 	for _, n := range d.getBotNotifiers(dispatch) {
 		go func(n notifier.Bot) {
