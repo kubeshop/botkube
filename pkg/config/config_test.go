@@ -402,6 +402,21 @@ func TestRegexConstraints_IsAllowed(t *testing.T) {
 			givenNs:   "",
 			isAllowed: true,
 		},
+		"should allow non-excluded value when only exclude is set": {
+			nsConfig:  config.RegexConstraints{Exclude: []string{"demo"}},
+			givenNs:   "other",
+			isAllowed: true,
+		},
+		"should ignore excluded value when only exclude is set": {
+			nsConfig:  config.RegexConstraints{Exclude: []string{"demo"}},
+			givenNs:   "demo",
+			isAllowed: false,
+		},
+		"should ignore value matched by regex when only exclude is set": {
+			nsConfig:  config.RegexConstraints{Exclude: []string{"my-.*"}},
+			givenNs:   "my-ns",
+			isAllowed: false,
+		},
 		"invalid exclude regex": {
 			nsConfig:           config.RegexConstraints{Include: []string{".*"}, Exclude: []string{"["}},
 			givenNs:            "demo",

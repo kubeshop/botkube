@@ -434,6 +434,7 @@ func (r *RegexConstraints) AreConstraintsDefined() bool {
 
 // IsAllowed checks if a given value is allowed based on the config.
 // Firstly, it checks if the value is excluded. If not, then it checks if the value is included.
+// If Include is not defined, any value that isn't excluded is allowed.
 func (r *RegexConstraints) IsAllowed(value string) (bool, error) {
 	if r == nil {
 		return false, nil
@@ -461,26 +462,29 @@ func (r *RegexConstraints) IsAllowed(value string) (bool, error) {
 		}
 	}
 
-	// 2. Check if included, if matched, return true
-	if len(r.Include) > 0 {
-		for _, includeValue := range r.Include {
-			// exact match
-			if includeValue == value {
-				return true, nil
-			}
+	// 2. If Include is not defined, everything not excluded above is allowed.
+	if len(r.Include) == 0 {
+		return true, nil
+	}
 
-			// regexp
-			matched, err := regexp.MatchString(includeValue, value)
-			if err != nil {
-				return false, fmt.Errorf("while matching %q with include regex %q: %v", value, includeValue, err)
-			}
-			if matched {
-				return true, nil
-			}
+	// 3. Check if included, if matched, return true
+	for _, includeValue := range r.Include {
+		// exact match
+		if includeValue == value {
+			return true, nil
+		}
+
+		// regexp
+		matched, err := regexp.MatchString(includeValue, value)
+		if err != nil {
+			return false, fmt.Errorf("while matching %q with include regex %q: %v", value, includeValue, err)
+		}
+		if matched {
+			return true, nil
 		}
 	}
 
-	// 2.1. If not included, return false
+	// 3.1. If not included, return false
 	return false, nil
 }
 
